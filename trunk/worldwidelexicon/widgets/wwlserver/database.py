@@ -1032,13 +1032,20 @@ class Queue(db.Model):
     sl = db.StringProperty(default='')
     tl = db.StringProperty(default='')
     st = db.TextProperty(default='')
+    tt = db.TextProperty(default='')
     domain = db.StringProperty(default='')
     url = db.StringProperty(default='')
+    translated = db.BooleanProperty(default=False)
     completed = db.BooleanProperty(default=False)
     createdon = db.DateTimeProperty(auto_now_add=True)
     completedon = db.DateTimeProperty()
     lsp = db.StringProperty(default='')
     username = db.StringProperty(default='')
+    avgscore = db.FloatProperty()
+    numscores = db.IntegerProperty(default=0)
+    scoredby = db.ListProperty(str)
+    scores = db.ListProperty(str)
+    scored = db.BooleanProperty(default = False)
     @staticmethod
     def add(sl, tl, st, domain='', url='', lsp=''):
         st = clean(st)
@@ -1062,6 +1069,43 @@ class Queue(db.Model):
                 item.lsp = lsp
                 item.put()
                 return True
+            else:
+                return False
+        else:
+            return False
+    @staticmethod
+    def submit(guid, tt, username, pw, remote_addr):
+        if len(guid) > 0 and len(tt) > 0:
+            tdb = db.Query(Queue)
+            tdb.filter('guid = ', guid)
+            item = db.get()
+            if item is not None:
+                sl = item.sl
+                tl = item.tl
+                st = item.st
+                tt = item.tt
+                domain = item.domain
+                url = item.url
+                m = md5.new()
+                m.update(guid)
+                m.update(str(datetime.datetime.now()))
+                md5hash = str(m.hexdigest())
+                tdb = db.Query(Queue)
+                tdb.filter('guid = ', md5hash)
+                item = tdb.get()
+                if item is None:
+                    item.sl = sl
+                    item.tl = tl
+                    item.st = st
+                    item.tt = tt
+                    item.translated = True
+                    item.domain = domain
+                    item.url = url
+                    item.scored = False
+                    item.put()
+                    return True
+                else:
+                    return False
             else:
                 return False
         else:
@@ -1100,6 +1144,83 @@ class Queue(db.Model):
         if item is not None:
             item.completed = True
             return True
+        else:
+            return False
+    @staticmethod
+    def getitemstoscore(guid='', domain='', url='', sl='', tl='', lsp='', limit=10):
+        tdb = db.Query(Queue)
+        if len(guid) > 0:
+            tdb.filter('guid = ', guid)
+        if len(domain) > 0:
+            tdb.filter('domain = ', domain)
+        if len(url) > 0:
+            tdb.filter('url = ', url)
+        if len(sl) > 1:
+            tdb.filter('sl = ', sl)
+        if len(tl) > 1:
+            tdb.filter('tl = ', tl)
+        if len(lsp) > 0:
+            tdb.filter('lsp = ', lsp)
+        tdb.filter('scored = ', False)
+        tdb.filter('translated = ', True)
+        results = tdb.fetch(limit = limit)
+        return results
+    @staticmethod
+    def getitemstotranslate(guid = '', domain='', url='', sl='', tl='', lsp='', limit=10):
+        tdb = db.Query(Queue)
+        if len(guid) > 0:
+            tdb.filter('guid = ', guid)
+        if len(domain) > 0:
+            tdb.filter('domain = ', domain)
+        if len(url) > 0:
+            tdb.filter('url = ', url)
+        if len(sl) > 1:
+            tdb.filter('sl = ', sl)
+        if len(tl) > 1:
+            tdb.filter('tl = ', tl)
+        if len(lsp) > 0:
+            tdb.filter('lsp = ', lsp)
+        tdb.filter('translated = ', False)
+        results = tdb.fetch(limit = limit)
+        return results        
+    @staticmethod
+    def score(guid, username, pw, remote_addr, score):
+        if len(guid) > 8 and len(remote_addr) > 0:
+            if len(username) > 0:
+                session = Users.auth(username, pw, remote_addr)
+                validuser = True
+                if not validuser:
+                    return False
+            else:
+                validuser = True
+                username = remote_addr
+            tdb = db.Query(Queue)
+            tdb.filter('guid = ', guid)
+            item = tdb.get()
+            if item is not None:
+                numscores = item.numscores
+                if numscores is None:
+                    numscores = 1
+                else:
+                    numscores = numscores + 1
+                if username not in item.scoredby:
+                    scoredby = item.scoredby
+                    scoredby.append(username)
+                    item.scoredby = scoredby
+                    scores = item.scores
+                    scores.append(score)
+                    item.scores = scores
+                    rawscore = 0
+                    numscores = 0
+                    for s in scores:
+                        rawscore = rawscore + int(s)
+                        numscores = numscores + 1
+                    avgscore = float(rawscore/numscores)
+                    item.avgscore = avgscore
+                    item.put()
+                    return True
+                else:
+                    return False
         else:
             return False
     
