@@ -98,6 +98,66 @@ class ProxyController(webapp.RequestHandler):
         self.response.out.write('lspusername=foo\n')
         self.response.out.write('lsppw=bar\n')
 
+class ProxyRegister(webapp.RequestHandler):
+    """
+    /proxy/register
+
+    This web service is used to register a new site with a WWL proxy server via a quick signup process.
+    This lives behind a form that is used to submit registration data, and then redirects to an admin
+    screen.
+
+    To register, a user provides:
+
+    * Their email address (used as their WWL username)
+    * Password (an account is created if they do not already have one)
+    * Their main URL (e.g. www.yoursite.com)
+    * The language they publish in
+
+    The web service will activate their account and then auto-enable machine translation for all
+    subdomains, and will tell the user where to point their subdomains to.
+
+    The user will go to www.worldwidelexicon.org/proxy/admin to manage their services, and will also
+    be sent a verification email to unlock their WWL account.
+    """
+    def get(self):
+        self.requesthandler()
+    def post(self):
+        self.requesthandler()
+    def requesthandler(self):
+        email = self.request.get('email')
+        pw = self.request.get('pw')
+        pw2 = self.request.get('pw2')
+        domain = self.request.get('domain')
+        sl = self.request.get('sl')
+        remote_addr = self.request.remote_addr
+        success_url = '/proxy/admin'
+        error_url = '/proxy/error/login'
+        if len(email) < 8 or len(pw) < 6 or len(domain) < 3 or len(sl) < 2:
+            self.redirect(error_url)
+        else:
+            pass
+
+class ProxyAdmin(webapp.RequestHandler):
+    """
+    /proxy/admin
+
+    This web service is used to manage translation settings for WWL proxy servers. Website owners can use this tool to:
+
+    * Enable/Disable languages
+    * Control machine translation settings
+    * Control community translation settings
+    * Control professional translation settings
+
+    The control panel provides a similar set of options as the Word Press translator addon. 
+    
+    """
+    def get(self):
+        self.requesthandler()
+    def post(self):
+        self.requesthandler()
+    def requesthandler(self):
+        pass
+
 class ProxySubmit(webapp.RequestHandler):
     """
     /proxy/submit
