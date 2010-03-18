@@ -1,0 +1,107 @@
+<h3>A Blueprint for the Multilingual Web</h3>
+<em>Brian McConnell, Worldwide Lexicon Project</em>
+<br><br>
+
+This is a companion article to the essay, <a href=/s/essay.html>The End of the Language Barrier</a>. This article explains in more detail how to build a multilingual web. If you are interested in contributing to any of these development projects, email me (bsmcconnell at gmail). You can additional details in companion articles about:<br><br>
+<ul><li><a href=/s/browsers.html>Multilingual Browsers and Web APIs</a></li>
+<li>Multilingual Servers</li>
+<li>Language Service Providers</li>
+<li><a href=/s/transkit.html>TransKit Module and API</a></li>
+</ul>
+
+<h4>Introduction</h4>
+
+As I discussed in my essay, the multilingual web will not be a single system, but instead will be built from several components that work together to eliminate the language barrier for most users. To built this, we need the following things:<br><br>
+
+<ul>
+<li>Multilingual web browsers (where translation services are built into the browser)</li>
+<li>Multilingual servers (web servers, proxy servers and other systems that translate documents as they are transmitted to visitors)</li>
+<li>Global translation memory</li>
+<li>Connections to language services</li>
+</ul>
+
+All of these things exist. We simply need to improve them, and to embed them in popular web browsers, web servers, and other systems. When this happens, translation will become part of the Internet. People will use this, often without knowing that they are using these services. By combining machine translation with human translators, it is possible to provide high quality translations for popular and important websites.<br><br>
+
+<h4>Design Philosophy</h4>
+
+The Internet is based on the concept of "best effort" services. It does not guarantee that every connection or query will succeed. The multilingual web will be based on a similar philosophy. The amount of information that can potentially be translated far exceeds the capacity of humans to translate it to every known language. Instead, the multilingual web will translate content, as best it can, on demand, using a combination of professional, volunteer translations.<br><br>
+
+We can make a few assumptions about the quality and reliability of translations, among them:<br><br>
+
+<ul>
+<li>Translations created by trusted translators are usually good.</li>
+<li>Translations created by professional translators are usually good.</li>
+<li>Translations that are archived in a professional translation memory are usually good.</li>
+<li>Translations created by volunteers are probably good, but may be bad.</li>
+<li>Machine translations are good for some languages (e.g. English-Spanish), but are quite poor for others (e.g. English-Japanese)</li>
+</ul>
+
+Knowing this, translation services can look for reliable translations first, and then call out to less reliable sources such as volunteer translators or machine translation services. Furthermore, by labeling translations according to quality and type, we can tell users what to expect.<br><br>
+
+<h4>Multilingual Web Browsers</h4>
+
+A multilingual web browser behaves the same way as today's web browsers, except with one difference. When a user opens a page in a foreign language, the browser will search for translations for the text in the page, and will translate the page, using the best available human and machine translations. To the user, this activity will be invisible. He will open a page, and the browser will translate it. The user may also edit the translations, for example, to correct errors made by a computer translation service.<br><br>
+
+Our <a href=/>Firefox Translator</a> demonstrates what a multilingual browser will look like. You go to a website. If it is in a foreign language, the Firefox Translator searches for human and computer translations and translates the page. It is automatic and effortless. We will publish the source code for the Firefox Translator soon, when we publish version 1.0 of the tool.<br><br>
+
+This is a good first step, but we want to embed this service in every web browser. We are developing software that will enable developers to add translation to any web browser. This software is much faster than the Firefox Translator, and can be integrated with any web browser. This is part of our TransKit project. This software will offer several important benefits:<br><br>
+
+<ul>
+<li>Very fast. The software is written in the C programming language and is designed to run fast.</li>
+<li>Caching. The software caches recent translations in memory or on disk, to boost performance.</li>
+<li>Portable. We are designing the software so that it will work in many environments.</li>
+<li>Multi vendor. It talks to multiple human and machine translation platforms, using the best available services for the languages in use.</li>
+<li>Open source. It is being published as open source (under a BSD license).</li>
+</ul>
+
+This module performs the following tasks (procedural code):<br><br>
+
+<ol>
+<li>When opening a new page, detect the language of the page. We use several techniques to do this.</li>
+<li>Compare this language to the user's preferred languages. If the user's preferred language is different, go to step 3.</li>
+<li>Check in memory or disk-based cache for archived translations for texts within the page.</li>
+<li>Contact a WWL server to request archived translations for this page, to the user's preferred language. Replace original text with the best translations.</li>
+<li>If there are untranslated texts, contact one or more machine translation services.</li>
+<li>If user highlights a translation, display a popup editor where the user can edit or score the translation.</li>
+</ol>
+
+The Firefox Translator performs these same tasks. It is written in Javascript, so this limits its speed somewhat. The ideal solution will be to embed this directly within the browser. Then, browser based translation will be effortless and automatic for all users.<br><br>
+
+<h4>Web Servers and Proxy Servers</h4>
+
+Human and machine translation can also be embedded in a web server or proxy server, so that anybody visiting that website will receive translations when needed. This will also be effortless and automatic for visitors. The difference is that the translations are created and transmitted at the source instead of inside the user's web browser. This requires more effort to build, but it gives the website owner complete control over when and how translations are displayed to visitors.<br><br>
+
+One of the most elegant solutions, which we are currently developing, is a translation proxy server. This is a program that sits in front of the web server. It is invisible to visitors, and it is also invisible to the web server. When a web page is sent to a visitor, the proxy server intercepts the page, and if translation is necessary, translates the page before sending it to the visitor.<br><br>
+
+<img src=/image/flowchart-proxy.png>
+
+This program does the following tasks:<br><br>
+
+<ol>
+<li>Detect the page's language</li>
+<li>Detect the user's preferred languages</li>
+<li>If the user speaks the language that the page is written in, do nothing, send the page without changes.</li>
+<li>If the user speaks a different language, translate the page using: 1) professional translations, 2) volunteer translations, and 3) machine translations. First check in-memory or disk-based cache for archived translations, then call outside services to request human and machine translations.</li>
+<li>If the website owner allows users to edit translations, insert Javascript to display popup editing forms when a visitor highlights translated text.</li>
+<li>If a visitor edits a translation, send it to one or more translation servers for storage.</li>
+</ol>
+
+The translation proxy server we are building (part of TransKit) can be placed in front of any web server. The web server does not know that the pages it transmits may be translated. The proxy server does not know how the web pages are generated. This greatly simplifies system development because content generation and translation are completely decoupled.<br><br>
+
+<h4>Global Translation Memory</h4>
+
+Browser and server based translation engines read and write to global, web scale translation memories that store human and machine translations. The Worldwide Lexicon translation server, an open source translation memory that runs on <a href=http://appengine.google.com>App Engine</a>, Google's grid computing platform, offers an example of how these systems will behave. WWL stores translations from professional, amateur and computer translators, and offers a simple web services API to retrieve them.<br><br>
+
+Until recently, translation memories were closed, proprietary systems, usually locked behind a corporate firewall. Systems like WWL, and TAUS' global TDA project, create open, globally shared translation memories that can be used by a wide variety of applications. This component of the multilingual web is already available, and will continue to develop over the next 2 to 3 years.<br><br>
+
+<h4>Language Service Providers</h4>
+
+Language service providers can be divided into two broad categories: computer translation services and professional translation service bureaus. Computer translation services are fast and inexpensive (in some cases free), while professional translation bureaus offer high quality translations for a higher cost. The one piece that is lacking today is a uniform standard, or protocol, for communicating with these services, to make them easy to integrate into translation services and applications.<br><br>
+
+These services all provide, more or less, the same basic service. You request a translation for a text, and perhaps include some additional data (such as how much you are willing to pay for translation), and they respond with the translation, either immediately (for machine translation) or after some period of time (for human translation). In the meantime, these services are not that difficult to communicate with, and can still be integrated into translation services and applications (although it requires more effort).<br><br>
+
+What we need in the long-term is merely a simple web API to submit queries to these services, and a standard format for a response. This does not need to be a complex, over-engineered standard like SOAP. A simple consensus on how to send queries to the service, and how to format the response is all we need. Often, the best standards on the web are the simplest ones. Simple works, and it is usually possible to extend something like this when necessary.<br><br>
+
+<h4>Summary</h4>
+
+The multilingual web will not be a complex, monolithic system. Like the worldwide web, it will be a collection of relatively simple services that cooperate with each other to translate pages as best as possible when translation is necessary. This network of language services, like most Internet infrastructure, will be invisible to web users, who will simply notice that more and more web sites are becoming accessible to them and to their friends. This transition to the multilingual web will be gradual, but fairly rapid, as browsers integrate translation into the core set of features, and as server based solutions make translation an easy upgrade to existing web servers, content management systems and web applications. Within a few years, most of the world will be using the multilingual web, yet to most of them, these translation services will be an ambient and invisible part of the Internet, something that billions of people use but rarely see.

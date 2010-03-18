@@ -1,0 +1,38 @@
+<h3>Simple Translation API</h3>
+
+In celebration of Translator Day, we are publishing a super simple web API that you can use to add machine and human translations to your site. It is as simple as a server side include. Here is the time honored "Hello World" example.<br><br>
+
+NOTE: if you encounter a Unicode error, please email bsmcconnell at gmail with the error message.<br><br>
+
+<h4>Hello World</h4>
+
+To request a human or machine translation to insert in your site, simply call the web API:<br><br>
+
+www.worldwidelexicon.org/sourcelanguage/t/targetlanguage/encodedtext<br><br>
+
+or, for example:<br><br>
+
+<a href=http://www.worldwidelexicon.org/t/en/es/Hello+World>www.worldwidelexicon.org/t/en/es/Hello+World</a>
+
+<br><br>
+
+The web API will reply with HTML and Javascript to insert in your page. You will see the translation, plus a link to a popup editor.<br><br>
+
+<h4>Fancy Pants</h4>
+
+This example is simple, but you can do much more. You can call the web service at www.worldwidelexicon.org/t/xx/yy with the following CGI parameters:<br><br>
+
+<ul>
+<li>NOTE: xx = source language code, yy = target language code</li>
+<li>st (source text, UTF-8 encoding)</li>
+<li>edit=y/n (allow users to edit)</li>
+<li>allow_machine=y/n (display or hide computer translations)</li>
+<li>allow_anonymous=y/n (display or hide anonymous translations)</li>
+<li>output=html, text (if output=text, returns plain text without HTML)</li>
+</ul>
+
+<h4>Complete Web API</h4>
+
+And, if you want to build a more sophisticated translation application where users can edit translations, submit scores and write comments about translations, see our full web API at <a href=http://www.worldwidelexicon.org/api>www.worldwidelexicon.api</a><br><br>
+
+Have fun.<br><br>

@@ -1,0 +1,32 @@
+<h2>Worldwide Lexicon API : An Overview</h2>
+
+This is a short introduction to the Worldwide Lexicon web API. You can use this API to build a wide variety of translation services, and to integrate best effort translation into your application or website. You can either build your own interface to the API, or you can use <a href=/s/transkit.html>TransKit</a> libraries (now available for Python, C and PHP) to interact with WWL services.<br><br>
+
+The API allows you to perform the following tasks, via a simple and easy to understand interface:<br><br>
+
+<ul><li>Find and submit translations from a translation memory, request any combination of machine, community or professional translations on a per query basis</li>
+<li>Fetch and submit comments about translations.</li>
+<li>Fetch and submit scores for translations.</li>
+<li>Register and find real-time translators on IM and translation networks.</li>
+<li>Create and manage WWL user identities and profiles, authenticate WWL users.</li>
+<li>Detect the source language for a page or text, request list of machine translation services for a language pair.</li>
+</ul>
+<p>
+
+<h3>The Most Important API Calls</h3>
+
+The most important API calls needed to build translation services are:<br><br>
+
+<ul><li>/t : request the best available translation, using any combination of professional, volunteer or machine translation</li>
+<li>/submit : submit a translation</li>
+<li>/q : request a list of possible translations, similar to /t except the requester decides which translation to use</li>
+<li>/scores/vote : score a translation</li>
+<li>/presence/find, presence/get : find and set presence/availability status for real-time translators (if you're building a network of real-time translators, e.g. for IM sessions)</li>
+<li>/users/* : family of API calls to create and manage WWL user accounts</li>
+<li>/comments/* : submit and fetch comments about translations</li>
+</ul>
+<p>
+
+<h3>Complete Documentation</h3>
+
+You can find complete documentation and live HTML test forms at <a href=http://www.worldwidelexicon.org/api>www.worldwidelexicon.org/api</a>

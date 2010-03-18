@@ -1,0 +1,324 @@
+indexes:
+  
+- kind: Comment
+  properties:
+  - name: tl
+  - name: url
+  - name: date
+    direction: desc
+    
+- kind: Objects
+  properties:
+  - name: website
+  - name: created
+    direction: desc
+    
+- kind: Queue
+  properties:
+  - name: completed
+  - name: sl
+  - name: tl
+  - name: lsp
+  - name: createdon
+    direction: desc
+    
+- kind: Queue
+  properties:
+  - name: completed
+  - name: sl
+  - name: tl
+  - name: domain
+  - name: lsp
+  - name: createdon
+    direction: desc
+    
+- kind: Presence
+  properties:
+  - name: network
+  - name: status
+  - name: timestamp
+    direction: desc
+    
+- kind: Presence
+  properties:
+  - name: languages
+  - name: network
+  - name: status
+  - name: timestamp
+    direction: desc
+    
+- kind: Search
+  properties:
+  - name: sl
+  - name: upvotes
+    direction: desc
+    
+- kind: Search
+  properties:
+  - name: sl
+  - name: tl
+  - name: upvotes
+    direction: desc
+    
+- kind: Search
+  properties:
+  - name: issite
+  - name: views
+    direction: desc
+    
+- kind: Search
+  properties:
+  - name: tl
+  - name: issite
+  - name: views
+    direction: desc
+    
+- kind: Search
+  properties:
+  - name: sl
+  - name: issite
+  - name: views
+    direction: desc
+    
+- kind: Search
+  properties:
+  - name: domain
+  - name: tl
+  - name: views
+    direction: desc
+    
+- kind: Search
+  properties:
+  - name: domain
+  - name: tl
+  - name: translations
+    direction: desc
+    
+- kind: Search
+  properties:
+  - name: url
+  - name: tl
+  - name: views
+    direction: desc
+    
+- kind: Search
+  properties:
+  - name: url
+  - name: tl
+  - name: translations
+    direction: desc
+    
+- kind: Search
+  properties:
+  - name: tl
+  - name: date
+    direction: desc
+    
+- kind: Search
+  properties:
+  - name: keywords
+  - name: date
+    direction: desc
+    
+- kind: Search
+  properties:
+  - name: keywords
+  - name: views
+    direction: desc
+    
+- kind: Search
+  properties:
+  - name: sl
+  - name: keywords
+  - name: views
+    direction: desc
+    
+- kind: Search
+  properties:
+  - name: tl
+  - name: keywords
+  - name: views
+    direction: desc
+    
+- kind: Search
+  properties:
+  - name: tl
+  - name: keywords
+  - name: date
+    direction: desc
+    
+- kind: Translation
+  properties:
+  - name: username
+  - name: date
+    direction: desc
+    
+- kind: Translation
+  properties:
+  - name: url
+  - name: date
+    direction: desc
+    
+- kind: Translation
+  properties:
+  - name: url
+  - name: tl
+  - name: date
+    direction: desc
+    
+- kind: Translation
+  properties:
+  - name: sl
+  - name: tl
+  - name: url
+  - name: date
+    direction: desc
+
+- kind: Translation
+  properties:
+  - name: ngrams
+  - name: sl
+  - name: tl
+  - name: date
+    direction: desc
+    
+- kind: Translation
+  properties:
+  - name: ngrams
+  - name: tl
+  - name: date
+    direction: desc
+    
+- kind: Translation
+  properties:
+  - name: ngrams
+  - name: date
+    direction: desc
+    
+- kind: Translation
+  properties:
+  - name: domain
+  - name: date
+    direction: desc
+    
+- kind: Translation
+  properties:
+  - name: ngrams
+  - name: domain
+  - name: date
+    direction: desc
+    
+- kind: Translation
+  properties:
+  - name: sl
+  - name: tl
+  - name: reviewed
+  - name: date
+    direction: desc
+
+- kind: Translation
+  properties:
+  - name: sl
+  - name: tl
+  - name: domain
+  - name: reviewed
+  - name: date
+    direction: desc
+
+- kind: Translation
+  properties:
+  - name: sl
+  - name: tl
+  - name: url
+  - name: reviewed
+  - name: date
+    direction: desc
+
+- kind: Translation
+  properties:
+  - name: md5hash
+  - name: sl
+  - name: tl
+  - name: date
+    direction: desc
+
+- kind: Translation
+  properties:
+  - name: geocoded
+  - name: date
+    direction: desc
+
+- kind: Translation
+  properties:
+  - name: geocoded
+  - name: domain
+  - name: date
+    direction: desc
+
+- kind: Translation
+  properties:
+  - name: geocoded
+  - name: domain
+  - name: tl
+  - name: date
+    direction: desc
+
+- kind: Translation
+  properties:
+  - name: sl
+  - name: tl
+  - name: date
+    direction: desc
+
+- kind: Translation
+  properties:
+  - name: domain
+  - name: sl
+  - name: tl
+  - name: date
+    direction: desc
+
+- kind: Translation
+  properties:
+  - name: tl
+  - name: guid
+  - name: date
+    direction: desc
+
+- kind: Translation
+  properties:
+  - name: guid
+  - name: date
+    direction: desc
+
+- kind: Translation
+  properties:
+  - name: guid
+  - name: tl
+  - name: date
+    direction: desc
+
+- kind: Translation
+  properties:
+  - name: domain
+  - name: date
+    direction: desc
+
+- kind: Translation
+  properties:
+  - name: tl
+  - name: date
+    direction: desc
+
+- kind: Translation
+  properties:
+  - name: username
+  - name: date
+    direction: desc
+
+- kind: Translation
+  properties:
+  - name: remote_addr
+  - name: date
+    direction: desc
+    

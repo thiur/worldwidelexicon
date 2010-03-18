@@ -1,0 +1,49 @@
+<h3>Multilingual Browsers</h3>
+
+This white paper outlines the key items that need to be built to create a multilingual browser. A multilingual browser will behave like today's web browsers, except that it will have built-in support for human and machine translation services. To see a prototype of what this will look like for users, download the WWL <a href=http://www.dermundo.com/s/essay.html>Firefox Translator</a>. This Firefox addon automates the process of identifying and translating foreign language web pages using the best available combination of human and machine translations, and allows users to edit and score translations via a simple pop-up interface.<br><br>
+
+While this addon is a good prototype of what a multilingual browser will look like, it is an optional addon. What we want to do is to make open translation tools a basic service that is embedded in every web browser. When this milestone is reached, translation will become an ambient service that makes reading and editing foreign language sites effortless and automatic. This white paper explains the specific steps that are required to achieve this milestone.<br><br>
+
+<h4>TransKit Library</h4>
+
+The next project at <a href=http://www.worldwidelexicon.org>Worldwide Lexicon</a> is to build a high performance library, named TransKit, that makes it easy to embed translation services in desktop applications, including web browsers. This C library, optimized for speed, will enable developers to integrate on demand human/machine translation into their applications, without needing to know the details about how various language services operate. TranKit is designed to achieve the following goals:<br><br>
+
+<ul><li>Support human and machine translation : communicates with both human and machine translation services.</li>
+<li>Best effort translation : it looks for professional translations first, then user generated translations, and then machine translations. It searches for the best available resources.</li>
+<li>Support for gettext() : looks for manually defined translations in gettext (PO files). This makes it a combined tool for localization and translation.</li>
+<li>Multi-vendor : current translation tools are tied to a specific vendor (e.g. Google, Systran, others). TransKit can communicate with many human and machine translation services, and searches for the best resources for the query being executed.</li>
+<li>Optimized for speed : translations are cached in memory and on disk to boost performance, and to re-use translations for texts that appear throughout a website.</li>
+<li>Portable : TransKit is a low-level software library that is not dependent on device or operating system specific interfaces. The library should port to many devices and operating systems.</li>
+<li>Open Source : TransKit will be published with source code under a BSD license, enabling developers to embed it in a wide variety of applications.</li>
+</ul>
+
+The TransKit library will make it possible for browser developers to embed high performance translation utilities in their applications, so translations are generated quickly, using whatever combination of language services the user prefers (e.g. Babelfish, Google Translate, Microsoft, human translation bureaus, etc). It will also speak to any WWL compliant translation memory, making it highly open and extensible. TransKit will also be useful for server based applications, such as Apache modules or translation proxy servers (see separate white paper on server side applications).<br><br>
+
+Timeline: TransKit is in development now, and should be available for experimental use in late 2009, soon after the Firefox Translator is officially released.<br><br>
+
+<h4>Standard Web API For Translation Services</h4>
+
+Today there is no standard web API, or protocol, for communicating with translation services. Each vendor (e.g. Google, Microsoft, Language Weaver, etc) has a different web API that is used to submit queries. All of these services do the same thing, and if they spoke a common protocol, it would be easier to integrate them into browser based translation services. Fortunately, these APIs are fairly simple, so it is not too much work to support several services, but we need a common API.<br><br>
+
+A standard web API for translation service can be fairly simple, and needs to do only a few things:<br><br>
+
+<ol><li>Define a standard format or interface for submitting translation requests</li>
+<li>Define a standard response or output format for displaying a list of translations</li>
+</ol>
+
+WWL has defined a simple web API for fetching human and machine translations, which can be found at <a href=http://www.worldwidelexicon.org/q>www.worldwidelexicon.org/q</a>. With this interface, you submit a short list of parameters to tell it what you want to translate, to which language, and a list of options about the types of translations to return (e.g. allow/hide machine translations, allow/hide anonymous user translations, etc). It then returns a row/column recordset of matching translations in the output format requested by the user (e.g. XML, JSON, XLIFF, etc).<br><br>
+
+This simple interface is easy to implement and enables a user or application to request any combination of human or machine translations from a server, and to receive them in an easily parsed recordset. This is an improvement over the current generation of web APIs, which are primarily designed for either human or machine translations. WWL is an open spec, so vendors are free to emulate this interface.<br><br>
+
+Whether vendors support the WWL API or define a similar interface, it should have the following attributes:<br><br>
+
+<ul><li>Allow users to request human and/or machine translations in a single query</li>
+<li>Return one or many translations in the response</li>
+<li>Include optional metadata along with translations (scores, user/author information, etc)</li>
+<li>Allow requester to select from several output formats (XML, JSON, PO, XLIFF, etc)</li>
+<li>Use a simple row/column recordset for response, avoid using a bloated and complex "semantic web" ontology. Keep it simple, and focus on common use cases</li>
+</ul>
+
+<h4>Summary</h4>
+
+With these two simple steps, we can build the foundation for a multilingual browser. As the <a href=https://addons.mozilla.org/en-US/firefox/addon/13897>Firefox Translator</a> has shown, we already have a good prototype to build upon. We simply need to build better, faster tools, so this functionality can be built into popular web browsers. This is the most important piece, as we can work around the lack of a standard web API in the meantime. Once this piece is built, in late 2009, browser developers will have what they need to build high performance, embedded versions of the Firefox addon. As these upgrades become available to users, human/machine translation will become ubiquitous, and will reach billions of Internet users when it becomes embedded in most desktop and mobile browsers over the next 2 to 3 years.<br><br>

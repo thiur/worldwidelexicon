@@ -1,0 +1,58 @@
+<h3>TransKit Library</h3>
+
+The TransKit library, in development and slated for release in late 2009, will provide software developers with a simply and highly optimized library that enables them to integrate human and machine translation services into any application or content management system, including: web browsers, desktop applications, mobile apps, web servers and proxy servers.<br><br>
+
+We are developing simple, easy to use libraries for the following languages, as well as plugins for popular blogging and publishing platforms. These libraries are open source (BSD license), and can be integrated into any application or service:<br><br>
+
+<h4>Publishing and Content Management Systems</h4>
+
+<ul><li>Word Press : this new plugin for Word Press enables you to publish in many languages, and to use a combination of machine, volunteer and professional translation (pro translation via <a href=http://www.speaklike.com>SpeakLike</a>)</li>
+<li>Drupal : we are working on a Drupal module that will enable on demand machine, community and professional translation (slated for release in January)</li>
+<li>Translation Proxy Server : we are building a PHP based proxy service that can front end any website or web app. Simply map a domain to the proxy server (e.g. es.yoursite.com), and it will insert translations into pages as they are served.</li>
+<li>Custom plugin development : if you would like to hire us to build a module for your content management system, <mailto:bsmcconnell@gmail.com>contact us</a> for information about our custom softwate development services.</li>
+</ul>
+
+<h4>TransKit Libraries for Software Developers</h4>
+
+<ul><li>C : high performance C library, to make adding best effort translation to a wide range of applications easy and reliable. Can be ported to other C variants fairly easily. Due out in early November.</li>
+<li><a href=http://code.google.com/p/worldwidelexicon>Python</a> : simple client library for Python to fetch, submit and score translations, with memcached for performance. Available now.</li>
+<li><a href=http://code.google.com/p/worldwidelexicon>Python for Google App Engine</a> : version of library designed for use in Google App Engine cloud computing environment.</li>
+<li>Java : <a href=http://www.speaklike.com>SpeakLike</a>, one of our partners, is contributing a Java library that will be out soon after the C library.</li>
+<li><a href=http://code.google.com/p/worldwidelexicon>PHP</a> : simple wrapper library for PHP, includes caching to make rendering translations on the fly fast and easy.</li>
+<li>Ruby on Rails : simple translation library for Rails makes building translatable web apps easy.</li>
+<li>Other languages planned, if you'd like to contribute a library for your favorite programming language, why not share your library with the WWL community?</li>
+</ul>
+
+<a href=http://groups.google.com/group/worldwide-lexicon>Join our Google Group</a> to stay updated about new releases, toolkits and other developer news.<br><br>
+
+Source code will be published on <a href=http://code.google.com/p/worldwidelexicon/>Google Code</a>.<br><br>
+
+<h4>Core Features</h4>
+
+The library simplifies and consolidates access to several language services, and provides the following functionality via a simple and easy to use API:<br><br>
+
+<ul>
+<li>Access multiple machine translation services, enables applications to communicate with Google Translate, Language Weaver via Worldlingo, Apertium and Moses, with more options coming soon.</li>
+<li>High performance, with in memory and disk based cache for recent human and machine translation. Enables pages, texts, etc to be translated and rendered very quickly, in both browser and server based applications.</li>
+<li>Access human translation services via WWL translation servers and gateways, with ability to select WWL servers (e.g. use the public WWL server at worldwidelexicon.org by default, or use private WWL servers).</li>
+<li>Support for user generated/user edited translations, as well as professional translations</li>
+<li>Open gateway to professional translation agencies, enables you to select language service providers on demand, on a per request basis. For example, use SpeakLike to translate to some languages, ProZ for others.</li>
+<li>Ability to filter translations, adjust quality up and down on a per query basis.</li>
+<li>Supports both read-only translation applications, as well as user mediated translations where users can submit and score translations.</li>
+<li>Available for most major programming and scripting languages in late 2009, early 2010.</li>
+<li>Open source, published under BSD license. Can be used in any application or web service with attribution.</li>
+</ul>
+
+The most important aspect of TransKit is that it is designed for speed, and to communicate with a variety of translation services. A developer can integrate it using just two or three API calls, and does not need to know the details of the various web APIs and output formats used by different translation services. This is all abstracted by TransKit and/or the WWL gateways it talks to and provides you with a simple and consistent interface for interacting with any combination of machine, volunteer and professional translation services, and will be extended to support more services over time.<br><br>
+
+To maximize performance, TransKit caches recent translations in memory and/or disk, to eliminate redundant queries to translation web services, and because it is open source can be modified as needed to integrate cleanly with other applications. The module typically searches for translations using the following procedure:<br><br>
+
+<ol>
+<li>Check to see if there are gettext() translations cached for the text being translated (gettext is a popular localization system for web applications), use these first.</li>
+<li>Next, check in memory or disk cache for available professional, volunteer or machine translations. If a professional translation is cached, used it.</li>
+<li>Next, call a WWL server to request professional or volunteer translations for the text, if a professional translation was not cached. Select best available translation and cache it.</li>
+<li>Next, if no professional or volunteer translations are available at WWL, call machine translation service(s) to translate, cache the best machine translation.</li>
+<li>If all of that fails, return the original text without translation.</li>
+</ol>
+
+The basic idea with this procedure is to cache as much as possible in memory or disk, especially for heavily used languages, so that most translation can be done while minimizing calls out to external web services, due to the latency or network delay associated with doing so.<br><br>
