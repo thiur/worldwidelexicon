@@ -713,6 +713,16 @@ class SimpleTranslation(webapp.RequestHandler):
         queue = self.request.get('queue')
         ip = self.request.get('ip')
         st = urllib.unquote(st)
+        m = md5.new()
+        m.update(sl)
+        m.update(tl)
+        m.update(st)
+        m.update(lsp)
+        md5hash = str(m.hexdigest())
+        text = memcache.get('/t/' + md5hash)
+        if text is not None:
+            self.response.out.write(text)
+            return
         self.response.headers['Accept-Charset'] = 'utf-8'
         if len(tl) > 0 and len(st) > 0:
             if edit == 'y':
@@ -728,6 +738,7 @@ class SimpleTranslation(webapp.RequestHandler):
             else:
                 tt = Translation.lucky(sl=sl, tl=tl, st=st, allow_anonymous=allow_anonymous, allow_machine=allow_machine, min_score=min_score, output=output, edit=edit, lsp=lsp, lspusername=lspusername, lsppw = lsppw, mtengine=mtengine, queue=queue, ip=ip, userip=userip)
                 self.response.out.write(tt)
+                memcache.set('/t/' + md5hash, text, 300)
         else:
             www.serve(self,self.__doc__, title='/t')
             self.response.out.write('<table><form action=/t method=get accept-charset=utf-8>')
