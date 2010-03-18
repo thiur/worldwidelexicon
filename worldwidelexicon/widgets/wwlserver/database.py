@@ -3105,6 +3105,73 @@ class Users(db.Model):
                 return False
         else:
             return False
+
+class Urls(db.Model):
+    domain = db.StringProperty(default='')
+    url = db.StringProperty(default='')
+    turl = db.StringProperty(default='')
+    timekey = db.StringProperty(default='')
+    stitle = db.StringProperty(default='')
+    ttitle = db.StringProperty(default='')
+    author = db.StringProperty(default='')
+    sl = db.StringProperty(default='')
+    st = db.TextProperty(default='')
+    tl = db.StringProperty(default='')
+    tt = db.TextProperty(default='')
+    swords = db.ListProperty(str)
+    twords = db.ListProperty(str)
+    views = db.IntegerProperty(default=1)
+    lastvisit = db.DateTimeProperty(auto_now_add = True)
+    remote_addr = db.StringProperty(default = '')
+    user_ip = db.StringProperty(default = '')
+    @staticmethod
+    def log(url, domain='', turl='', timekey='', stitle='', ttitle='', sl='', tl='', author='', st='', tt=''):
+        if len(tl) > 0 and len(sl) > 0 and len(url) > 0:
+            udb = db.Query(Urls)
+            udb.filter('sl = ', sl)
+            udb.filter('tl = ', tl)
+            udb.filter('url = ', url)
+            if len(turl) > 0:
+                udb.filter('turl = ', turl)
+            if len(timekey) > 0:
+                udb.filter('timekey = ', timekey)
+            item = udb.get()
+            if item is None:
+                item = Urls()
+                item.sl = sl
+                item.tl = tl
+                item.url = url
+                item.turl = turl
+                item.timekey = timekey
+            st = st.lower()
+            tt = tt.lower()
+            stitle = stitle.lower()
+            ttitle = ttitle.lower()
+            item.st = st
+            item.tt = tt
+            item.stitle = stitle
+            item.ttitle = ttitle
+            item.author = author
+            sw = string.split(st, ' ')
+            tw = string.split(tt, ' ')
+            for w in sw:
+                if len(w) < 3:
+                    sw.remove(w)
+            for w in tw:
+                if len(w) < 3:
+                    tw.remove(w)
+            views = item.views
+            views = views + 1
+            item.views = views
+            item.remote_addr = remote_addr
+            item.user_ip = user_ip
+            item.put()
+            return True
+        else:
+            return False
+    @staticmethod
+    def popular(sl, tl):
+        pass
         
 class Websites(db.Expando):
     host = db.StringProperty(default='')
@@ -3225,3 +3292,4 @@ class Websites(db.Expando):
                     return False
         else:
             return False
+
