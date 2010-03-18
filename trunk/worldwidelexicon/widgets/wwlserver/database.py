@@ -42,6 +42,7 @@ encoding = 'utf-8'
 import codecs
 import datetime
 import md5
+import hashlib
 import string
 import types
 import urllib
