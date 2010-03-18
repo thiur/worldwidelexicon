@@ -1,0 +1,91 @@
+.edit{
+   color: green;
+}
+
+.no_wrap{
+   word-wrap: normal;
+   white-space: nowrap;
+}
+
+.no_margin{
+   margin: 0px 0px 0px 0px;
+}
+
+.dialog_color{
+   background-color: #cccccc;
+   border: 1px solid black;
+}
+
+.headerfont{
+  font-family: "Arial, Helvetica, sans-serif";
+  font-size: 12;  
+  font-weight:bold;
+}
+
+.dialog_header{
+  border-bottom: 1px solid black;
+}
+.dialog_header_font{
+  font-family: "Arial, Helvetica, sans-serif";
+  font-size: 14;
+  font-weight:bold;
+}
+
+.translation{
+  font-family: "Arial, Helvetica, sans-serif";
+  font-size: 12; 
+  /* background-color: #eeeeee; */
+}
+
+.translation_edit{
+  font-family: "Arial, Helvetica, sans-serif";
+  font-size: 12; 
+  background-color: #ffff00;
+}
+
+
+/*  Translation Text Colors  */
+
+/*
+human translation with upvotes > downvotes and blockedvotes < 3: light green shading (honeydew)
+human translation with no scores or ambivalent score : yellow shading  (light yellow)
+human translation with downvotes > upvotes or blockedvotes > 2: light pink shading (snow)
+
+
+*/
+
+
+/*  (Lavender) */
+.machine_translated{
+    background-color: #E6E6FA;
+}
+
+/* (Honeydew) */
+.good_human_translation{
+	background-color: #F0FFF0;
+}
+
+/* (Light Yellow) */
+.marginal_human_translation{
+	background-color: #FFFFE0;
+}
+
+/* (Snow) */
+.poor_human_translation{
+    background-color: #FFFAFA;
+ }
+ 
+ /* undefined - gets through traps */
+ .undefined_human_translation{
+  	background-color: magenta;
+ }
+ 
+ .edit_color{
+    background-color: #FFFF00;
+ }
+ 
+  
+ 
+ 
+
+

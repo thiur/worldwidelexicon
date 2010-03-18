@@ -1,0 +1,34 @@
+<h2>TransKit/Py</h2>
+
+TransKit/Py implements the Worldwide Lexicon translation memory in the popular Python programming language. This library uses the standard library, along with the memcache.py module (included in the ZIP file). It supports the following WWL services:<br><br>
+
+<ul><li>Fetch the best available translation for a text, supports machine translation, user translations and professional translations.</li>
+<li>Submit a translation to the translation memory.</li>
+<li>Score a translation.</li>
+<li>Create a new WWL user.</li>
+<li>Authenticate a user.</li>
+<li>Get/set user attributes (e.g. city=Denver)</li>
+</li></ul>
+
+When requesting translations, the get() function looks at sources in the following order:<br><br>
+
+<ul><li>Check memcached (if it is running) to see if a translation is cached.</li>
+<li>Check gettext (if it is installed) to see if the text is translated in a localization file.</li>
+<li>Call WWL to request the best available human or machine translation.</li>
+</ul>
+
+<a href=http://code.google.com/p/worldwidelexicon/>Download source code (ZIP archive)</a>
+
+<h3>Example Usage</h3><p>
+
+<blockquote>
+translation = wwl.get('en','es','Hello World')
+</blockquote><p>
+
+<blockquote>
+result = wwl.submit('en','es','Hello World','Hola Mundo')
+</blockquote><p>
+
+<blockquote>
+professional_translation = wwl.get('en','es','Hello World',lsp='speaklike', lspusername='foo',lsppw='bar')
+</blockquote><p>

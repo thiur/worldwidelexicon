@@ -1,0 +1,3480 @@
+<html>
+<head><script>
+var $gwt_version = "1.7.0";
+var $wnd = parent;
+var $doc = $wnd.document;
+var $moduleName, $moduleBase;
+var $stats = $wnd.__gwtStatsEvent ? function(a) {return $wnd.__gwtStatsEvent(a);} : null;
+$stats && $stats({moduleName:'translator',subSystem:'startup',evtGroup:'moduleStartup',millis:(new Date()).getTime(),type:'moduleEvalStart'});
+</script></head>
+<body>
+<script><!--
+var _, N8000000000000000_longLit = [0, -9223372036854775808], P1000000_longLit = [16777216, 0], P486b6dc000_longLit = [1802354688, 309237645312], P7fffffffffffffff_longLit = [4294967295, 9223372032559808512];
+function equals_1(other){
+  return this === (other == null?null:other);
+}
+
+function getClass_56(){
+  return Ljava_lang_Object_2_classLit;
+}
+
+function hashCode_2(){
+  return this.$H || (this.$H = ++sNextHashId);
+}
+
+function toString_11(){
+  return (this.typeMarker$ == nullMethod || this.typeId$ == 2?this.getClass$():Lcom_google_gwt_core_client_JavaScriptObject_2_classLit).typeName + '@' + toPowerOfTwoString(this.typeMarker$ == nullMethod || this.typeId$ == 2?this.hashCode$():this.$H || (this.$H = ++sNextHashId), 4);
+}
+
+function Object_0(){
+}
+
+_ = Object_0.prototype = {};
+_.equals$ = equals_1;
+_.getClass$ = getClass_56;
+_.hashCode$ = hashCode_2;
+_.toString$ = toString_11;
+_.toString = function(){
+  return this.toString$();
+}
+;
+_.typeMarker$ = nullMethod;
+_.typeId$ = 1;
+function $initCause(this$static, cause){
+  if (this$static.cause) {
+    throw $IllegalStateException(new IllegalStateException(), "Can't overwrite cause");
+  }
+  if (cause == this$static) {
+    throw $IllegalArgumentException(new IllegalArgumentException(), 'Self-causation not permitted');
+  }
+  this$static.cause = cause;
+  return this$static;
+}
+
+function getClass_61(){
+  return Ljava_lang_Throwable_2_classLit;
+}
+
+function getMessage_0(){
+  return this.detailMessage;
+}
+
+function toString_15(){
+  var className, msg;
+  className = this.getClass$().typeName;
+  msg = this.getMessage();
+  if (msg != null) {
+    return className + ': ' + msg;
+  }
+   else {
+    return className;
+  }
+}
+
+function Throwable(){
+}
+
+_ = Throwable.prototype = new Object_0();
+_.getClass$ = getClass_61;
+_.getMessage = getMessage_0;
+_.toString$ = toString_15;
+_.typeId$ = 3;
+_.cause = null;
+_.detailMessage = null;
+function getClass_50(){
+  return Ljava_lang_Exception_2_classLit;
+}
+
+function Exception(){
+}
+
+_ = Exception.prototype = new Throwable();
+_.getClass$ = getClass_50;
+_.typeId$ = 4;
+function $RuntimeException(this$static, message){
+  this$static.detailMessage = message;
+  return this$static;
+}
+
+function getClass_57(){
+  return Ljava_lang_RuntimeException_2_classLit;
+}
+
+function RuntimeException(){
+}
+
+_ = RuntimeException.prototype = new Exception();
+_.getClass$ = getClass_57;
+_.typeId$ = 5;
+function $JavaScriptException(this$static, e){
+  this$static.e = e;
+  return this$static;
+}
+
+function getClass_0(){
+  return Lcom_google_gwt_core_client_JavaScriptException_2_classLit;
+}
+
+function getDescription(e){
+  if (e != null && (e.typeMarker$ != nullMethod && e.typeId$ != 2)) {
+    return getDescription0(dynamicCastJso(e));
+  }
+   else {
+    return e + '';
+  }
+}
+
+function getDescription0(e){
+  return e == null?null:e.message;
+}
+
+function getMessage(){
+  if (this.message_0 == null) {
+    this.name_0 = getName(this.e);
+    this.description = getDescription(this.e);
+    this.message_0 = '(' + this.name_0 + '): ' + this.description + getProperties(this.e);
+  }
+  return this.message_0;
+}
+
+function getName(e){
+  if (e == null) {
+    return 'null';
+  }
+   else if (e != null && (e.typeMarker$ != nullMethod && e.typeId$ != 2)) {
+    return getName0(dynamicCastJso(e));
+  }
+   else if (e != null && canCast(e.typeId$, 1)) {
+    return 'String';
+  }
+   else {
+    return (e.typeMarker$ == nullMethod || e.typeId$ == 2?e.getClass$():Lcom_google_gwt_core_client_JavaScriptObject_2_classLit).typeName;
+  }
+}
+
+function getName0(e){
+  return e == null?null:e.name;
+}
+
+function getProperties(e){
+  return e != null && (e.typeMarker$ != nullMethod && e.typeId$ != 2)?getProperties0(dynamicCastJso(e)):'';
+}
+
+function getProperties0(e){
+  var result = '';
+  try {
+    for (prop in e) {
+      if (prop != 'name' && (prop != 'message' && prop != 'toString')) {
+        try {
+          result += '\n ' + prop + ': ' + e[prop];
+        }
+         catch (ignored) {
+        }
+      }
+    }
+  }
+   catch (ignored) {
+  }
+  return result;
+}
+
+function JavaScriptException(){
+}
+
+_ = JavaScriptException.prototype = new RuntimeException();
+_.getClass$ = getClass_0;
+_.getMessage = getMessage;
+_.typeId$ = 6;
+_.description = null;
+_.e = null;
+_.message_0 = null;
+_.name_0 = null;
+function createFunction(){
+  return function(){
+  }
+  ;
+}
+
+function equals__devirtual$(this$static, other){
+  return this$static.typeMarker$ == nullMethod || this$static.typeId$ == 2?this$static.equals$(other):(this$static == null?null:this$static) === (other == null?null:other);
+}
+
+function hashCode__devirtual$(this$static){
+  return this$static.typeMarker$ == nullMethod || this$static.typeId$ == 2?this$static.hashCode$():this$static.$H || (this$static.$H = ++sNextHashId);
+}
+
+var sNextHashId = 0;
+function getClass_3(){
+  return Lcom_google_gwt_core_client_impl_StringBufferImpl_2_classLit;
+}
+
+function StringBufferImpl(){
+}
+
+_ = StringBufferImpl.prototype = new Object_0();
+_.getClass$ = getClass_3;
+_.typeId$ = 0;
+function getClass_2(){
+  return Lcom_google_gwt_core_client_impl_StringBufferImplAppend_2_classLit;
+}
+
+function StringBufferImplAppend(){
+}
+
+_ = StringBufferImplAppend.prototype = new StringBufferImpl();
+_.getClass$ = getClass_2;
+_.typeId$ = 0;
+_.string = '';
+function $clinit_6(){
+  $clinit_6 = nullMethod;
+  impl = ($clinit_4() , $clinit_5() , $clinit_6() , new DOMImplOpera());
+}
+
+function $getInnerText(this$static, node){
+  var text = '', child = node.firstChild;
+  while (child) {
+    if (child.nodeType == 1) {
+      text += this$static.getInnerText(child);
+    }
+     else if (child.nodeValue) {
+      text += child.nodeValue;
+    }
+    child = child.nextSibling;
+  }
+  return text;
+}
+
+function $setInnerText(elem, text){
+  while (elem.firstChild) {
+    elem.removeChild(elem.firstChild);
+  }
+  if (text != null) {
+    elem.appendChild(elem.ownerDocument.createTextNode(text));
+  }
+}
+
+function getClass_6(){
+  return Lcom_google_gwt_dom_client_DOMImpl_2_classLit;
+}
+
+function getInnerText(node){
+  return $getInnerText(this, node);
+}
+
+function DOMImpl(){
+}
+
+_ = DOMImpl.prototype = new Object_0();
+_.getClass$ = getClass_6;
+_.getInnerText = getInnerText;
+_.typeId$ = 0;
+var impl;
+function $clinit_5(){
+  $clinit_5 = nullMethod;
+  $clinit_6();
+}
+
+function getClass_5(){
+  return Lcom_google_gwt_dom_client_DOMImplStandard_2_classLit;
+}
+
+function DOMImplStandard(){
+}
+
+_ = DOMImplStandard.prototype = new DOMImpl();
+_.getClass$ = getClass_5;
+_.typeId$ = 0;
+function $clinit_4(){
+  $clinit_4 = nullMethod;
+  $clinit_5();
+}
+
+function getClass_4(){
+  return Lcom_google_gwt_dom_client_DOMImplOpera_2_classLit;
+}
+
+function DOMImplOpera(){
+}
+
+_ = DOMImplOpera.prototype = new DOMImplStandard();
+_.getClass$ = getClass_4;
+_.typeId$ = 0;
+function getClass_10(){
+  return Lcom_google_gwt_event_shared_GwtEvent_2_classLit;
+}
+
+function toString_2(){
+  return 'An event type';
+}
+
+function GwtEvent(){
+}
+
+_ = GwtEvent.prototype = new Object_0();
+_.getClass$ = getClass_10;
+_.toString$ = toString_2;
+_.typeId$ = 0;
+_.dead = false;
+_.source = null;
+function dispatch(handler){
+  $onClose();
+}
+
+function fire(source){
+  var event_0;
+  if (TYPE) {
+    event_0 = new CloseEvent();
+    $fireEvent_0(source, event_0);
+  }
+}
+
+function getAssociatedType(){
+  return TYPE;
+}
+
+function getClass_7(){
+  return Lcom_google_gwt_event_logical_shared_CloseEvent_2_classLit;
+}
+
+function CloseEvent(){
+}
+
+_ = CloseEvent.prototype = new GwtEvent();
+_.dispatch = dispatch;
+_.getAssociatedType = getAssociatedType;
+_.getClass$ = getClass_7;
+_.typeId$ = 0;
+var TYPE = null;
+function getClass_8(){
+  return Lcom_google_gwt_event_shared_DefaultHandlerRegistration_2_classLit;
+}
+
+function DefaultHandlerRegistration(){
+}
+
+_ = DefaultHandlerRegistration.prototype = new Object_0();
+_.getClass$ = getClass_8;
+_.typeId$ = 0;
+function $GwtEvent$Type(this$static){
+  this$static.index_0 = ++nextHashCode;
+  return this$static;
+}
+
+function getClass_9(){
+  return Lcom_google_gwt_event_shared_GwtEvent$Type_2_classLit;
+}
+
+function hashCode_1(){
+  return this.index_0;
+}
+
+function toString_1(){
+  return 'Event type';
+}
+
+function GwtEvent$Type(){
+}
+
+_ = GwtEvent$Type.prototype = new Object_0();
+_.getClass$ = getClass_9;
+_.hashCode$ = hashCode_1;
+_.toString$ = toString_1;
+_.typeId$ = 0;
+_.index_0 = 0;
+var nextHashCode = 0;
+function $addHandler_0(this$static, type, handler){
+  if (this$static.firingDepth > 0) {
+    $defer(this$static, $HandlerManager$1(new HandlerManager$1(), this$static, type, handler));
+  }
+   else {
+    $addHandler(this$static.registry, type, handler);
+  }
+  return new DefaultHandlerRegistration();
+}
+
+function $defer(this$static, command){
+  if (!this$static.deferredDeltas) {
+    this$static.deferredDeltas = $ArrayList(new ArrayList());
+  }
+  $add_0(this$static.deferredDeltas, command);
+}
+
+function $fireEvent_0(this$static, event_0){
+  var oldSource;
+  if (event_0.dead) {
+    event_0.dead = false;
+    event_0.source = null;
+  }
+  oldSource = event_0.source;
+  event_0.source = this$static.source;
+  try {
+    ++this$static.firingDepth;
+    $fireEvent(this$static.registry, event_0, this$static.isReverseOrder);
+  }
+   finally {
+    --this$static.firingDepth;
+    if (this$static.firingDepth == 0) {
+      $handleQueuedAddsAndRemoves(this$static);
+    }
+  }
+  if (oldSource == null) {
+    event_0.dead = true;
+    event_0.source = null;
+  }
+   else {
+    event_0.source = oldSource;
+  }
+}
+
+function $handleQueuedAddsAndRemoves(this$static){
+  var c, c$iterator;
+  if (this$static.deferredDeltas) {
+    try {
+      for (c$iterator = $AbstractList$IteratorImpl(new AbstractList$IteratorImpl(), this$static.deferredDeltas); c$iterator.i < c$iterator.this$0.size;) {
+        c = dynamicCast($next(c$iterator), 2);
+        $addHandler(c.this$0.registry, c.val$type, c.val$handler);
+      }
+    }
+     finally {
+      this$static.deferredDeltas = null;
+    }
+  }
+}
+
+function getClass_13(){
+  return Lcom_google_gwt_event_shared_HandlerManager_2_classLit;
+}
+
+function HandlerManager(){
+}
+
+_ = HandlerManager.prototype = new Object_0();
+_.getClass$ = getClass_13;
+_.typeId$ = 0;
+_.deferredDeltas = null;
+_.firingDepth = 0;
+_.isReverseOrder = false;
+_.registry = null;
+_.source = null;
+function $HandlerManager$1(this$static, this$0, val$type, val$handler){
+  this$static.this$0 = this$0;
+  this$static.val$type = val$type;
+  this$static.val$handler = val$handler;
+  return this$static;
+}
+
+function getClass_11(){
+  return Lcom_google_gwt_event_shared_HandlerManager$1_2_classLit;
+}
+
+function HandlerManager$1(){
+}
+
+_ = HandlerManager$1.prototype = new Object_0();
+_.getClass$ = getClass_11;
+_.typeId$ = 7;
+_.this$0 = null;
+_.val$handler = null;
+_.val$type = null;
+function $HandlerManager$HandlerRegistry(this$static){
+  this$static.map = $HashMap(new HashMap());
+  return this$static;
+}
+
+function $addHandler(this$static, type, handler){
+  var l;
+  l = dynamicCast($get(this$static.map, type), 3);
+  if (!l) {
+    l = $ArrayList(new ArrayList());
+    $put(this$static.map, type, l);
+  }
+  setCheck(l.array, l.size++, handler);
+}
+
+function $fireEvent(this$static, event_0, isReverseOrder){
+  var count, handler, i, type, l, l_0, l_1;
+  type = event_0.getAssociatedType();
+  count = (l = dynamicCast($get(this$static.map, type), 3) , !l?0:l.size);
+  if (isReverseOrder) {
+    for (i = count - 1; i >= 0; --i) {
+      handler = (l_0 = dynamicCast($get(this$static.map, type), 3) , dynamicCast((checkIndex(i, l_0.size) , l_0.array[i]), 8));
+      event_0.dispatch(handler);
+    }
+  }
+   else {
+    for (i = 0; i < count; ++i) {
+      handler = (l_1 = dynamicCast($get(this$static.map, type), 3) , dynamicCast((checkIndex(i, l_1.size) , l_1.array[i]), 8));
+      event_0.dispatch(handler);
+    }
+  }
+}
+
+function getClass_12(){
+  return Lcom_google_gwt_event_shared_HandlerManager$HandlerRegistry_2_classLit;
+}
+
+function HandlerManager$HandlerRegistry(){
+}
+
+_ = HandlerManager$HandlerRegistry.prototype = new Object_0();
+_.getClass$ = getClass_12;
+_.typeId$ = 0;
+function $Request(this$static, xmlHttpRequest, timeoutMillis, callback){
+  if (!xmlHttpRequest) {
+    throw new NullPointerException();
+  }
+  if (!callback) {
+    throw new NullPointerException();
+  }
+  if (timeoutMillis < 0) {
+    throw new IllegalArgumentException();
+  }
+  this$static.timeoutMillis = timeoutMillis;
+  this$static.xmlHttpRequest = xmlHttpRequest;
+  if (timeoutMillis > 0) {
+    this$static.timer = $Request$2(new Request$2(), this$static);
+    $schedule(this$static.timer, timeoutMillis);
+  }
+   else {
+    this$static.timer = null;
+  }
+  return this$static;
+}
+
+function $cancel(this$static){
+  var xmlHttp;
+  if (this$static.xmlHttpRequest) {
+    xmlHttp = this$static.xmlHttpRequest;
+    this$static.xmlHttpRequest = null;
+    xmlHttp.onreadystatechange = nullFunc;
+    xmlHttp.abort();
+    $cancelTimer(this$static);
+  }
+}
+
+function $cancelTimer(this$static){
+  if (this$static.timer) {
+    $cancel_0(this$static.timer);
+  }
+}
+
+function $fireOnResponseReceivedImpl(this$static, callback){
+  var errorMsg, response_0, xmlHttp, response, translation;
+  if (!this$static.xmlHttpRequest) {
+    return;
+  }
+  $cancelTimer(this$static);
+  xmlHttp = this$static.xmlHttpRequest;
+  this$static.xmlHttpRequest = null;
+  errorMsg = getBrowserSpecificFailure(xmlHttp);
+  if (errorMsg != null) {
+    $RuntimeException(new RuntimeException(), errorMsg);
+  }
+   else {
+    response_0 = (response = $Request$1(new Request$1(), xmlHttp) , response);
+    translation = $getTranslation(response_0.val$xmlHttpRequest.responseText);
+    $putAll(callback.this$0.params, translation);
+    '2 ' + $toString_1(callback.this$0.params);
+    $setInnerText(($clinit_6() , callback.this$0.target), dynamicCast($get(callback.this$0.params, ($clinit_95() , 'tt')), 1));
+    $createHoverInfo(callback.this$0);
+  }
+}
+
+function $fireOnTimeout(this$static){
+  if (!this$static.xmlHttpRequest) {
+    return;
+  }
+  $cancel(this$static);
+  $RequestTimeoutException(new RequestTimeoutException(), this$static.timeoutMillis);
+}
+
+function fireOnResponseReceived(callback){
+  $fireOnResponseReceivedImpl(this, callback);
+}
+
+function getClass_21(){
+  return Lcom_google_gwt_http_client_Request_2_classLit;
+}
+
+function Request(){
+}
+
+_ = Request.prototype = new Object_0();
+_.fireOnResponseReceived = fireOnResponseReceived;
+_.getClass$ = getClass_21;
+_.typeId$ = 0;
+_.timeoutMillis = 0;
+_.timer = null;
+_.xmlHttpRequest = null;
+function getClass_22(){
+  return Lcom_google_gwt_http_client_Response_2_classLit;
+}
+
+function Response(){
+}
+
+_ = Response.prototype = new Object_0();
+_.getClass$ = getClass_22;
+_.typeId$ = 0;
+function $Request$1(this$static, val$xmlHttpRequest){
+  this$static.val$xmlHttpRequest = val$xmlHttpRequest;
+  return this$static;
+}
+
+function getClass_14(){
+  return Lcom_google_gwt_http_client_Request$1_2_classLit;
+}
+
+function Request$1(){
+}
+
+_ = Request$1.prototype = new Response();
+_.getClass$ = getClass_14;
+_.typeId$ = 0;
+_.val$xmlHttpRequest = null;
+function $clinit_49(){
+  $clinit_49 = nullMethod;
+  timers = $ArrayList(new ArrayList());
+  addCloseHandler(new Timer$1());
+}
+
+function $cancel_0(this$static){
+  if (this$static.isRepeating) {
+    $wnd.clearInterval(this$static.timerId);
+  }
+   else {
+    $wnd.clearTimeout(this$static.timerId);
+  }
+  $remove_0(timers, this$static);
+}
+
+function $fireImpl(this$static){
+  if (!this$static.isRepeating) {
+    $remove_0(timers, this$static);
+  }
+  $fireOnTimeout(this$static.this$0);
+}
+
+function $schedule(this$static, delayMillis){
+  if (delayMillis <= 0) {
+    throw $IllegalArgumentException(new IllegalArgumentException(), 'must be positive');
+  }
+  $cancel_0(this$static);
+  this$static.isRepeating = false;
+  this$static.timerId = createTimeout(this$static, delayMillis);
+  $add_0(timers, this$static);
+}
+
+function createTimeout(timer, delay){
+  return $wnd.setTimeout(function(){
+    timer.fire();
+  }
+  , delay);
+}
+
+function fire_0(){
+  $fireImpl(this);
+}
+
+function getClass_25(){
+  return Lcom_google_gwt_user_client_Timer_2_classLit;
+}
+
+function Timer(){
+}
+
+_ = Timer.prototype = new Object_0();
+_.fire = fire_0;
+_.getClass$ = getClass_25;
+_.typeId$ = 0;
+_.isRepeating = false;
+_.timerId = 0;
+var timers;
+function $clinit_25(){
+  $clinit_25 = nullMethod;
+  $clinit_49();
+}
+
+function $Request$2(this$static, this$0){
+  $clinit_25();
+  this$static.this$0 = this$0;
+  return this$static;
+}
+
+function getClass_15(){
+  return Lcom_google_gwt_http_client_Request$2_2_classLit;
+}
+
+function Request$2(){
+}
+
+_ = Request$2.prototype = new Timer();
+_.getClass$ = getClass_15;
+_.typeId$ = 8;
+_.this$0 = null;
+function $clinit_27(){
+  $clinit_27 = nullMethod;
+  $RequestBuilder$Method(new RequestBuilder$Method(), 'GET');
+  POST = $RequestBuilder$Method(new RequestBuilder$Method(), 'POST');
+  nullFunc = createFunction();
+}
+
+function $RequestBuilder(this$static, httpMethod, url){
+  $clinit_27();
+  $RequestBuilder_0(this$static, !httpMethod?null:httpMethod.name_0, url);
+  return this$static;
+}
+
+function $RequestBuilder_0(this$static, httpMethod, url){
+  $clinit_27();
+  throwIfEmptyOrNull('httpMethod', httpMethod);
+  throwIfEmptyOrNull('url', url);
+  this$static.httpMethod = httpMethod;
+  this$static.url = url;
+  return this$static;
+}
+
+function $doSend(this$static, requestData, callback){
+  var openError, request, requestPermissionException, sendError, xmlHttpRequest;
+  xmlHttpRequest = new XMLHttpRequest();
+  openError = open_0(xmlHttpRequest, this$static.httpMethod, this$static.url, true);
+  if (openError != null) {
+    requestPermissionException = $RequestPermissionException(new RequestPermissionException(), this$static.url);
+    $initCause(requestPermissionException, $RequestException(new RequestException(), openError));
+    throw requestPermissionException;
+  }
+  $setHeaders(this$static, xmlHttpRequest);
+  request = $Request(new Request(), xmlHttpRequest, this$static.timeoutMillis, callback);
+  sendError = send(xmlHttpRequest, request, requestData, callback);
+  if (sendError != null) {
+    throw $RequestException(new RequestException(), sendError);
+  }
+  return request;
+}
+
+function $sendRequest(this$static, requestData, callback){
+  throwIfNull('callback', callback);
+  return $doSend(this$static, requestData, callback);
+}
+
+function $setHeader(this$static, header, value){
+  throwIfEmptyOrNull('header', header);
+  throwIfEmptyOrNull('value', value);
+  if (!this$static.headers) {
+    this$static.headers = $HashMap(new HashMap());
+  }
+  $put(this$static.headers, header, value);
+}
+
+function $setHeaders(this$static, xmlHttpRequest){
+  var errorMessage, header, header$iterator;
+  if (!!this$static.headers && this$static.headers.size > 0) {
+    for (header$iterator = $AbstractHashMap$EntrySetIterator(new AbstractHashMap$EntrySetIterator(), $AbstractHashMap$EntrySet(new AbstractHashMap$EntrySet(), this$static.headers).this$0); $hasNext(header$iterator.iter);) {
+      header = dynamicCast($next(header$iterator.iter), 9);
+      errorMessage = setRequestHeader(xmlHttpRequest, dynamicCast(header.getKey(), 1), dynamicCast(header.getValue(), 1));
+      if (errorMessage != null) {
+        throw $RequestException(new RequestException(), errorMessage);
+      }
+    }
+  }
+   else {
+    setRequestHeader(xmlHttpRequest, 'Content-Type', 'text/plain; charset=utf-8');
+  }
+}
+
+function getClass_17(){
+  return Lcom_google_gwt_http_client_RequestBuilder_2_classLit;
+}
+
+function RequestBuilder(){
+}
+
+_ = RequestBuilder.prototype = new Object_0();
+_.getClass$ = getClass_17;
+_.typeId$ = 0;
+_.headers = null;
+_.httpMethod = null;
+_.timeoutMillis = 0;
+_.url = null;
+var POST;
+function $RequestBuilder$Method(this$static, name_0){
+  this$static.name_0 = name_0;
+  return this$static;
+}
+
+function getClass_16(){
+  return Lcom_google_gwt_http_client_RequestBuilder$Method_2_classLit;
+}
+
+function toString_3(){
+  return this.name_0;
+}
+
+function RequestBuilder$Method(){
+}
+
+_ = RequestBuilder$Method.prototype = new Object_0();
+_.getClass$ = getClass_16;
+_.toString$ = toString_3;
+_.typeId$ = 0;
+_.name_0 = null;
+function $RequestException(this$static, message){
+  this$static.detailMessage = message;
+  return this$static;
+}
+
+function getClass_18(){
+  return Lcom_google_gwt_http_client_RequestException_2_classLit;
+}
+
+function RequestException(){
+}
+
+_ = RequestException.prototype = new Exception();
+_.getClass$ = getClass_18;
+_.typeId$ = 9;
+function $RequestPermissionException(this$static, url){
+  this$static.detailMessage = 'The URL ' + url + ' is invalid or violates the same-origin security restriction';
+  return this$static;
+}
+
+function getClass_19(){
+  return Lcom_google_gwt_http_client_RequestPermissionException_2_classLit;
+}
+
+function RequestPermissionException(){
+}
+
+_ = RequestPermissionException.prototype = new RequestException();
+_.getClass$ = getClass_19;
+_.typeId$ = 10;
+function $RequestTimeoutException(this$static, timeoutMillis){
+  this$static.detailMessage = 'A request timeout has expired after ' + ('' + timeoutMillis) + ' ms';
+  return this$static;
+}
+
+function getClass_20(){
+  return Lcom_google_gwt_http_client_RequestTimeoutException_2_classLit;
+}
+
+function RequestTimeoutException(){
+}
+
+_ = RequestTimeoutException.prototype = new RequestException();
+_.getClass$ = getClass_20;
+_.typeId$ = 11;
+function throwIfEmptyOrNull(name_0, value){
+  throwIfNull(name_0, value);
+  if (0 == $trim(value).length) {
+    throw $IllegalArgumentException(new IllegalArgumentException(), name_0 + ' cannot be empty');
+  }
+}
+
+function throwIfNull(name_0, value){
+  if (null == value) {
+    throw $NullPointerException(new NullPointerException(), name_0 + ' cannot be null');
+  }
+}
+
+function getBrowserSpecificFailure(xmlHttpRequest){
+  try {
+    if (xmlHttpRequest.status === undefined) {
+      return 'XmlHttpRequest.status == undefined, please see Safari bug ' + 'http://bugs.webkit.org/show_bug.cgi?id=3810 for more details';
+    }
+    return null;
+  }
+   catch (e) {
+    return 'Unable to read XmlHttpRequest.status; likely causes are a ' + 'networking error or bad cross-domain request. Please see ' + 'https://bugzilla.mozilla.org/show_bug.cgi?id=238559 for more ' + 'details';
+  }
+}
+
+function open_0(xmlHttpRequest, httpMethod, url, async){
+  try {
+    xmlHttpRequest.open(httpMethod, url, async);
+    return null;
+  }
+   catch (e) {
+    return e.message || e.toString();
+  }
+}
+
+function send(xmlHttpRequest, httpRequest, requestData, callback){
+  xmlHttpRequest.onreadystatechange = function(){
+    if (xmlHttpRequest.readyState == 4) {
+      $wnd.setTimeout(function(){
+        xmlHttpRequest.onreadystatechange = nullFunc;
+      }
+      , 0);
+      httpRequest.fireOnResponseReceived(callback);
+    }
+  }
+  ;
+  try {
+    xmlHttpRequest.send(requestData);
+    return null;
+  }
+   catch (e) {
+    xmlHttpRequest.onreadystatechange = nullFunc;
+    return e.message || e.toString();
+  }
+}
+
+function setRequestHeader(xmlHttpRequest, header, value){
+  try {
+    xmlHttpRequest.setRequestHeader(header, value);
+    return null;
+  }
+   catch (e) {
+    return e.message || e.toString();
+  }
+}
+
+function createFromSeed(seedType, length_0){
+  var array = new Array(length_0);
+  if (seedType > 0) {
+    var value = [null, 0, false, [0, 0]][seedType];
+    for (var i = 0; i < length_0; ++i) {
+      array[i] = value;
+    }
+  }
+  return array;
+}
+
+function getClass_23(){
+  return this.arrayClass$;
+}
+
+function initDim(arrayClass, typeId, queryId, length_0, seedType){
+  var result;
+  result = createFromSeed(seedType, length_0);
+  $clinit_36();
+  wrapArray(result, expandoNames_0, expandoValues_0);
+  result.arrayClass$ = arrayClass;
+  result.typeId$ = typeId;
+  result.queryId$ = queryId;
+  return result;
+}
+
+function initValues(arrayClass, typeId, queryId, array){
+  $clinit_36();
+  wrapArray(array, expandoNames_0, expandoValues_0);
+  array.arrayClass$ = arrayClass;
+  array.typeId$ = typeId;
+  array.queryId$ = queryId;
+  return array;
+}
+
+function setCheck(array, index, value){
+  if (value != null) {
+    if (array.queryId$ > 0 && !canCastUnsafe(value.typeId$, array.queryId$)) {
+      throw new ArrayStoreException();
+    }
+    if (array.queryId$ < 0 && (value.typeMarker$ == nullMethod || value.typeId$ == 2)) {
+      throw new ArrayStoreException();
+    }
+  }
+  return array[index] = value;
+}
+
+function Array_0(){
+}
+
+_ = Array_0.prototype = new Object_0();
+_.getClass$ = getClass_23;
+_.typeId$ = 0;
+_.arrayClass$ = null;
+_.length = 0;
+_.queryId$ = 0;
+function $clinit_36(){
+  $clinit_36 = nullMethod;
+  expandoNames_0 = [];
+  expandoValues_0 = [];
+  initExpandos(new Array_0(), expandoNames_0, expandoValues_0);
+}
+
+function initExpandos(protoType, expandoNames, expandoValues){
+  var i = 0, value;
+  for (var name_0 in protoType) {
+    if (value = protoType[name_0]) {
+      expandoNames[i] = name_0;
+      expandoValues[i] = value;
+      ++i;
+    }
+  }
+}
+
+function wrapArray(array, expandoNames, expandoValues){
+  $clinit_36();
+  for (var i = 0, c = expandoNames.length; i < c; ++i) {
+    array[expandoNames[i]] = expandoValues[i];
+  }
+}
+
+var expandoNames_0, expandoValues_0;
+function canCast(srcId, dstId){
+  return srcId && !!typeIdArray[srcId][dstId];
+}
+
+function canCastUnsafe(srcId, dstId){
+  return srcId && typeIdArray[srcId][dstId];
+}
+
+function dynamicCast(src, dstId){
+  if (src != null && !canCastUnsafe(src.typeId$, dstId)) {
+    throw new ClassCastException();
+  }
+  return src;
+}
+
+function dynamicCastJso(src){
+  if (src != null && (src.typeMarker$ == nullMethod || src.typeId$ == 2)) {
+    throw new ClassCastException();
+  }
+  return src;
+}
+
+function instanceOf(src, dstId){
+  return src != null && canCast(src.typeId$, dstId);
+}
+
+var typeIdArray = [{}, {}, {1:1, 4:1, 5:1, 6:1}, {4:1, 10:1}, {4:1, 10:1, 17:1}, {4:1, 10:1, 17:1}, {4:1, 10:1, 14:1, 17:1}, {2:1}, {11:1}, {4:1, 10:1, 16:1, 17:1}, {4:1, 10:1, 16:1, 17:1}, {4:1, 10:1, 16:1, 17:1}, {8:1}, {4:1, 10:1, 17:1}, {12:1}, {12:1}, {12:1}, {12:1}, {12:1}, {12:1}, {12:1}, {4:1, 10:1, 17:1}, {12:1}, {12:1, 13:1}, {12:1}, {12:1}, {12:1}, {15:1}, {4:1, 10:1, 17:1}, {4:1, 10:1, 17:1}, {4:1, 10:1}, {4:1, 10:1}, {4:1, 10:1, 17:1}, {4:1, 10:1, 17:1}, {4:1, 10:1, 17:1}, {4:1, 10:1, 17:1}, {4:1, 10:1, 17:1}, {4:1, 10:1, 17:1}, {5:1}, {5:1}, {4:1, 10:1, 17:1}, {19:1}, {19:1}, {9:1}, {9:1}, {9:1}, {19:1}, {3:1, 4:1}, {4:1, 6:1, 20:1}, {4:1, 18:1}, {4:1, 19:1}, {9:1}, {4:1, 10:1, 17:1}, {7:1}];
+function caught(e){
+  if (e != null && canCast(e.typeId$, 10)) {
+    return e;
+  }
+  return $JavaScriptException(new JavaScriptException(), e);
+}
+
+function add(a, b){
+  var newHigh, newLow;
+  newHigh = a[1] + b[1];
+  newLow = a[0] + b[0];
+  return create(newLow, newHigh);
+}
+
+function create(valueLow, valueHigh){
+  var diffHigh, diffLow;
+  valueHigh %= 1.8446744073709552E19;
+  valueLow %= 1.8446744073709552E19;
+  diffHigh = valueHigh % 4294967296;
+  diffLow = Math.floor(valueLow / 4294967296) * 4294967296;
+  valueHigh = valueHigh - diffHigh + diffLow;
+  valueLow = valueLow - diffLow + diffHigh;
+  while (valueLow < 0) {
+    valueLow += 4294967296;
+    valueHigh -= 4294967296;
+  }
+  while (valueLow > 4294967295) {
+    valueLow -= 4294967296;
+    valueHigh += 4294967296;
+  }
+  valueHigh = valueHigh % 1.8446744073709552E19;
+  while (valueHigh > 9223372032559808512) {
+    valueHigh -= 1.8446744073709552E19;
+  }
+  while (valueHigh < -9223372036854775808) {
+    valueHigh += 1.8446744073709552E19;
+  }
+  return [valueLow, valueHigh];
+}
+
+function eq(a, b){
+  return a[0] == b[0] && a[1] == b[1];
+}
+
+function fromDouble(value){
+  if (isNaN(value)) {
+    return $clinit_42() , ZERO;
+  }
+  if (value < -9223372036854775808) {
+    return $clinit_42() , MIN_VALUE;
+  }
+  if (value >= 9223372036854775807) {
+    return $clinit_42() , MAX_VALUE;
+  }
+  if (value > 0) {
+    return create(Math.floor(value), 0);
+  }
+   else {
+    return create(Math.ceil(value), 0);
+  }
+}
+
+function fromInt(value){
+  var rebase, result;
+  if (value > -129 && value < 128) {
+    rebase = value + 128;
+    result = ($clinit_41() , boxedValues)[rebase];
+    if (result == null) {
+      result = boxedValues[rebase] = internalFromInt(value);
+    }
+    return result;
+  }
+  return internalFromInt(value);
+}
+
+function internalFromInt(value){
+  if (value >= 0) {
+    return [value, 0];
+  }
+   else {
+    return [value + 4294967296, -4294967296];
+  }
+}
+
+function lowBits_0(a){
+  if (a[0] >= 2147483648) {
+    return ~~Math.max(Math.min(a[0] - 4294967296, 2147483647), -2147483648);
+  }
+   else {
+    return ~~Math.max(Math.min(a[0], 2147483647), -2147483648);
+  }
+}
+
+function makeFromBits(highBits, lowBits){
+  var high, low;
+  high = highBits * 4294967296;
+  low = lowBits;
+  if (lowBits < 0) {
+    low += 4294967296;
+  }
+  return [low, high];
+}
+
+function neg(a){
+  var newHigh, newLow;
+  if (eq(a, ($clinit_42() , MIN_VALUE))) {
+    return MIN_VALUE;
+  }
+  newHigh = -a[1];
+  newLow = -a[0];
+  if (newLow > 4294967295) {
+    newLow -= 4294967296;
+    newHigh += 4294967296;
+  }
+  if (newLow < 0) {
+    newLow += 4294967296;
+    newHigh -= 4294967296;
+  }
+  return [newLow, newHigh];
+}
+
+function pwrAsDouble(n){
+  if (n <= 30) {
+    return 1 << n;
+  }
+   else {
+    return pwrAsDouble(30) * pwrAsDouble(n - 30);
+  }
+}
+
+function shl(a, n){
+  var diff, newHigh, newLow, twoToN;
+  n &= 63;
+  if (eq(a, ($clinit_42() , MIN_VALUE))) {
+    if (n == 0) {
+      return a;
+    }
+     else {
+      return ZERO;
+    }
+  }
+  if (a[1] < 0) {
+    return neg(shl(neg(a), n));
+  }
+  twoToN = pwrAsDouble(n);
+  newHigh = a[1] * twoToN % 1.8446744073709552E19;
+  newLow = a[0] * twoToN;
+  diff = newLow - newLow % 4294967296;
+  newHigh += diff;
+  newLow -= diff;
+  if (newHigh >= 9223372036854775807) {
+    newHigh -= 1.8446744073709552E19;
+  }
+  return [newLow, newHigh];
+}
+
+function shr(a, n){
+  var newHigh, newLow, shiftFact;
+  n &= 63;
+  shiftFact = pwrAsDouble(n);
+  newHigh = a[1] / shiftFact;
+  newLow = Math.floor(a[0] / shiftFact);
+  return create(newLow, newHigh);
+}
+
+function shru(a, n){
+  var sr;
+  n &= 63;
+  sr = shr(a, n);
+  if (a[1] < 0) {
+    sr = add(sr, shl(($clinit_42() , TWO), 63 - n));
+  }
+  return sr;
+}
+
+function xor(a, b){
+  return makeFromBits(~~Math.max(Math.min(a[1] / 4294967296, 2147483647), -2147483648) ^ ~~Math.max(Math.min(b[1] / 4294967296, 2147483647), -2147483648), lowBits_0(a) ^ lowBits_0(b));
+}
+
+function $clinit_41(){
+  $clinit_41 = nullMethod;
+  boxedValues = initDim(_3_3D_classLit, 0, 7, 256, 0);
+}
+
+var boxedValues;
+function $clinit_42(){
+  $clinit_42 = nullMethod;
+  Math.log(2);
+  MAX_VALUE = P7fffffffffffffff_longLit;
+  MIN_VALUE = N8000000000000000_longLit;
+  fromInt(-1);
+  fromInt(1);
+  TWO = fromInt(2);
+  ZERO = fromInt(0);
+}
+
+var MAX_VALUE, MIN_VALUE, TWO, ZERO;
+function ensureCookies(){
+  if (!cachedCookies || needsRefresh()) {
+    cachedCookies = $HashMap(new HashMap());
+    loadCookies(cachedCookies);
+  }
+  return cachedCookies;
+}
+
+function loadCookies(m){
+  var docCookie = $doc.cookie;
+  if (docCookie && docCookie != '') {
+    var crumbs = docCookie.split('; ');
+    for (var i = 0; i < crumbs.length; ++i) {
+      var name_0, value;
+      var eqIdx = crumbs[i].indexOf('=');
+      if (eqIdx == -1) {
+        name_0 = crumbs[i];
+        value = '';
+      }
+       else {
+        name_0 = crumbs[i].substring(0, eqIdx);
+        value = crumbs[i].substring(eqIdx + 1);
+      }
+      name_0 = decodeURIComponent(name_0);
+      value = decodeURIComponent(value);
+      m.put(name_0, value);
+    }
+  }
+}
+
+function needsRefresh(){
+  var docCookie = $doc.cookie;
+  if (docCookie != rawCookies) {
+    rawCookies = docCookie;
+    return true;
+  }
+   else {
+    return false;
+  }
+}
+
+var cachedCookies = null, rawCookies = null;
+function $onClose(){
+  while (($clinit_49() , timers).size > 0) {
+    $cancel_0(dynamicCast($get_0(timers, 0), 11));
+  }
+}
+
+function getClass_24(){
+  return Lcom_google_gwt_user_client_Timer$1_2_classLit;
+}
+
+function Timer$1(){
+}
+
+_ = Timer$1.prototype = new Object_0();
+_.getClass$ = getClass_24;
+_.typeId$ = 12;
+function addCloseHandler(handler){
+  maybeInitializeCloseHandlers();
+  return addHandler(TYPE?TYPE:(TYPE = $GwtEvent$Type(new GwtEvent$Type())), handler);
+}
+
+function addHandler(type, handler){
+  return $addHandler_0(getHandlers(), type, handler);
+}
+
+function fireClosedImpl(){
+  if (closeHandlersInitialized) {
+    fire(getHandlers());
+  }
+}
+
+function fireClosingImpl(){
+  var event_0;
+  if (closeHandlersInitialized) {
+    event_0 = ($clinit_50() , new Window$ClosingEvent());
+    fireEvent(event_0);
+    return null;
+  }
+  return null;
+}
+
+function fireEvent(event_0){
+  if (handlers) {
+    $fireEvent_0(handlers, event_0);
+  }
+}
+
+function getHandlers(){
+  if (!handlers) {
+    handlers = $Window$WindowHandlers(new Window$WindowHandlers());
+  }
+  return handlers;
+}
+
+function maybeInitializeCloseHandlers(){
+  if (!closeHandlersInitialized) {
+    $initWindowCloseHandler();
+    closeHandlersInitialized = true;
+  }
+}
+
+var closeHandlersInitialized = false, handlers = null;
+function $clinit_50(){
+  $clinit_50 = nullMethod;
+  TYPE_0 = $GwtEvent$Type(new GwtEvent$Type());
+}
+
+function dispatch_0(handler){
+  null.nullMethod();
+}
+
+function getAssociatedType_0(){
+  return TYPE_0;
+}
+
+function getClass_26(){
+  return Lcom_google_gwt_user_client_Window$ClosingEvent_2_classLit;
+}
+
+function Window$ClosingEvent(){
+}
+
+_ = Window$ClosingEvent.prototype = new GwtEvent();
+_.dispatch = dispatch_0;
+_.getAssociatedType = getAssociatedType_0;
+_.getClass$ = getClass_26;
+_.typeId$ = 0;
+var TYPE_0;
+function $Window$WindowHandlers(this$static){
+  this$static.registry = $HandlerManager$HandlerRegistry(new HandlerManager$HandlerRegistry());
+  this$static.source = null;
+  this$static.isReverseOrder = false;
+  return this$static;
+}
+
+function getClass_27(){
+  return Lcom_google_gwt_user_client_Window$WindowHandlers_2_classLit;
+}
+
+function Window$WindowHandlers(){
+}
+
+_ = Window$WindowHandlers.prototype = new HandlerManager();
+_.getClass$ = getClass_27;
+_.typeId$ = 0;
+function $getChild(elem, index){
+  var count = 0, child = elem.firstChild;
+  while (child) {
+    var next = child.nextSibling;
+    if (child.nodeType == 1) {
+      if (index == count)
+        return child;
+      ++count;
+    }
+    child = next;
+  }
+  return null;
+}
+
+function $getChildCount(elem){
+  var count = 0, child = elem.firstChild;
+  while (child) {
+    if (child.nodeType == 1)
+      ++count;
+    child = child.nextSibling;
+  }
+  return count;
+}
+
+var nullFunc = null;
+function $initWindowCloseHandler(){
+  var oldOnBeforeUnload = $wnd.onbeforeunload;
+  var oldOnUnload = $wnd.onunload;
+  $wnd.onbeforeunload = function(evt){
+    var ret, oldRet;
+    try {
+      ret = fireClosingImpl();
+    }
+     finally {
+      oldRet = oldOnBeforeUnload && oldOnBeforeUnload(evt);
+    }
+    if (ret != null) {
+      return ret;
+    }
+    if (oldRet != null) {
+      return oldRet;
+    }
+  }
+  ;
+  $wnd.onunload = function(evt){
+    try {
+      fireClosedImpl();
+    }
+     finally {
+      oldOnUnload && oldOnUnload(evt);
+      $wnd.onresize = null;
+      $wnd.onscroll = null;
+      $wnd.onbeforeunload = null;
+      $wnd.onunload = null;
+    }
+  }
+  ;
+}
+
+function $clinit_60(){
+  $clinit_60 = nullMethod;
+  $clearImpl(new HashMap());
+  (new HashSet()).map = $HashMap(new HashMap());
+}
+
+function $DOMException(this$static, message){
+  this$static.detailMessage = message;
+  return this$static;
+}
+
+function getClass_28(){
+  return Lcom_google_gwt_xml_client_DOMException_2_classLit;
+}
+
+function DOMException(){
+}
+
+_ = DOMException.prototype = new RuntimeException();
+_.getClass$ = getClass_28;
+_.typeId$ = 13;
+function $clinit_75(){
+  $clinit_75 = nullMethod;
+  impl_0 = ($clinit_91() , impl_1);
+}
+
+var impl_0;
+function equals_0(o){
+  if (o != null && canCast(o.typeId$, 12)) {
+    return this.jsObject == dynamicCast(o, 12).jsObject;
+  }
+  return false;
+}
+
+function getClass_33(){
+  return Lcom_google_gwt_xml_client_impl_DOMItem_2_classLit;
+}
+
+function getJsObject(){
+  return this.jsObject;
+}
+
+function DOMItem(){
+}
+
+_ = DOMItem.prototype = new Object_0();
+_.equals$ = equals_0;
+_.getClass$ = getClass_33;
+_.getJsObject = getJsObject;
+_.typeId$ = 14;
+_.jsObject = null;
+function $NodeImpl(this$static, jso){
+  this$static.jsObject = jso;
+  return this$static;
+}
+
+function build(node){
+  var nodeType, out;
+  if (!node) {
+    return null;
+  }
+  nodeType = ($clinit_91() , out = node.nodeType , out == null?-1:out);
+  switch (nodeType) {
+    case 2:
+      return $AttrImpl(new AttrImpl(), node);
+    case 4:
+      return $CDATASectionImpl(new CDATASectionImpl(), node);
+    case 8:
+      return $CommentImpl(new CommentImpl(), node);
+    case 11:
+      return $DocumentFragmentImpl(new DocumentFragmentImpl(), node);
+    case 9:
+      return $DocumentImpl(new DocumentImpl(), node);
+    case 1:
+      return $ElementImpl(new ElementImpl(), node);
+    case 7:
+      return $ProcessingInstructionImpl(new ProcessingInstructionImpl(), node);
+    case 3:
+      return $TextImpl(new TextImpl(), node);
+    default:return $NodeImpl(new NodeImpl(), node);
+  }
+}
+
+function getClass_38(){
+  return Lcom_google_gwt_xml_client_impl_NodeImpl_2_classLit;
+}
+
+function toString_6(){
+  var jsNode;
+  return jsNode = ($clinit_91() , this).getJsObject() , (new XMLSerializer()).serializeToString(jsNode);
+}
+
+function NodeImpl(){
+}
+
+_ = NodeImpl.prototype = new DOMItem();
+_.getClass$ = getClass_38;
+_.toString$ = toString_6;
+_.typeId$ = 15;
+function $AttrImpl(this$static, o){
+  this$static.jsObject = o;
+  return this$static;
+}
+
+function getClass_29(){
+  return Lcom_google_gwt_xml_client_impl_AttrImpl_2_classLit;
+}
+
+function AttrImpl(){
+}
+
+_ = AttrImpl.prototype = new NodeImpl();
+_.getClass$ = getClass_29;
+_.typeId$ = 16;
+function getClass_31(){
+  return Lcom_google_gwt_xml_client_impl_CharacterDataImpl_2_classLit;
+}
+
+function CharacterDataImpl(){
+}
+
+_ = CharacterDataImpl.prototype = new NodeImpl();
+_.getClass$ = getClass_31;
+_.typeId$ = 17;
+function $TextImpl(this$static, o){
+  this$static.jsObject = o;
+  return this$static;
+}
+
+function getClass_41(){
+  return Lcom_google_gwt_xml_client_impl_TextImpl_2_classLit;
+}
+
+function toString_9(){
+  var b, i, x;
+  b = $StringBuffer(new StringBuffer());
+  x = $split(($clinit_91() , this.jsObject.data), '(?=[;&<>\'"])', -1);
+  for (i = 0; i < x.length; ++i) {
+    if (x[i].indexOf(';') == 0) {
+      b.impl.string += '&semi;';
+      $append_0(b, x[i].substr(1, x[i].length - 1));
+    }
+     else if (x[i].indexOf('&') == 0) {
+      b.impl.string += '&amp;';
+      $append_0(b, x[i].substr(1, x[i].length - 1));
+    }
+     else if (x[i].indexOf('"') == 0) {
+      b.impl.string += '&quot;';
+      $append_0(b, x[i].substr(1, x[i].length - 1));
+    }
+     else if (x[i].indexOf("'") == 0) {
+      b.impl.string += '&apos;';
+      $append_0(b, x[i].substr(1, x[i].length - 1));
+    }
+     else if (x[i].indexOf('<') == 0) {
+      b.impl.string += '&lt;';
+      $append_0(b, x[i].substr(1, x[i].length - 1));
+    }
+     else if (x[i].indexOf('>') == 0) {
+      b.impl.string += '&gt;';
+      $append_0(b, x[i].substr(1, x[i].length - 1));
+    }
+     else {
+      b.impl.string += x[i];
+    }
+  }
+  return b.impl.string;
+}
+
+function TextImpl(){
+}
+
+_ = TextImpl.prototype = new CharacterDataImpl();
+_.getClass$ = getClass_41;
+_.toString$ = toString_9;
+_.typeId$ = 18;
+function $CDATASectionImpl(this$static, o){
+  this$static.jsObject = o;
+  return this$static;
+}
+
+function getClass_30(){
+  return Lcom_google_gwt_xml_client_impl_CDATASectionImpl_2_classLit;
+}
+
+function toString_4(){
+  var b;
+  b = $StringBuffer_0(new StringBuffer(), '<![CDATA[');
+  $append_0(b, ($clinit_91() , this.jsObject.data));
+  b.impl.string += ']]>';
+  return b.impl.string;
+}
+
+function CDATASectionImpl(){
+}
+
+_ = CDATASectionImpl.prototype = new TextImpl();
+_.getClass$ = getClass_30;
+_.toString$ = toString_4;
+_.typeId$ = 19;
+function $CommentImpl(this$static, o){
+  this$static.jsObject = o;
+  return this$static;
+}
+
+function getClass_32(){
+  return Lcom_google_gwt_xml_client_impl_CommentImpl_2_classLit;
+}
+
+function toString_5(){
+  var b;
+  b = $StringBuffer_0(new StringBuffer(), '<!--');
+  $append_0(b, ($clinit_91() , this.jsObject.data));
+  b.impl.string += '-->';
+  return b.impl.string;
+}
+
+function CommentImpl(){
+}
+
+_ = CommentImpl.prototype = new CharacterDataImpl();
+_.getClass$ = getClass_32;
+_.toString$ = toString_5;
+_.typeId$ = 20;
+function $DOMParseException(this$static, contents, e){
+  $DOMException(this$static, 'Failed to parse: ' + contents.substr(0, min_0(contents.length, 128) - 0));
+  $initCause(this$static, e);
+  return this$static;
+}
+
+function getClass_34(){
+  return Lcom_google_gwt_xml_client_impl_DOMParseException_2_classLit;
+}
+
+function DOMParseException(){
+}
+
+_ = DOMParseException.prototype = new DOMException();
+_.getClass$ = getClass_34;
+_.typeId$ = 21;
+function $DocumentFragmentImpl(this$static, o){
+  this$static.jsObject = o;
+  return this$static;
+}
+
+function getClass_35(){
+  return Lcom_google_gwt_xml_client_impl_DocumentFragmentImpl_2_classLit;
+}
+
+function DocumentFragmentImpl(){
+}
+
+_ = DocumentFragmentImpl.prototype = new NodeImpl();
+_.getClass$ = getClass_35;
+_.typeId$ = 22;
+function $DocumentImpl(this$static, o){
+  this$static.jsObject = o;
+  return this$static;
+}
+
+function getClass_36(){
+  return Lcom_google_gwt_xml_client_impl_DocumentImpl_2_classLit;
+}
+
+function DocumentImpl(){
+}
+
+_ = DocumentImpl.prototype = new NodeImpl();
+_.getClass$ = getClass_36;
+_.typeId$ = 23;
+function $ElementImpl(this$static, o){
+  this$static.jsObject = o;
+  return this$static;
+}
+
+function getClass_37(){
+  return Lcom_google_gwt_xml_client_impl_ElementImpl_2_classLit;
+}
+
+function ElementImpl(){
+}
+
+_ = ElementImpl.prototype = new NodeImpl();
+_.getClass$ = getClass_37;
+_.typeId$ = 24;
+function $NodeListImpl(this$static, o){
+  this$static.jsObject = o;
+  return this$static;
+}
+
+function $item(this$static, index){
+  return build(item(this$static.jsObject, index));
+}
+
+function getClass_39(){
+  return Lcom_google_gwt_xml_client_impl_NodeListImpl_2_classLit;
+}
+
+function toString_7(){
+  var b, i;
+  b = $StringBuffer(new StringBuffer());
+  for (i = 0; i < ($clinit_91() , this.jsObject.length); ++i) {
+    $append_0(b, build(item(this.jsObject, i)).toString$());
+  }
+  return b.impl.string;
+}
+
+function NodeListImpl(){
+}
+
+_ = NodeListImpl.prototype = new DOMItem();
+_.getClass$ = getClass_39;
+_.toString$ = toString_7;
+_.typeId$ = 25;
+function $ProcessingInstructionImpl(this$static, o){
+  this$static.jsObject = o;
+  return this$static;
+}
+
+function getClass_40(){
+  return Lcom_google_gwt_xml_client_impl_ProcessingInstructionImpl_2_classLit;
+}
+
+function toString_8(){
+  var jsNode;
+  return jsNode = ($clinit_91() , this).getJsObject() , (new XMLSerializer()).serializeToString(jsNode);
+}
+
+function ProcessingInstructionImpl(){
+}
+
+_ = ProcessingInstructionImpl.prototype = new NodeImpl();
+_.getClass$ = getClass_40;
+_.toString$ = toString_8;
+_.typeId$ = 26;
+function $clinit_91(){
+  $clinit_91 = nullMethod;
+  impl_1 = $XMLParserImplOpera(new XMLParserImplOpera());
+}
+
+function $parse(this$static, contents){
+  var $e0, e;
+  try {
+    return dynamicCast(build($parseImpl(this$static, contents)), 13);
+  }
+   catch ($e0) {
+    $e0 = caught($e0);
+    if (instanceOf($e0, 14)) {
+      e = $e0;
+      throw $DOMParseException(new DOMParseException(), contents, e);
+    }
+     else 
+      throw $e0;
+  }
+}
+
+function getClass_44(){
+  return Lcom_google_gwt_xml_client_impl_XMLParserImpl_2_classLit;
+}
+
+function item(t, index){
+  $clinit_91();
+  if (index >= t.length) {
+    return null;
+  }
+  return t.item(index);
+}
+
+function XMLParserImpl(){
+}
+
+_ = XMLParserImpl.prototype = new Object_0();
+_.getClass$ = getClass_44;
+_.typeId$ = 0;
+var impl_1;
+function $clinit_90(){
+  $clinit_90 = nullMethod;
+  $clinit_91();
+}
+
+function $parseImpl(this$static, contents){
+  var domParser = this$static.domParser;
+  var result = domParser.parseFromString(contents, 'text/xml');
+  var roottag = result.documentElement;
+  if (roottag.tagName == 'parsererror' && roottag.namespaceURI == 'http://www.mozilla.org/newlayout/xml/parsererror.xml') {
+    throw new Error(roottag.firstChild.data);
+  }
+  return result;
+}
+
+function getClass_43(){
+  return Lcom_google_gwt_xml_client_impl_XMLParserImplStandard_2_classLit;
+}
+
+function XMLParserImplStandard(){
+}
+
+_ = XMLParserImplStandard.prototype = new XMLParserImpl();
+_.getClass$ = getClass_43;
+_.typeId$ = 0;
+function $clinit_89(){
+  $clinit_89 = nullMethod;
+  $clinit_90();
+}
+
+function $XMLParserImplOpera(this$static){
+  $clinit_89();
+  this$static.domParser = new DOMParser();
+  return this$static;
+}
+
+function getClass_42(){
+  return Lcom_google_gwt_xml_client_impl_XMLParserImplOpera_2_classLit;
+}
+
+function XMLParserImplOpera(){
+}
+
+_ = XMLParserImplOpera.prototype = new XMLParserImplStandard();
+_.getClass$ = getClass_42;
+_.typeId$ = 0;
+function $onModuleLoad(){
+  var i, len, list, t, targetLanguage;
+  list = $extract($ArrayList(new ArrayList()));
+  $Date(new Date_0(), add(fromDouble((new Date()).getTime()), P486b6dc000_longLit));
+  targetLanguage = $getCookie(($clinit_95() , 'tl'));
+  if ($equals_0(targetLanguage, 'none')) {
+    return;
+  }
+  len = list.size;
+  for (i = 0; i < len; ++i) {
+    t = dynamicCast((checkIndex(i, list.size) , list.array[i]), 15);
+    t.targetLanguage = targetLanguage;
+    $translate(t);
+  }
+}
+
+function getSettings(elem){
+  var args, attr, i_0, len, settings, i, s;
+  args = ($clinit_95() , s = initDim(_3Ljava_lang_String_2_classLit, 0, 1, 19, 0) , i = 0 , s[i] = 'tx' , ++i , s[i] = 'username' , ++i , s[i] = 'tt' , ++i , s[i] = 'st' , ++i , s[i] = 'avgscore' , ++i , s[i] = 'sl' , ++i , s[i] = 'tl' , ++i , s[i] = 'allow_machine' , ++i , s[i] = 'allow_unscored' , ++i , s[i] = 'minimum_score' , ++i , s[i] = 'unknown' , ++i , s[i] = 'allow_anonymous' , ++i , s[i] = 'split' , ++i , s[i] = 'tl_full' , ++i , s[i] = 'BASE_URL' , ++i , s[i] = 'wwlapi' , ++i , s[i] = 'no translation' , ++i , s[i] = 'none' , ++i , s[i] = 'dermundo' , ++i , s);
+  len = args.length;
+  settings = $HashMap_0(new HashMap(), len);
+  for (i_0 = 0; i_0 < len; ++i_0) {
+    attr = ($clinit_6() , elem).getAttribute(args[i_0]) || '';
+    if (attr != null && !$equals_0(attr, '')) {
+      $put(settings, args[i_0], attr);
+    }
+     else {
+      attr = elem[args[i_0]] == null?null:String(elem[args[i_0]]);
+      if (attr != null && !$equals_0(attr, '')) {
+        $put(settings, args[i_0], attr);
+      }
+    }
+  }
+  return settings;
+}
+
+function $getCookie(key){
+  var value, cookiesMap;
+  value = (cookiesMap = ensureCookies() , dynamicCast(key == null?cookiesMap.nullSlot:key != null?cookiesMap.stringMap[':' + key]:$getHashValue(cookiesMap, key, ~~getHashCode_0(key)), 1));
+  if (value != null && value.length > 0) {
+    return value;
+  }
+   else {
+    return $clinit_95() , 'none';
+  }
+}
+
+function getTagList(element, accumulator, attr, target){
+  var child, i, n;
+  n = $getChildCount(element);
+  for (i = 0; i < n; ++i) {
+    child = $getChild(element, i);
+    if ($equals_0(($clinit_6() , child).getAttribute(attr) || '', target)) {
+      setCheck(accumulator.array, accumulator.size++, child);
+    }
+    getTagList(child, accumulator, attr, target);
+  }
+  return accumulator;
+}
+
+function $clinit_95(){
+  $clinit_95 = nullMethod;
+  getQueryFields = initValues(_3Ljava_lang_String_2_classLit, 0, 1, ['allow_anonymous', 'allow_machine', 'allow_unscored', 'minimum_score', 'sl', 'tl']);
+}
+
+var getQueryFields;
+function $extract(list){
+  var body;
+  body = ($clinit_60() , $doc.body);
+  list = $wrap(getTagList(body, $ArrayList(new ArrayList()), 'wwlapi', 'tr'));
+  return list;
+}
+
+function $wrap(elements){
+  var elem, i, len, list, wwl_trans;
+  len = elements.size;
+  list = $ArrayList_0(new ArrayList(), len);
+  for (i = 0; i < len; ++i) {
+    wwl_trans = new WWL_Translator();
+    elem = dynamicCastJso((checkIndex(i, elements.size) , elements.array[i]));
+    setCheck(list.array, list.size++, wwl_trans);
+    wwl_trans.target = elem;
+    wwl_trans.sourceText = $getInnerText(($clinit_6() , impl), elem);
+  }
+  return list;
+}
+
+function $buildTranslateQuery(this$static, params, fields){
+  var query;
+  query = $StringBuffer(new StringBuffer());
+  $append_0(query, dynamicCast($get(params, ($clinit_95() , 'dermundo')), 1));
+  query.impl.string += 'q?';
+  $append_0(query, 'st' + '=' + this$static.sourceText);
+  $append_0(query, $createBodyString(params, fields));
+  query.impl.string += '&output=xml';
+  return query.impl.string;
+}
+
+function $createBodyString(params, fields){
+  var buf, i, key, len, value;
+  buf = $StringBuilder(new StringBuilder());
+  len = fields.length;
+  for (i = 0; i < len; ++i) {
+    key = fields[i];
+    if (key == null?params.nullSlotLive:key != null?':' + key in params.stringMap:$hasHashValue(params, key, ~~getHashCode_0(key))) {
+      value = dynamicCast(key == null?params.nullSlot:key != null?params.stringMap[':' + key]:$getHashValue(params, key, ~~getHashCode_0(key)), 1);
+      if ($equals_0(key, ($clinit_95() , 'minimum_score')) && __parseAndValidateDouble(value) < 1) {
+      }
+       else {
+        $append_1(buf, '&' + key + '=' + dynamicCast(key == null?params.nullSlot:key != null?params.stringMap[':' + key]:$getHashValue(params, key, ~~getHashCode_0(key)), 1));
+      }
+    }
+  }
+  return buf.impl.string;
+}
+
+function $createHoverInfo(this$static){
+  var b;
+  b = $StringBuilder(new StringBuilder());
+  $append_1(b, ($clinit_95() , 'avgscore') + ':' + dynamicCast($get(this$static.params, 'avgscore'), 1) + '\r\n');
+  $append_1(b, 'username' + ':' + dynamicCast($get(this$static.params, 'username'), 1) + '\r\n');
+  $append_1(b, 'upvotes' + ':' + dynamicCast($get(this$static.params, 'upvotes'), 1) + ' ');
+  $append_1(b, 'downvotes' + ':' + dynamicCast($get(this$static.params, 'downvotes'), 1) + ' ');
+  $append_1(b, 'blockedvotes' + ':' + dynamicCast($get(this$static.params, 'blockedvotes'), 1) + '\r\n');
+  b.impl.string += 'Click to edit';
+  this$static.target.setAttribute('title', b.impl.string);
+  this$static.target['title'] = b.impl.string;
+}
+
+function $getParams(this$static){
+  if (!this$static.params) {
+    this$static.params = $HashMap(new HashMap());
+  }
+  return this$static.params;
+}
+
+function $translate(this$static){
+  var $e0, builder;
+  this$static.params = $getParams(this$static);
+  $put(this$static.params, ($clinit_95() , 'tl'), this$static.targetLanguage);
+  $putAll(this$static.params, getSettings($doc.getElementById('wwlapi')));
+  $putAll(this$static.params, getSettings(this$static.target));
+  '1 ' + $toString_1(this$static.params);
+  if (!$containsKey(this$static.params, 'tl')) {
+    return;
+  }
+  builder = $RequestBuilder(new RequestBuilder(), ($clinit_27() , POST), $buildTranslateQuery(this$static, this$static.params, getQueryFields));
+  $setHeader(builder, 'Content-Type', 'application/x-www-form-urlencoded');
+  try {
+    $sendRequest(builder, null, $WWL_Translator$1(new WWL_Translator$1(), this$static));
+  }
+   catch ($e0) {
+    $e0 = caught($e0);
+    if (instanceOf($e0, 16)) {
+    }
+     else 
+      throw $e0;
+  }
+   finally {
+    builder = null;
+  }
+}
+
+function getClass_46(){
+  return Lcom_wwl_client_util_WWL_1Translator_2_classLit;
+}
+
+function WWL_Translator(){
+}
+
+_ = WWL_Translator.prototype = new Object_0();
+_.getClass$ = getClass_46;
+_.typeId$ = 27;
+_.params = null;
+_.sourceText = null;
+_.target = null;
+_.targetLanguage = null;
+function $WWL_Translator$1(this$static, this$0){
+  this$static.this$0 = this$0;
+  return this$static;
+}
+
+function getClass_45(){
+  return Lcom_wwl_client_util_WWL_1Translator$1_2_classLit;
+}
+
+function WWL_Translator$1(){
+}
+
+_ = WWL_Translator$1.prototype = new Object_0();
+_.getClass$ = getClass_45;
+_.typeId$ = 0;
+_.this$0 = null;
+function $getTranslation(xml){
+  var $e0, MAX_SCORE, doc, i, len, rawScore, tags, temp, translations, txs;
+  translations = $HashMap(new HashMap());
+  translations = ($put(translations, ($clinit_95() , 'username'), 'none') , $put(translations, 'tt', 'no translation') , $put(translations, 'avgscore', 'none') , translations);
+  if (xml.length == 0 || $equals_0(xml, 'XML=<?xml version="1.0" ?><records><\/records>')) {
+    return translations;
+  }
+  doc = null;
+  try {
+    doc = ($clinit_75() , $parse(impl_0, xml));
+    tags = $NodeListImpl(new NodeListImpl(), ($clinit_91() , doc.jsObject.getElementsByTagNameNS('*', 'tx')));
+    len = tags.jsObject.length;
+    if (len == 1) {
+      txs = build(item(tags.jsObject, 0));
+      translations = $getTxRecordTranslation(txs, translations);
+      $put(translations, 'avgscore', '0');
+    }
+     else if (len > 1) {
+      txs = build(item(tags.jsObject, len - 1));
+      translations = $getTxRecordTranslation(txs, translations);
+      MAX_SCORE = 0;
+      for (i = len - 2; i >= 0; --i) {
+        txs = build(item(tags.jsObject, i));
+        temp = $HashMap(new HashMap());
+        temp = $getTxRecordTranslation(txs, temp);
+        rawScore = __parseAndValidateDouble(dynamicCast($get(temp, 'rawscore'), 1));
+        if (rawScore >= MAX_SCORE) {
+          MAX_SCORE = rawScore;
+          if (!$containsKey(temp, 'username')) {
+            $put(temp, 'username', dynamicCast($get(temp, 'remote_addr'), 1));
+          }
+          $put(temp, 'avgscore', dynamicCast($get(temp, 'rawscore'), 1));
+          $putAll(translations, temp);
+        }
+      }
+    }
+     else {
+    }
+  }
+   catch ($e0) {
+    $e0 = caught($e0);
+    if (instanceOf($e0, 17)) {
+    }
+     else 
+      throw $e0;
+  }
+  return translations;
+}
+
+function $getTxRecordTranslation(txs, accum){
+  var j, node, num, values;
+  values = $NodeListImpl(new NodeListImpl(), ($clinit_91() , txs.jsObject.childNodes));
+  num = values.jsObject.length;
+  for (j = 0; j < num; ++j) {
+    node = build(item(values.jsObject, j));
+    if ($item($NodeListImpl(new NodeListImpl(), node.jsObject.childNodes), 0)) {
+      $put(accum, node.jsObject.nodeName, $item($NodeListImpl(new NodeListImpl(), node.jsObject.childNodes), 0).toString$());
+    }
+  }
+  return accum;
+}
+
+function getClass_47(){
+  return Ljava_lang_ArrayStoreException_2_classLit;
+}
+
+function ArrayStoreException(){
+}
+
+_ = ArrayStoreException.prototype = new RuntimeException();
+_.getClass$ = getClass_47;
+_.typeId$ = 29;
+function createForArray(packageName, className){
+  var clazz;
+  clazz = new Class();
+  clazz.typeName = packageName + className;
+  clazz.modifiers = 4;
+  return clazz;
+}
+
+function createForClass(packageName, className){
+  var clazz;
+  clazz = new Class();
+  clazz.typeName = packageName + className;
+  return clazz;
+}
+
+function getClass_49(){
+  return Ljava_lang_Class_2_classLit;
+}
+
+function toString_10(){
+  return ((this.modifiers & 2) != 0?'interface ':(this.modifiers & 1) != 0?'':'class ') + this.typeName;
+}
+
+function Class(){
+}
+
+_ = Class.prototype = new Object_0();
+_.getClass$ = getClass_49;
+_.toString$ = toString_10;
+_.typeId$ = 0;
+_.modifiers = 0;
+_.typeName = null;
+function getClass_48(){
+  return Ljava_lang_ClassCastException_2_classLit;
+}
+
+function ClassCastException(){
+}
+
+_ = ClassCastException.prototype = new RuntimeException();
+_.getClass$ = getClass_48;
+_.typeId$ = 32;
+function __parseAndValidateDouble(s){
+  var toReturn;
+  toReturn = __parseDouble(s);
+  if (isNaN(toReturn)) {
+    throw $NumberFormatException(new NumberFormatException(), 'For input string: "' + s + '"');
+  }
+  return toReturn;
+}
+
+function __parseDouble(str){
+  var floatRegex = floatRegex_0;
+  if (!floatRegex) {
+    floatRegex = floatRegex_0 = /^[+-]?\d*\.?\d*(e[+-]?\d+)?$/i;
+  }
+  if (floatRegex.test(str)) {
+    return parseFloat(str);
+  }
+   else {
+    return Number.NaN;
+  }
+}
+
+var floatRegex_0 = null;
+function $IllegalArgumentException(this$static, message){
+  this$static.detailMessage = message;
+  return this$static;
+}
+
+function getClass_51(){
+  return Ljava_lang_IllegalArgumentException_2_classLit;
+}
+
+function IllegalArgumentException(){
+}
+
+_ = IllegalArgumentException.prototype = new RuntimeException();
+_.getClass$ = getClass_51;
+_.typeId$ = 33;
+function $IllegalStateException(this$static, s){
+  this$static.detailMessage = s;
+  return this$static;
+}
+
+function getClass_52(){
+  return Ljava_lang_IllegalStateException_2_classLit;
+}
+
+function IllegalStateException(){
+}
+
+_ = IllegalStateException.prototype = new RuntimeException();
+_.getClass$ = getClass_52;
+_.typeId$ = 34;
+function $IndexOutOfBoundsException(this$static, message){
+  this$static.detailMessage = message;
+  return this$static;
+}
+
+function getClass_53(){
+  return Ljava_lang_IndexOutOfBoundsException_2_classLit;
+}
+
+function IndexOutOfBoundsException(){
+}
+
+_ = IndexOutOfBoundsException.prototype = new RuntimeException();
+_.getClass$ = getClass_53;
+_.typeId$ = 35;
+function toPowerOfTwoString(value, shift){
+  var bitMask, buf, bufSize, digits, pos;
+  bufSize = ~~(32 / shift);
+  bitMask = (1 << shift) - 1;
+  buf = initDim(_3C_classLit, 0, -1, bufSize, 1);
+  digits = ($clinit_118() , digits_0);
+  pos = bufSize - 1;
+  if (value >= 0) {
+    while (value > bitMask) {
+      buf[pos--] = digits[value & bitMask];
+      value >>= shift;
+    }
+  }
+   else {
+    while (pos > 0) {
+      buf[pos--] = digits[value & bitMask];
+      value >>= shift;
+    }
+  }
+  buf[pos] = digits[value & bitMask];
+  return __valueOf(buf, pos, bufSize);
+}
+
+function min_0(x, y){
+  return x < y?x:y;
+}
+
+function $NullPointerException(this$static, message){
+  this$static.detailMessage = message;
+  return this$static;
+}
+
+function getClass_54(){
+  return Ljava_lang_NullPointerException_2_classLit;
+}
+
+function NullPointerException(){
+}
+
+_ = NullPointerException.prototype = new RuntimeException();
+_.getClass$ = getClass_54;
+_.typeId$ = 36;
+function $clinit_118(){
+  $clinit_118 = nullMethod;
+  digits_0 = initValues(_3C_classLit, 0, -1, [48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 97, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122]);
+}
+
+var digits_0;
+function $NumberFormatException(this$static, message){
+  this$static.detailMessage = message;
+  return this$static;
+}
+
+function getClass_55(){
+  return Ljava_lang_NumberFormatException_2_classLit;
+}
+
+function NumberFormatException(){
+}
+
+_ = NumberFormatException.prototype = new IllegalArgumentException();
+_.getClass$ = getClass_55;
+_.typeId$ = 37;
+function $equals_0(this$static, other){
+  if (!(other != null && canCast(other.typeId$, 1))) {
+    return false;
+  }
+  return String(this$static) == other;
+}
+
+function $split(this$static, regex, maxMatch){
+  var compiled = new RegExp(regex, 'g');
+  var out = [];
+  var count = 0;
+  var trail = this$static;
+  var lastTrail = null;
+  while (true) {
+    var matchObj = compiled.exec(trail);
+    if (matchObj == null || (trail == '' || count == maxMatch - 1 && maxMatch > 0)) {
+      out[count] = trail;
+      break;
+    }
+     else {
+      out[count] = trail.substring(0, matchObj.index);
+      trail = trail.substring(matchObj.index + matchObj[0].length, trail.length);
+      compiled.lastIndex = 0;
+      if (lastTrail == trail) {
+        out[count] = trail.substring(0, 1);
+        trail = trail.substring(1);
+      }
+      lastTrail = trail;
+      count++;
+    }
+  }
+  if (maxMatch == 0) {
+    var lastNonEmpty = out.length;
+    while (lastNonEmpty > 0 && out[lastNonEmpty - 1] == '') {
+      --lastNonEmpty;
+    }
+    if (lastNonEmpty < out.length) {
+      out.splice(lastNonEmpty, out.length - lastNonEmpty);
+    }
+  }
+  var jr = initDim(_3Ljava_lang_String_2_classLit, 0, 1, out.length, 0);
+  for (var i = 0; i < out.length; ++i) {
+    jr[i] = out[i];
+  }
+  return jr;
+}
+
+function $trim(this$static){
+  if (this$static.length == 0 || this$static[0] > ' ' && this$static[this$static.length - 1] > ' ') {
+    return this$static;
+  }
+  var r1 = this$static.replace(/^(\s*)/, '');
+  var r2 = r1.replace(/\s*$/, '');
+  return r2;
+}
+
+function __valueOf(x, start, end){
+  x = x.slice(start, end);
+  return String.fromCharCode.apply(null, x);
+}
+
+function equals_2(other){
+  return $equals_0(this, other);
+}
+
+function getClass_60(){
+  return Ljava_lang_String_2_classLit;
+}
+
+function hashCode_3(){
+  return getHashCode_0(this);
+}
+
+function toString_14(){
+  return this;
+}
+
+_ = String.prototype;
+_.equals$ = equals_2;
+_.getClass$ = getClass_60;
+_.hashCode$ = hashCode_3;
+_.toString$ = toString_14;
+_.typeId$ = 2;
+function $clinit_123(){
+  $clinit_123 = nullMethod;
+  back = {};
+  front = {};
+}
+
+function compute(str){
+  var hashCode, i, inc, n;
+  n = str.length;
+  inc = n < 64?1:~~(n / 32);
+  hashCode = 0;
+  for (i = 0; i < n; i += inc) {
+    hashCode <<= 1;
+    hashCode += str.charCodeAt(i);
+  }
+  hashCode |= 0;
+  return hashCode;
+}
+
+function getHashCode_0(str){
+  $clinit_123();
+  var key = ':' + str;
+  var result = front[key];
+  if (result != null) {
+    return result;
+  }
+  result = back[key];
+  if (result == null) {
+    result = compute(str);
+  }
+  increment();
+  return front[key] = result;
+}
+
+function increment(){
+  if (count_0 == 256) {
+    back = front;
+    front = {};
+    count_0 = 0;
+  }
+  ++count_0;
+}
+
+var back, count_0 = 0, front;
+function $StringBuffer(this$static){
+  this$static.impl = new StringBufferImplAppend();
+  return this$static;
+}
+
+function $StringBuffer_0(this$static, s){
+  this$static.impl = new StringBufferImplAppend();
+  this$static.impl.string += s;
+  return this$static;
+}
+
+function $append_0(this$static, x){
+  this$static.impl.string += x;
+  return this$static;
+}
+
+function getClass_58(){
+  return Ljava_lang_StringBuffer_2_classLit;
+}
+
+function toString_12(){
+  return this.impl.string;
+}
+
+function StringBuffer(){
+}
+
+_ = StringBuffer.prototype = new Object_0();
+_.getClass$ = getClass_58;
+_.toString$ = toString_12;
+_.typeId$ = 38;
+function $StringBuilder(this$static){
+  this$static.impl = new StringBufferImplAppend();
+  return this$static;
+}
+
+function $append_1(this$static, x){
+  this$static.impl.string += x;
+  return this$static;
+}
+
+function getClass_59(){
+  return Ljava_lang_StringBuilder_2_classLit;
+}
+
+function toString_13(){
+  return this.impl.string;
+}
+
+function StringBuilder(){
+}
+
+_ = StringBuilder.prototype = new Object_0();
+_.getClass$ = getClass_59;
+_.toString$ = toString_13;
+_.typeId$ = 39;
+function $UnsupportedOperationException(this$static, message){
+  this$static.detailMessage = message;
+  return this$static;
+}
+
+function getClass_62(){
+  return Ljava_lang_UnsupportedOperationException_2_classLit;
+}
+
+function UnsupportedOperationException(){
+}
+
+_ = UnsupportedOperationException.prototype = new RuntimeException();
+_.getClass$ = getClass_62;
+_.typeId$ = 40;
+function $advanceToFind(iter, o){
+  var t;
+  while (iter.hasNext()) {
+    t = iter.next();
+    if (o == null?t == null:equals__devirtual$(o, t)) {
+      return iter;
+    }
+  }
+  return null;
+}
+
+function $toString_0(this$static){
+  var comma, iter, sb;
+  sb = $StringBuffer(new StringBuffer());
+  comma = null;
+  sb.impl.string += '[';
+  iter = this$static.iterator();
+  while (iter.hasNext()) {
+    if (comma != null) {
+      sb.impl.string += comma;
+    }
+     else {
+      comma = ', ';
+    }
+    $append_0(sb, '' + iter.next());
+  }
+  sb.impl.string += ']';
+  return sb.impl.string;
+}
+
+function add_0(o){
+  throw $UnsupportedOperationException(new UnsupportedOperationException(), 'Add not supported on this collection');
+}
+
+function contains(o){
+  var iter;
+  iter = $advanceToFind(this.iterator(), o);
+  return !!iter;
+}
+
+function getClass_63(){
+  return Ljava_util_AbstractCollection_2_classLit;
+}
+
+function toString_16(){
+  return $toString_0(this);
+}
+
+function AbstractCollection(){
+}
+
+_ = AbstractCollection.prototype = new Object_0();
+_.add = add_0;
+_.contains = contains;
+_.getClass$ = getClass_63;
+_.toString$ = toString_16;
+_.typeId$ = 0;
+function $keySet(this$static){
+  var entrySet;
+  entrySet = $AbstractHashMap$EntrySet(new AbstractHashMap$EntrySet(), this$static);
+  return $AbstractMap$1(new AbstractMap$1(), this$static, entrySet);
+}
+
+function $putAll(this$static, t){
+  var e, iter;
+  for (iter = $AbstractHashMap$EntrySetIterator(new AbstractHashMap$EntrySetIterator(), $AbstractHashMap$EntrySet(new AbstractHashMap$EntrySet(), t).this$0); $hasNext(iter.iter);) {
+    e = dynamicCast($next(iter.iter), 9);
+    $put(this$static, e.getKey(), e.getValue());
+  }
+}
+
+function $toString_1(this$static){
+  var comma, entry, iter, s;
+  s = '{';
+  comma = false;
+  for (iter = $AbstractHashMap$EntrySetIterator(new AbstractHashMap$EntrySetIterator(), $AbstractHashMap$EntrySet(new AbstractHashMap$EntrySet(), this$static).this$0); $hasNext(iter.iter);) {
+    entry = dynamicCast($next(iter.iter), 9);
+    if (comma) {
+      s += ', ';
+    }
+     else {
+      comma = true;
+    }
+    s += '' + entry.getKey();
+    s += '=';
+    s += '' + entry.getValue();
+  }
+  return s + '}';
+}
+
+function equals_5(obj){
+  var entry, entry$iterator, otherKey, otherMap, otherValue;
+  if ((obj == null?null:obj) === this) {
+    return true;
+  }
+  if (!(obj != null && canCast(obj.typeId$, 18))) {
+    return false;
+  }
+  otherMap = dynamicCast(obj, 18);
+  if (dynamicCast(this, 18).size != otherMap.size) {
+    return false;
+  }
+  for (entry$iterator = $AbstractHashMap$EntrySetIterator(new AbstractHashMap$EntrySetIterator(), $AbstractHashMap$EntrySet(new AbstractHashMap$EntrySet(), otherMap).this$0); $hasNext(entry$iterator.iter);) {
+    entry = dynamicCast($next(entry$iterator.iter), 9);
+    otherKey = entry.getKey();
+    otherValue = entry.getValue();
+    if (!(otherKey == null?dynamicCast(this, 18).nullSlotLive:otherKey != null && canCast(otherKey.typeId$, 1)?$hasStringValue(dynamicCast(this, 18), dynamicCast(otherKey, 1)):$hasHashValue(dynamicCast(this, 18), otherKey, ~~hashCode__devirtual$(otherKey)))) {
+      return false;
+    }
+    if (!equalsWithNullCheck(otherValue, otherKey == null?dynamicCast(this, 18).nullSlot:otherKey != null && canCast(otherKey.typeId$, 1)?dynamicCast(this, 18).stringMap[':' + dynamicCast(otherKey, 1)]:$getHashValue(dynamicCast(this, 18), otherKey, ~~hashCode__devirtual$(otherKey)))) {
+      return false;
+    }
+  }
+  return true;
+}
+
+function getClass_74(){
+  return Ljava_util_AbstractMap_2_classLit;
+}
+
+function hashCode_6(){
+  var entry, entry$iterator, hashCode;
+  hashCode = 0;
+  for (entry$iterator = $AbstractHashMap$EntrySetIterator(new AbstractHashMap$EntrySetIterator(), $AbstractHashMap$EntrySet(new AbstractHashMap$EntrySet(), dynamicCast(this, 18)).this$0); $hasNext(entry$iterator.iter);) {
+    entry = dynamicCast($next(entry$iterator.iter), 9);
+    hashCode += entry.hashCode$();
+    hashCode = ~~hashCode;
+  }
+  return hashCode;
+}
+
+function put_0(key, value){
+  throw $UnsupportedOperationException(new UnsupportedOperationException(), 'Put not supported on this map');
+}
+
+function toString_18(){
+  return $toString_1(this);
+}
+
+function AbstractMap(){
+}
+
+_ = AbstractMap.prototype = new Object_0();
+_.equals$ = equals_5;
+_.getClass$ = getClass_74;
+_.hashCode$ = hashCode_6;
+_.put = put_0;
+_.toString$ = toString_18;
+_.typeId$ = 0;
+function $AbstractHashMap(this$static, ignored, alsoIgnored){
+  $clearImpl(this$static);
+  if (ignored < 0 || alsoIgnored < 0) {
+    throw $IllegalArgumentException(new IllegalArgumentException(), 'initial capacity was negative or load factor was non-positive');
+  }
+  return this$static;
+}
+
+function $addAllHashEntries(this$static, dest){
+  var hashCodeMap = this$static.hashCodeMap;
+  for (var hashCode in hashCodeMap) {
+    if (hashCode == parseInt(hashCode)) {
+      var array = hashCodeMap[hashCode];
+      for (var i = 0, c = array.length; i < c; ++i) {
+        dest.add(array[i]);
+      }
+    }
+  }
+}
+
+function $addAllStringEntries(this$static, dest){
+  var stringMap = this$static.stringMap;
+  for (var key in stringMap) {
+    if (key.charCodeAt(0) == 58) {
+      var entry = new_$(this$static, key.substring(1));
+      dest.add(entry);
+    }
+  }
+}
+
+function $clearImpl(this$static){
+  this$static.hashCodeMap = [];
+  this$static.stringMap = {};
+  this$static.nullSlotLive = false;
+  this$static.nullSlot = null;
+  this$static.size = 0;
+}
+
+function $containsKey(this$static, key){
+  return key == null?this$static.nullSlotLive:key != null && canCast(key.typeId$, 1)?$hasStringValue(this$static, dynamicCast(key, 1)):$hasHashValue(this$static, key, ~~hashCode__devirtual$(key));
+}
+
+function $get(this$static, key){
+  return key == null?this$static.nullSlot:key != null && canCast(key.typeId$, 1)?this$static.stringMap[':' + dynamicCast(key, 1)]:$getHashValue(this$static, key, ~~hashCode__devirtual$(key));
+}
+
+function $getHashValue(this$static, key, hashCode){
+  var array = this$static.hashCodeMap[hashCode];
+  if (array) {
+    for (var i = 0, c = array.length; i < c; ++i) {
+      var entry = array[i];
+      var entryKey = entry.getKey();
+      if (this$static.equalsBridge(key, entryKey)) {
+        return entry.getValue();
+      }
+    }
+  }
+  return null;
+}
+
+function $hasHashValue(this$static, key, hashCode){
+  var array = this$static.hashCodeMap[hashCode];
+  if (array) {
+    for (var i = 0, c = array.length; i < c; ++i) {
+      var entry = array[i];
+      var entryKey = entry.getKey();
+      if (this$static.equalsBridge(key, entryKey)) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+function $hasStringValue(this$static, key){
+  return ':' + key in this$static.stringMap;
+}
+
+function $put(this$static, key, value){
+  return key == null?$putNullSlot(this$static, value):key != null && canCast(key.typeId$, 1)?$putStringValue(this$static, dynamicCast(key, 1), value):$putHashValue(this$static, key, value, ~~hashCode__devirtual$(key));
+}
+
+function $putHashValue(this$static, key, value, hashCode){
+  var array = this$static.hashCodeMap[hashCode];
+  if (array) {
+    for (var i = 0, c = array.length; i < c; ++i) {
+      var entry = array[i];
+      var entryKey = entry.getKey();
+      if (this$static.equalsBridge(key, entryKey)) {
+        var previous = entry.getValue();
+        entry.setValue(value);
+        return previous;
+      }
+    }
+  }
+   else {
+    array = this$static.hashCodeMap[hashCode] = [];
+  }
+  var entry = $MapEntryImpl(new MapEntryImpl(), key, value);
+  array.push(entry);
+  ++this$static.size;
+  return null;
+}
+
+function $putNullSlot(this$static, value){
+  var result;
+  result = this$static.nullSlot;
+  this$static.nullSlot = value;
+  if (!this$static.nullSlotLive) {
+    this$static.nullSlotLive = true;
+    ++this$static.size;
+  }
+  return result;
+}
+
+function $putStringValue(this$static, key, value){
+  var result, stringMap = this$static.stringMap;
+  key = ':' + key;
+  if (key in stringMap) {
+    result = stringMap[key];
+  }
+   else {
+    ++this$static.size;
+  }
+  stringMap[key] = value;
+  return result;
+}
+
+function equalsBridge(value1, value2){
+  return (value1 == null?null:value1) === (value2 == null?null:value2) || value1 != null && equals__devirtual$(value1, value2);
+}
+
+function getClass_68(){
+  return Ljava_util_AbstractHashMap_2_classLit;
+}
+
+function put(key, value){
+  return key == null?$putNullSlot(dynamicCast(this, 18), value):key != null && canCast(key.typeId$, 1)?$putStringValue(dynamicCast(this, 18), dynamicCast(key, 1), value):$putHashValue(dynamicCast(this, 18), key, value, ~~hashCode__devirtual$((dynamicCast(this, 18) , key)));
+}
+
+function AbstractHashMap(){
+}
+
+_ = AbstractHashMap.prototype = new AbstractMap();
+_.equalsBridge = equalsBridge;
+_.getClass$ = getClass_68;
+_.put = put;
+_.typeId$ = 0;
+_.hashCodeMap = null;
+_.nullSlot = null;
+_.nullSlotLive = false;
+_.size = 0;
+_.stringMap = null;
+function equals_6(o){
+  var iter, other, otherItem;
+  if ((o == null?null:o) === this) {
+    return true;
+  }
+  if (!(o != null && canCast(o.typeId$, 19))) {
+    return false;
+  }
+  other = dynamicCast(o, 19);
+  if (other.size_0() != this.size_0()) {
+    return false;
+  }
+  for (iter = other.iterator(); iter.hasNext();) {
+    otherItem = iter.next();
+    if (!this.contains(otherItem)) {
+      return false;
+    }
+  }
+  return true;
+}
+
+function getClass_75(){
+  return Ljava_util_AbstractSet_2_classLit;
+}
+
+function hashCode_7(){
+  var hashCode, iter, next;
+  hashCode = 0;
+  for (iter = this.iterator(); iter.hasNext();) {
+    next = iter.next();
+    if (next != null) {
+      hashCode += hashCode__devirtual$(next);
+      hashCode = ~~hashCode;
+    }
+  }
+  return hashCode;
+}
+
+function AbstractSet(){
+}
+
+_ = AbstractSet.prototype = new AbstractCollection();
+_.equals$ = equals_6;
+_.getClass$ = getClass_75;
+_.hashCode$ = hashCode_7;
+_.typeId$ = 41;
+function $AbstractHashMap$EntrySet(this$static, this$0){
+  this$static.this$0 = this$0;
+  return this$static;
+}
+
+function contains_0(o){
+  var entry, key, value;
+  if (o != null && canCast(o.typeId$, 9)) {
+    entry = dynamicCast(o, 9);
+    key = entry.getKey();
+    if ($containsKey(this.this$0, key)) {
+      value = $get(this.this$0, key);
+      return $equals_1(entry.getValue(), value);
+    }
+  }
+  return false;
+}
+
+function getClass_65(){
+  return Ljava_util_AbstractHashMap$EntrySet_2_classLit;
+}
+
+function iterator(){
+  return $AbstractHashMap$EntrySetIterator(new AbstractHashMap$EntrySetIterator(), this.this$0);
+}
+
+function size_0(){
+  return this.this$0.size;
+}
+
+function AbstractHashMap$EntrySet(){
+}
+
+_ = AbstractHashMap$EntrySet.prototype = new AbstractSet();
+_.contains = contains_0;
+_.getClass$ = getClass_65;
+_.iterator = iterator;
+_.size_0 = size_0;
+_.typeId$ = 42;
+_.this$0 = null;
+function $AbstractHashMap$EntrySetIterator(this$static, this$0){
+  var list;
+  this$static.this$0 = this$0;
+  list = $ArrayList(new ArrayList());
+  if (this$static.this$0.nullSlotLive) {
+    $add_0(list, $AbstractHashMap$MapEntryNull(new AbstractHashMap$MapEntryNull(), this$static.this$0));
+  }
+  $addAllStringEntries(this$static.this$0, list);
+  $addAllHashEntries(this$static.this$0, list);
+  this$static.iter = $AbstractList$IteratorImpl(new AbstractList$IteratorImpl(), list);
+  return this$static;
+}
+
+function getClass_64(){
+  return Ljava_util_AbstractHashMap$EntrySetIterator_2_classLit;
+}
+
+function hasNext(){
+  return $hasNext(this.iter);
+}
+
+function next_0(){
+  return dynamicCast($next(this.iter), 9);
+}
+
+function AbstractHashMap$EntrySetIterator(){
+}
+
+_ = AbstractHashMap$EntrySetIterator.prototype = new Object_0();
+_.getClass$ = getClass_64;
+_.hasNext = hasNext;
+_.next = next_0;
+_.typeId$ = 0;
+_.iter = null;
+_.this$0 = null;
+function equals_4(other){
+  var entry;
+  if (other != null && canCast(other.typeId$, 9)) {
+    entry = dynamicCast(other, 9);
+    if (equalsWithNullCheck(this.getKey(), entry.getKey()) && equalsWithNullCheck(this.getValue(), entry.getValue())) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function getClass_73(){
+  return Ljava_util_AbstractMapEntry_2_classLit;
+}
+
+function hashCode_5(){
+  var keyHash, valueHash;
+  keyHash = 0;
+  valueHash = 0;
+  if (this.getKey() != null) {
+    keyHash = hashCode__devirtual$(this.getKey());
+  }
+  if (this.getValue() != null) {
+    valueHash = hashCode__devirtual$(this.getValue());
+  }
+  return keyHash ^ valueHash;
+}
+
+function toString_17(){
+  return this.getKey() + '=' + this.getValue();
+}
+
+function AbstractMapEntry(){
+}
+
+_ = AbstractMapEntry.prototype = new Object_0();
+_.equals$ = equals_4;
+_.getClass$ = getClass_73;
+_.hashCode$ = hashCode_5;
+_.toString$ = toString_17;
+_.typeId$ = 43;
+function $AbstractHashMap$MapEntryNull(this$static, this$0){
+  this$static.this$0 = this$0;
+  return this$static;
+}
+
+function getClass_66(){
+  return Ljava_util_AbstractHashMap$MapEntryNull_2_classLit;
+}
+
+function getKey(){
+  return null;
+}
+
+function getValue(){
+  return this.this$0.nullSlot;
+}
+
+function setValue(object){
+  return $putNullSlot(this.this$0, object);
+}
+
+function AbstractHashMap$MapEntryNull(){
+}
+
+_ = AbstractHashMap$MapEntryNull.prototype = new AbstractMapEntry();
+_.getClass$ = getClass_66;
+_.getKey = getKey;
+_.getValue = getValue;
+_.setValue = setValue;
+_.typeId$ = 44;
+_.this$0 = null;
+function $AbstractHashMap$MapEntryString(this$static, key, this$0){
+  this$static.this$0 = this$0;
+  this$static.key = key;
+  return this$static;
+}
+
+function getClass_67(){
+  return Ljava_util_AbstractHashMap$MapEntryString_2_classLit;
+}
+
+function getKey_0(){
+  return this.key;
+}
+
+function getValue_0(){
+  return this.this$0.stringMap[':' + this.key];
+}
+
+function new_$(this$outer, key){
+  return $AbstractHashMap$MapEntryString(new AbstractHashMap$MapEntryString(), key, this$outer);
+}
+
+function setValue_0(object){
+  return $putStringValue(this.this$0, this.key, object);
+}
+
+function AbstractHashMap$MapEntryString(){
+}
+
+_ = AbstractHashMap$MapEntryString.prototype = new AbstractMapEntry();
+_.getClass$ = getClass_67;
+_.getKey = getKey_0;
+_.getValue = getValue_0;
+_.setValue = setValue_0;
+_.typeId$ = 45;
+_.key = null;
+_.this$0 = null;
+function add_1(obj){
+  $add(this, this.size_0(), obj);
+  return true;
+}
+
+function checkIndex(index, size){
+  if (index < 0 || index >= size) {
+    indexOutOfBounds(index, size);
+  }
+}
+
+function equals_3(o){
+  var elem, elemOther, iter, iterOther, other;
+  if ((o == null?null:o) === this) {
+    return true;
+  }
+  if (!(o != null && canCast(o.typeId$, 3))) {
+    return false;
+  }
+  other = dynamicCast(o, 3);
+  if (this.size_0() != other.size) {
+    return false;
+  }
+  iter = $AbstractList$IteratorImpl(new AbstractList$IteratorImpl(), dynamicCast(this, 3));
+  iterOther = $AbstractList$IteratorImpl(new AbstractList$IteratorImpl(), other);
+  while (iter.i < iter.this$0.size) {
+    elem = $next(iter);
+    elemOther = $next(iterOther);
+    if (!(elem == null?elemOther == null:equals__devirtual$(elem, elemOther))) {
+      return false;
+    }
+  }
+  return true;
+}
+
+function getClass_70(){
+  return Ljava_util_AbstractList_2_classLit;
+}
+
+function hashCode_4(){
+  var iter, k, obj;
+  k = 1;
+  iter = $AbstractList$IteratorImpl(new AbstractList$IteratorImpl(), dynamicCast(this, 3));
+  while (iter.i < iter.this$0.size) {
+    obj = $next(iter);
+    k = 31 * k + (obj == null?0:hashCode__devirtual$(obj));
+    k = ~~k;
+  }
+  return k;
+}
+
+function indexOutOfBounds(index, size){
+  throw $IndexOutOfBoundsException(new IndexOutOfBoundsException(), 'Index: ' + index + ', Size: ' + size);
+}
+
+function iterator_0(){
+  return $AbstractList$IteratorImpl(new AbstractList$IteratorImpl(), dynamicCast(this, 3));
+}
+
+function AbstractList(){
+}
+
+_ = AbstractList.prototype = new AbstractCollection();
+_.add = add_1;
+_.equals$ = equals_3;
+_.getClass$ = getClass_70;
+_.hashCode$ = hashCode_4;
+_.iterator = iterator_0;
+_.typeId$ = 0;
+function $AbstractList$IteratorImpl(this$static, this$0){
+  this$static.this$0 = this$0;
+  return this$static;
+}
+
+function $hasNext(this$static){
+  return this$static.i < this$static.this$0.size;
+}
+
+function $next(this$static){
+  if (this$static.i >= this$static.this$0.size) {
+    throw new NoSuchElementException();
+  }
+  return $get_0(this$static.this$0, this$static.i++);
+}
+
+function getClass_69(){
+  return Ljava_util_AbstractList$IteratorImpl_2_classLit;
+}
+
+function hasNext_0(){
+  return this.i < this.this$0.size;
+}
+
+function next_1(){
+  return $next(this);
+}
+
+function AbstractList$IteratorImpl(){
+}
+
+_ = AbstractList$IteratorImpl.prototype = new Object_0();
+_.getClass$ = getClass_69;
+_.hasNext = hasNext_0;
+_.next = next_1;
+_.typeId$ = 0;
+_.i = 0;
+_.this$0 = null;
+function $AbstractMap$1(this$static, this$0, val$entrySet){
+  this$static.this$0 = this$0;
+  this$static.val$entrySet = val$entrySet;
+  return this$static;
+}
+
+function contains_1(key){
+  return $containsKey(this.this$0, key);
+}
+
+function getClass_72(){
+  return Ljava_util_AbstractMap$1_2_classLit;
+}
+
+function iterator_1(){
+  var outerIter;
+  return outerIter = $AbstractHashMap$EntrySetIterator(new AbstractHashMap$EntrySetIterator(), this.val$entrySet.this$0) , $AbstractMap$1$1(new AbstractMap$1$1(), outerIter);
+}
+
+function size_1(){
+  return this.val$entrySet.this$0.size;
+}
+
+function AbstractMap$1(){
+}
+
+_ = AbstractMap$1.prototype = new AbstractSet();
+_.contains = contains_1;
+_.getClass$ = getClass_72;
+_.iterator = iterator_1;
+_.size_0 = size_1;
+_.typeId$ = 46;
+_.this$0 = null;
+_.val$entrySet = null;
+function $AbstractMap$1$1(this$static, val$outerIter){
+  this$static.val$outerIter = val$outerIter;
+  return this$static;
+}
+
+function getClass_71(){
+  return Ljava_util_AbstractMap$1$1_2_classLit;
+}
+
+function hasNext_1(){
+  return $hasNext(this.val$outerIter.iter);
+}
+
+function next_2(){
+  var entry;
+  entry = dynamicCast($next(this.val$outerIter.iter), 9);
+  return entry.getKey();
+}
+
+function AbstractMap$1$1(){
+}
+
+_ = AbstractMap$1$1.prototype = new Object_0();
+_.getClass$ = getClass_71;
+_.hasNext = hasNext_1;
+_.next = next_2;
+_.typeId$ = 0;
+_.val$outerIter = null;
+function $ArrayList(this$static){
+  this$static.array = initDim(_3Ljava_lang_Object_2_classLit, 0, 0, 0, 0);
+  this$static.size = 0;
+  return this$static;
+}
+
+function $ArrayList_0(this$static, initialCapacity){
+  this$static.array = initDim(_3Ljava_lang_Object_2_classLit, 0, 0, 0, 0);
+  this$static.size = 0;
+  $ensureCapacity(this$static, initialCapacity);
+  return this$static;
+}
+
+function $add_0(this$static, o){
+  setCheck(this$static.array, this$static.size++, o);
+  return true;
+}
+
+function $add(this$static, index, o){
+  if (index < 0 || index > this$static.size) {
+    indexOutOfBounds(index, this$static.size);
+  }
+  this$static.array.splice(index, 0, o);
+  ++this$static.size;
+}
+
+function $ensureCapacity(this$static, capacity){
+  if (capacity > this$static.size) {
+    this$static.array.length = capacity;
+  }
+}
+
+function $get_0(this$static, index){
+  checkIndex(index, this$static.size);
+  return this$static.array[index];
+}
+
+function $indexOf_0(this$static, o, index){
+  for (; index < this$static.size; ++index) {
+    if (equalsWithNullCheck(o, this$static.array[index])) {
+      return index;
+    }
+  }
+  return -1;
+}
+
+function $remove_0(this$static, o){
+  var i, previous;
+  i = $indexOf_0(this$static, o, 0);
+  if (i == -1) {
+    return false;
+  }
+  previous = (checkIndex(i, this$static.size) , this$static.array[i]);
+  this$static.array.splice(i, 1);
+  --this$static.size;
+  return true;
+}
+
+function add_2(o){
+  return setCheck(this.array, this.size++, o) , true;
+}
+
+function contains_2(o){
+  return $indexOf_0(this, o, 0) != -1;
+}
+
+function getClass_76(){
+  return Ljava_util_ArrayList_2_classLit;
+}
+
+function size_2(){
+  return this.size;
+}
+
+function ArrayList(){
+}
+
+_ = ArrayList.prototype = new AbstractList();
+_.add = add_2;
+_.contains = contains_2;
+_.getClass$ = getClass_76;
+_.size_0 = size_2;
+_.typeId$ = 47;
+_.array = null;
+_.size = 0;
+function $clinit_145(){
+  $clinit_145 = nullMethod;
+  DAYS = initValues(_3Ljava_lang_String_2_classLit, 0, 1, ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']);
+  MONTHS = initValues(_3Ljava_lang_String_2_classLit, 0, 1, ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']);
+}
+
+function $Date(this$static, date){
+  $clinit_145();
+  this$static.jsdate = new Date(date[1] + date[0]);
+  return this$static;
+}
+
+function equals_7(obj){
+  return obj != null && canCast(obj.typeId$, 20) && eq(fromDouble(this.jsdate.getTime()), fromDouble(dynamicCast(obj, 20).jsdate.getTime()));
+}
+
+function getClass_77(){
+  return Ljava_util_Date_2_classLit;
+}
+
+function hashCode_8(){
+  return lowBits_0(xor(fromDouble(this.jsdate.getTime()), shru(fromDouble(this.jsdate.getTime()), 32)));
+}
+
+function padTwo_0(number){
+  if (number < 10) {
+    return '0' + number;
+  }
+   else {
+    return '' + number;
+  }
+}
+
+function toString_19(){
+  var d = this.jsdate;
+  var padTwo = padTwo_0;
+  var day = DAYS[this.jsdate.getDay()];
+  var month = MONTHS[this.jsdate.getMonth()];
+  var offset = -d.getTimezoneOffset();
+  var hourOffset = String(offset >= 0?'+' + Math.floor(offset / 60):Math.ceil(offset / 60));
+  var minuteOffset = padTwo(Math.abs(offset) % 60);
+  return day + ' ' + month + ' ' + padTwo(d.getDate()) + ' ' + padTwo(d.getHours()) + ':' + padTwo(d.getMinutes()) + ':' + padTwo(d.getSeconds()) + ' GMT' + hourOffset + minuteOffset + ' ' + d.getFullYear();
+}
+
+function Date_0(){
+}
+
+_ = Date_0.prototype = new Object_0();
+_.equals$ = equals_7;
+_.getClass$ = getClass_77;
+_.hashCode$ = hashCode_8;
+_.toString$ = toString_19;
+_.typeId$ = 48;
+var DAYS, MONTHS;
+function $HashMap(this$static){
+  $clearImpl(this$static);
+  return this$static;
+}
+
+function $HashMap_0(this$static, ignored){
+  $AbstractHashMap(this$static, ignored, 0);
+  return this$static;
+}
+
+function $equals_1(value1, value2){
+  return (value1 == null?null:value1) === (value2 == null?null:value2) || value1 != null && equals__devirtual$(value1, value2);
+}
+
+function getClass_78(){
+  return Ljava_util_HashMap_2_classLit;
+}
+
+function HashMap(){
+}
+
+_ = HashMap.prototype = new AbstractHashMap();
+_.getClass$ = getClass_78;
+_.typeId$ = 49;
+function add_3(o){
+  var old;
+  old = $put(this.map, o, this);
+  return old == null;
+}
+
+function contains_3(o){
+  return $containsKey(this.map, o);
+}
+
+function getClass_79(){
+  return Ljava_util_HashSet_2_classLit;
+}
+
+function iterator_2(){
+  var outerIter;
+  return outerIter = $AbstractHashMap$EntrySetIterator(new AbstractHashMap$EntrySetIterator(), $keySet(this.map).val$entrySet.this$0) , $AbstractMap$1$1(new AbstractMap$1$1(), outerIter);
+}
+
+function size_3(){
+  return this.map.size;
+}
+
+function toString_20(){
+  return $toString_0($keySet(this.map));
+}
+
+function HashSet(){
+}
+
+_ = HashSet.prototype = new AbstractSet();
+_.add = add_3;
+_.contains = contains_3;
+_.getClass$ = getClass_79;
+_.iterator = iterator_2;
+_.size_0 = size_3;
+_.toString$ = toString_20;
+_.typeId$ = 50;
+_.map = null;
+function $MapEntryImpl(this$static, key, value){
+  this$static.key = key;
+  this$static.value = value;
+  return this$static;
+}
+
+function getClass_80(){
+  return Ljava_util_MapEntryImpl_2_classLit;
+}
+
+function getKey_1(){
+  return this.key;
+}
+
+function getValue_1(){
+  return this.value;
+}
+
+function setValue_1(value){
+  var old;
+  old = this.value;
+  this.value = value;
+  return old;
+}
+
+function MapEntryImpl(){
+}
+
+_ = MapEntryImpl.prototype = new AbstractMapEntry();
+_.getClass$ = getClass_80;
+_.getKey = getKey_1;
+_.getValue = getValue_1;
+_.setValue = setValue_1;
+_.typeId$ = 51;
+_.key = null;
+_.value = null;
+function getClass_81(){
+  return Ljava_util_NoSuchElementException_2_classLit;
+}
+
+function NoSuchElementException(){
+}
+
+_ = NoSuchElementException.prototype = new RuntimeException();
+_.getClass$ = getClass_81;
+_.typeId$ = 52;
+function equalsWithNullCheck(a, b){
+  return (a == null?null:a) === (b == null?null:b) || a != null && equals__devirtual$(a, b);
+}
+
+function init(){
+  !!$stats && $stats({moduleName:$moduleName, subSystem:'startup', evtGroup:'moduleStartup', millis:(new Date()).getTime(), type:'onModuleLoadStart', className:'com.wwl.client.Translator'});
+  $onModuleLoad();
+}
+
+function gwtOnLoad(errFn, modName, modBase){
+  $moduleName = modName;
+  $moduleBase = modBase;
+  if (errFn)
+    try {
+      init();
+    }
+     catch (e) {
+      errFn(modName);
+    }
+   else {
+    init();
+  }
+}
+
+function nullMethod(){
+}
+
+var Ljava_lang_Object_2_classLit = createForClass('java.lang.', 'Object'), Lcom_google_gwt_user_client_Timer_2_classLit = createForClass('com.google.gwt.user.client.', 'Timer'), Lcom_google_gwt_core_client_impl_StringBufferImpl_2_classLit = createForClass('com.google.gwt.core.client.impl.', 'StringBufferImpl'), Lcom_google_gwt_core_client_impl_StringBufferImplAppend_2_classLit = createForClass('com.google.gwt.core.client.impl.', 'StringBufferImplAppend'), Ljava_lang_Throwable_2_classLit = createForClass('java.lang.', 'Throwable'), Ljava_lang_Exception_2_classLit = createForClass('java.lang.', 'Exception'), Ljava_lang_RuntimeException_2_classLit = createForClass('java.lang.', 'RuntimeException'), Lcom_google_gwt_core_client_JavaScriptException_2_classLit = createForClass('com.google.gwt.core.client.', 'JavaScriptException'), Lcom_google_gwt_core_client_JavaScriptObject_2_classLit = createForClass('com.google.gwt.core.client.', 'JavaScriptObject$'), Lcom_google_gwt_dom_client_DOMImpl_2_classLit = createForClass('com.google.gwt.dom.client.', 'DOMImpl'), Lcom_google_gwt_dom_client_DOMImplStandard_2_classLit = createForClass('com.google.gwt.dom.client.', 'DOMImplStandard'), Lcom_google_gwt_dom_client_DOMImplOpera_2_classLit = createForClass('com.google.gwt.dom.client.', 'DOMImplOpera'), _3Ljava_lang_String_2_classLit = createForArray('[Ljava.lang.', 'String;'), Lcom_google_gwt_event_shared_GwtEvent_2_classLit = createForClass('com.google.gwt.event.shared.', 'GwtEvent'), Lcom_google_gwt_event_shared_GwtEvent$Type_2_classLit = createForClass('com.google.gwt.event.shared.', 'GwtEvent$Type'), Lcom_google_gwt_event_logical_shared_CloseEvent_2_classLit = createForClass('com.google.gwt.event.logical.shared.', 'CloseEvent'), Lcom_google_gwt_event_shared_DefaultHandlerRegistration_2_classLit = createForClass('com.google.gwt.event.shared.', 'DefaultHandlerRegistration'), Lcom_google_gwt_event_shared_HandlerManager_2_classLit = createForClass('com.google.gwt.event.shared.', 'HandlerManager'), Lcom_google_gwt_event_shared_HandlerManager$HandlerRegistry_2_classLit = createForClass('com.google.gwt.event.shared.', 'HandlerManager$HandlerRegistry'), Lcom_google_gwt_event_shared_HandlerManager$1_2_classLit = createForClass('com.google.gwt.event.shared.', 'HandlerManager$1'), Lcom_google_gwt_http_client_Request_2_classLit = createForClass('com.google.gwt.http.client.', 'Request'), Lcom_google_gwt_http_client_Response_2_classLit = createForClass('com.google.gwt.http.client.', 'Response'), Lcom_google_gwt_http_client_Request$1_2_classLit = createForClass('com.google.gwt.http.client.', 'Request$1'), Lcom_google_gwt_http_client_Request$2_2_classLit = createForClass('com.google.gwt.http.client.', 'Request$2'), Lcom_google_gwt_http_client_RequestBuilder_2_classLit = createForClass('com.google.gwt.http.client.', 'RequestBuilder'), Lcom_google_gwt_http_client_RequestBuilder$Method_2_classLit = createForClass('com.google.gwt.http.client.', 'RequestBuilder$Method'), Lcom_google_gwt_http_client_RequestException_2_classLit = createForClass('com.google.gwt.http.client.', 'RequestException'), Lcom_google_gwt_http_client_RequestPermissionException_2_classLit = createForClass('com.google.gwt.http.client.', 'RequestPermissionException'), Lcom_google_gwt_http_client_RequestTimeoutException_2_classLit = createForClass('com.google.gwt.http.client.', 'RequestTimeoutException'), _3_3D_classLit = createForArray('', '[[D'), Ljava_util_AbstractCollection_2_classLit = createForClass('java.util.', 'AbstractCollection'), Ljava_util_AbstractList_2_classLit = createForClass('java.util.', 'AbstractList'), Ljava_util_ArrayList_2_classLit = createForClass('java.util.', 'ArrayList'), _3C_classLit = createForArray('', '[C'), Lcom_google_gwt_user_client_Timer$1_2_classLit = createForClass('com.google.gwt.user.client.', 'Timer$1'), Lcom_google_gwt_user_client_Window$ClosingEvent_2_classLit = createForClass('com.google.gwt.user.client.', 'Window$ClosingEvent'), Lcom_google_gwt_user_client_Window$WindowHandlers_2_classLit = createForClass('com.google.gwt.user.client.', 'Window$WindowHandlers'), Lcom_google_gwt_xml_client_impl_DOMItem_2_classLit = createForClass('com.google.gwt.xml.client.impl.', 'DOMItem'), Lcom_google_gwt_xml_client_impl_NodeImpl_2_classLit = createForClass('com.google.gwt.xml.client.impl.', 'NodeImpl'), Lcom_google_gwt_xml_client_impl_AttrImpl_2_classLit = createForClass('com.google.gwt.xml.client.impl.', 'AttrImpl'), Lcom_google_gwt_xml_client_impl_CharacterDataImpl_2_classLit = createForClass('com.google.gwt.xml.client.impl.', 'CharacterDataImpl'), Lcom_google_gwt_xml_client_impl_TextImpl_2_classLit = createForClass('com.google.gwt.xml.client.impl.', 'TextImpl'), Lcom_google_gwt_xml_client_impl_CDATASectionImpl_2_classLit = createForClass('com.google.gwt.xml.client.impl.', 'CDATASectionImpl'), Lcom_google_gwt_xml_client_impl_CommentImpl_2_classLit = createForClass('com.google.gwt.xml.client.impl.', 'CommentImpl'), Lcom_google_gwt_xml_client_DOMException_2_classLit = createForClass('com.google.gwt.xml.client.', 'DOMException'), Lcom_google_gwt_xml_client_impl_DOMParseException_2_classLit = createForClass('com.google.gwt.xml.client.impl.', 'DOMParseException'), Lcom_google_gwt_xml_client_impl_DocumentFragmentImpl_2_classLit = createForClass('com.google.gwt.xml.client.impl.', 'DocumentFragmentImpl'), Lcom_google_gwt_xml_client_impl_DocumentImpl_2_classLit = createForClass('com.google.gwt.xml.client.impl.', 'DocumentImpl'), Lcom_google_gwt_xml_client_impl_ElementImpl_2_classLit = createForClass('com.google.gwt.xml.client.impl.', 'ElementImpl'), Lcom_google_gwt_xml_client_impl_NodeListImpl_2_classLit = createForClass('com.google.gwt.xml.client.impl.', 'NodeListImpl'), Lcom_google_gwt_xml_client_impl_ProcessingInstructionImpl_2_classLit = createForClass('com.google.gwt.xml.client.impl.', 'ProcessingInstructionImpl'), Lcom_google_gwt_xml_client_impl_XMLParserImpl_2_classLit = createForClass('com.google.gwt.xml.client.impl.', 'XMLParserImpl'), Lcom_google_gwt_xml_client_impl_XMLParserImplStandard_2_classLit = createForClass('com.google.gwt.xml.client.impl.', 'XMLParserImplStandard'), Lcom_google_gwt_xml_client_impl_XMLParserImplOpera_2_classLit = createForClass('com.google.gwt.xml.client.impl.', 'XMLParserImplOpera'), Lcom_wwl_client_util_WWL_1Translator_2_classLit = createForClass('com.wwl.client.util.', 'WWL_Translator'), Lcom_wwl_client_util_WWL_1Translator$1_2_classLit = createForClass('com.wwl.client.util.', 'WWL_Translator$1'), Ljava_lang_IndexOutOfBoundsException_2_classLit = createForClass('java.lang.', 'IndexOutOfBoundsException'), Ljava_lang_ArrayStoreException_2_classLit = createForClass('java.lang.', 'ArrayStoreException'), Ljava_lang_Class_2_classLit = createForClass('java.lang.', 'Class'), Ljava_lang_ClassCastException_2_classLit = createForClass('java.lang.', 'ClassCastException'), Ljava_lang_IllegalArgumentException_2_classLit = createForClass('java.lang.', 'IllegalArgumentException'), Ljava_lang_IllegalStateException_2_classLit = createForClass('java.lang.', 'IllegalStateException'), Ljava_lang_NullPointerException_2_classLit = createForClass('java.lang.', 'NullPointerException'), Ljava_lang_NumberFormatException_2_classLit = createForClass('java.lang.', 'NumberFormatException'), Ljava_lang_String_2_classLit = createForClass('java.lang.', 'String'), Ljava_lang_StringBuffer_2_classLit = createForClass('java.lang.', 'StringBuffer'), Ljava_lang_StringBuilder_2_classLit = createForClass('java.lang.', 'StringBuilder'), Ljava_lang_UnsupportedOperationException_2_classLit = createForClass('java.lang.', 'UnsupportedOperationException'), _3Ljava_lang_Object_2_classLit = createForArray('[Ljava.lang.', 'Object;'), Ljava_util_AbstractMap_2_classLit = createForClass('java.util.', 'AbstractMap'), Ljava_util_AbstractHashMap_2_classLit = createForClass('java.util.', 'AbstractHashMap'), Ljava_util_AbstractSet_2_classLit = createForClass('java.util.', 'AbstractSet'), Ljava_util_AbstractHashMap$EntrySet_2_classLit = createForClass('java.util.', 'AbstractHashMap$EntrySet'), Ljava_util_AbstractHashMap$EntrySetIterator_2_classLit = createForClass('java.util.', 'AbstractHashMap$EntrySetIterator'), Ljava_util_AbstractMapEntry_2_classLit = createForClass('java.util.', 'AbstractMapEntry'), Ljava_util_AbstractHashMap$MapEntryNull_2_classLit = createForClass('java.util.', 'AbstractHashMap$MapEntryNull'), Ljava_util_AbstractHashMap$MapEntryString_2_classLit = createForClass('java.util.', 'AbstractHashMap$MapEntryString'), Ljava_util_AbstractList$IteratorImpl_2_classLit = createForClass('java.util.', 'AbstractList$IteratorImpl'), Ljava_util_AbstractMap$1_2_classLit = createForClass('java.util.', 'AbstractMap$1'), Ljava_util_AbstractMap$1$1_2_classLit = createForClass('java.util.', 'AbstractMap$1$1'), Ljava_util_Date_2_classLit = createForClass('java.util.', 'Date'), Ljava_util_HashMap_2_classLit = createForClass('java.util.', 'HashMap'), Ljava_util_HashSet_2_classLit = createForClass('java.util.', 'HashSet'), Ljava_util_MapEntryImpl_2_classLit = createForClass('java.util.', 'MapEntryImpl'), Ljava_util_NoSuchElementException_2_classLit = createForClass('java.util.', 'NoSuchElementException');
+$stats && $stats({moduleName:'translator',subSystem:'startup',evtGroup:'moduleStartup',millis:(new Date()).getTime(),type:'moduleEvalEnd'});
+if ($wnd.translator) $wnd.translator.onScriptLoad();
+--></script></body></html>

@@ -1,0 +1,77 @@
+<h2>Language Service Providers</h2>
+
+The Worldwide Lexicon Platform provides a simple asynchronous API for dispatching calls to third party translation service providers or LSPs. This interface makes it easy to integrate external translation systems, volunteer communities, etc with your translation memory.<br><br>
+
+To support this service, all you need to do is to implement a web API on your system to accept translation requests from the WWL server, and then to make a callback request to WWL when it is completed. <br><br>
+
+<h3>Sending Translation Requests From WWL</h3>
+
+The Worldwide Lexicon server will call out to your system by posting a form to a URL on your system. It will send the following parameters:
+
+<ul>
+<li>action : action requested (translate, score; if omitted assume it is a translation request)</li>
+<li>guid : record locator for request</li>
+<li>sl : source language code</li>
+<li>tl : target language code</li>
+<li>st : source text</li>
+<li>domain : web domain (e.g. www.xyz.com)</li>
+<li>url : source document url</li>
+<li>output : output format (xml, rss, json; recommend json)</li>
+<li>pw : password or API key</li>
+<li>callback : URL for callback request (if omitted, use www.worldwidelexicon.org/submit</li>
+</ul>
+
+WWL will expect an 'ok' or error message, followed by an optional translated text from your translation memory (only if there is an exact match). 
+
+<h3>Returning Results From Your Translation Memory</h3>
+
+If there is an exact match for the requested source text and target language in your translation memory, you can return this in response to the translation request. You should format your response as follows:
+
+ok<br>
+This is a translation.<br><br>
+
+Where the response message 'ok' is followed by a line break, and then by the translation (UTF 8 encoding). If there are multiple translations, you should decide which one to return. This translation will be copied into the WWL translation memory immediately.<br><br>
+
+<h3>Submitting Translations To WWL</h3>
+
+When the translation is completed, simply send the text to the callback URL with the original request, or if omitted, use www.worldwidelexicon.org/queue/submit as the URL. You should include the following parameters with the submission (use UTF-8 encoding):<br><br>
+
+<ul>
+<li>guid : record locator</li>
+<li>sl : source language code</li>
+<li>tl : target language code</li>
+<li>st : source text</li>
+<li>tt : translated text</li>
+<li>domain : domain</li>
+<li>url : source url</li>
+<li>username : username to attribute translation to (e.g. bob@yourservice)</li>
+<li>remote_addr : user IP address (optional)</li>
+</ul>
+
+This API responds with 'ok' or error message.<br><br>
+
+<h3>Joining the Public WWL Network</h3>
+
+When you are ready to begin testing your implementation, email bsmcconnell /at/ gmail with the incoming URL for your API, as well as the IP address you will be submitting translations from. We will add you to the default list of language service providers, at which point you will be able to send requests via the /t web API on WWL.<br><br>
+
+<h3>Configuring Your WWL System To Allow Third-Party Services</h3>
+
+The config.py file is used to configure support for third-party language services. There is a section for Language Service Providers where you can set the following options for each LSP:<br><br>
+
+<ul>
+<li>URL to send translation requests to</li>
+<li>IP address to expect translations from</li>
+<li>Allowed languages (list)</li>
+</ul>
+
+Submissions from external services are filtered by IP address, so only submissions from IP addresses associated with a service are accepted. This works because third-party services will typically route translations through a gateway that resides at a static IP address.<br><br> 
+
+<h3>Special Cases</h3>
+
+We are also implementing direct support for a few specific service providers, including:<br><br>
+
+<ul>
+<li><a href=http://www.proz.com>ProZ.com</li>
+<li><a href=http://www.speaklike.com>SpeakLike</li>
+<li>More partners to be announced soon</li>
+</ul>

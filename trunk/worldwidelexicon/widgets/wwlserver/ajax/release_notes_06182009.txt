@@ -1,0 +1,69 @@
+=============================================================================
+Release Notes
+
+This is version of the of the GWT coded language translator for Brian McConnell
+
+
+author:  	Alex Tolley  alexandertolley@gmail.com
+date: 		06/18/2009
+
+=============================================================================
+
+
+Features
+--------
+
+1.  Translates flagged text blocks using the wwlapi server
+
+2.  Configuration data in /js/configuration.js  
+    Remove items in the "Defaults" named variable data structionthat are unneeded, e.g DOMAIN: "test".
+
+3.  Translation parameters determined by this order:
+     1.  tag to be translated (e.g. sl="en" allow_unscored="y".  if not specified then:
+     2.  global tag flagged by id="wwlapi".  if not specified then:
+     3.  last stored value in the cookie.
+
+    Note, if using a language picker for source/target language[s], the result will need to be stored in a cookie
+    and the page reloaded for the source language to be used in the translations.
+
+
+4.  Editing.   Editing is turned on by default.  Prevent editing by setting at any level - local
+    element, global element or cookie.
+
+5. global translation tag.
+   Is identified by id= "wwlapi".  This tag may have any type, e.g. iframe, div...  
+   It is recommended that an iframe be used as this is teh best type to be made invisible
+   and leave minimal distortion in the page formatting.
+
+6. translated elements.
+   The elements to be translated are identified with the attribute wwlapi="tr".
+   Any other translation parameter can be set locally to.  If teh source language is modified,
+   e.g. sl="new language_X" this will override the global variable and allow the page to translate a 
+   block of text that is not the same as the main language of the page.  This might be the case for a 
+   quote in latin or other language.
+
+7. Translation color.
+   Translation colors are set by the rules for the username and score level.  Currently the username
+   may be blank, but if so the IP address is currently substituted.  The colors are set in 
+
+   css/custom.css.
+
+8. If the translation fails, the display shows "no translation".  
+
+9. Strings in the Translation UI.
+   The default english Strings for the display are set in js/localstrings.js
+   If the string cannot be translated, the original english string is used.  This ensures
+   that the display will work at an english language default level.
+
+10.  Tooltip that is visible if the translation is editable.
+
+Bug Fixes
+---------
+
+1.  Unescaping characters.  Forced to use a hack to unescape some codes as URL.decode(String) is not 
+    working on some of the characters returned.
+2.  Modified the lod to allow the user to select a language and trap it via the cookie for use.
+3.  Changed the query to remove the minimum_score parameter if minimum_score < 1
+
+
+ TODO

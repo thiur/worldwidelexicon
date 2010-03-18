@@ -1,0 +1,5 @@
+cron:
+
+- description: system heartbeat
+  url: /heartbeat
+  schedule: every 1 minutes

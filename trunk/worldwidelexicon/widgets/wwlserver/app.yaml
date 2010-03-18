@@ -1,0 +1,351 @@
+application: worldwidelexicon
+version: 2
+runtime: python
+api_version: 1
+
+inbound_services:
+- mail
+
+handlers:
+    
+- url: /_ah/mail/(.*)
+  script: incoming_email.py 
+  login: admin
+
+- url: /translator.css
+  static_files: translator.css
+  upload: translator.css
+
+- url: /blueprint.html
+  static_files: blueprint/index.html
+  upload: blueprint/index.html
+
+- url: /favicon.ico
+  static_files: image/favicon.ico
+  upload: image/favicon.ico
+
+- url: /icon
+  static_files: image/logo.png
+  upload: image/logo.png
+
+- url: /logo
+  static_files: image/logo.png
+  upload: image/logo.png
+
+- url: /robots.txt
+  static_files: docs/robots.txt
+  upload: docs/robots.txt
+
+- url: /ajax
+  static_dir: ajax
+
+- url: /ajax/css
+  static_dir: ajax/css
+
+- url: /ajax/js
+  static_dir: ajax/js
+
+- url: /ajax/icons
+  static_dir: ajax/icons
+
+- url: /ajax/gwt
+  static_dir: gwt
+
+- url: /ajax/gwt/standard
+  static_dir: ajax/gwt/standard
+
+- url: /ajax/gwt/standard/images
+  static_dir: ajax/gwt/standard/images
+
+- url: /ajax/gwt/standard/images/ie6
+  static_dir: ajax/gwt/standard/images/ie6
+  
+- url: /static
+  static_dir: static
+  
+- url: /translator.css
+  static_files: translator.css
+  upload: translator.css
+  
+- url: /translator
+  static_dir: translator
+  
+- url: /translator/gwt
+  static_dir: translator/gwt
+
+- url: /translator/gwt/standard
+  static_dir: translator/gwt/standard
+  
+- url: /translator/gwt/standard/images
+  static_dir: translator/gwt/standard/images
+  
+- url: /translator/gwt/standard/images/ie6
+  static_dir: translator/gwt/standard/images/ie6
+
+- url: /image
+  static_dir: image
+  
+- url: /blueprint_overrides.css
+  static_files: blueprint/blueprint_overrides.css
+  upload: blueprint/blueprint_overrides.css
+
+- url: /blueprint/plugins/buttons/icons
+  static_dir: blueprint/plugins/buttons/icons
+
+- url: /blueprint/plugins/buttons
+  static_dir: blueprint/plugins/buttons
+
+- url: /blueprint/plugins/fancy-type
+  static_dir: blueprint/plugins/fancy-type
+
+- url: /blueprint/plugins/link-icons/icons
+  static_dir: blueprint/plugins/link-icons/icons
+
+- url: /blueprint/plugins/link-icons
+  static_dir: blueprint/plugins/link-icons
+
+- url: /blueprint/plugins/rtl
+  static_dir: blueprint/plugins/rtl
+
+- url: /blueprint/plugins
+  static_dir: blueprint/plugins
+
+- url: /blueprint/src
+  static_dir: blueprint/plugins
+
+- url: /blueprint
+  static_dir: blueprint
+  
+- url: /api
+  script: home.py
+
+- url: /cache/(.*)
+  script: translations.py
+
+- url: /doc
+  script: home.py
+  
+- url: /admin/saveuser/(.*)/(.*)
+  script: admin.py
+  secure: always
+  
+- url: /admin/set/(.*)/(.*)
+  script: admin.py
+  secure: always
+  
+- url: /admin/set/(.*)
+  script: admin.py
+  secure: always
+  
+- url: /admin/(.*)/(.*)/(.*)
+  script: admin.py
+  secure: always
+  
+- url: /admin/(.*)/(.*)
+  script: admin.py
+  secure: always
+
+- url: /admin/(.*)
+  script: admin.py
+  secure: always
+  
+- url: /admin
+  script: admin.py
+  secure: always
+  
+- url: /comments/(.*)
+  script: comments.py
+  secure: optional
+  
+- url: /cron/(.*)
+  script: cron.py
+  
+- url: /css/(.*)/(.*)/(.*)
+  script: css.py
+  
+- url: /css/(.*)/(.*)
+  script: css.py
+
+- url: /css/(.*)
+  script: css.py
+
+- url: /css
+  script: css.py
+  
+- url: /domains/(.*)
+  script: admin.py
+  secure: optional
+  
+- url: /edit/(.*)/(.*)
+  script: admin.py
+  secure: optional
+  
+- url: /edit/(.*)
+  script: admin.py
+  secure: optional
+  
+- url: /editcss/(.*)/(.*)
+  script: admin.py
+  secure: optional
+  
+- url: /editcss/(.*)
+  script: admin.py
+  secure: optional
+  
+- url: /gallery/(.*)/(.*)
+  script: image.py
+  
+- url: /gallery/(.*)
+  script: image.py
+  
+- url: /headers
+  script: admin.py
+  secure: optional
+  
+- url: /heartbeat
+  script: admin.py
+  secure: optional
+  
+- url: /hosts/auth/(.*)
+  script: hosts.py
+  secure: optional
+  
+- url: /hosts/log
+  script: hosts.py
+  secure: optional
+  
+- url: /images/(.*)/(.*)
+  script: image.py
+  
+- url: /images/(.*)
+  script: image.py
+  
+- url: /language
+  script: language.py
+  
+- url: /log
+  script: translations.py
+
+- url: /mt
+  script: mt.py
+  
+- url: /proxy/(.*)
+  script: proxy.py
+  secure: optional
+  
+- url: /p
+  script: search.py
+  
+- url: /presence/(.*)
+  script: users.py
+  secure: optional
+  
+- url: /pro
+  script: search.py
+  
+- url: /q
+  script: translations.py
+  
+- url: /queue/(.*)
+  script: translations.py
+  secure: optional
+  
+- url: /request
+  script: search.py
+  
+- url: /rss/(.*)/(.*)
+  script: rss.py
+  
+- url: /rss/(.*)
+  script: rss.py
+  
+- url: /rss
+  script: rss.py
+
+- url: /scores/(.*)
+  script: scores.py
+  secure: optional
+  
+- url: /search/add
+  script: search.py
+  
+- url: /search
+  script: search.py
+  
+- url: /setup
+  script: admin.py
+  secure: always
+  
+- url: /share
+  script: search.py
+  secure: optional
+  
+- url: /sidebar
+  script: translations.py
+  secure: optional
+  
+- url: /stats/scores
+  script: scores.py
+  secure: optional
+  
+- url: /stream
+  script: search.py
+  
+- url: /submit
+  script: translations.py
+  secure: optional
+  
+- url: /t/(.*)/(.*)/(.*)
+  script: translations.py
+  
+- url: /t/(.*)/(.*)
+  script: translations.py
+  
+- url: /t
+  script: translations.py
+  
+- url: /test/(.*)/(.*)
+  script: test.py
+  
+- url: /unicode
+  script: translations.py
+  
+- url: /update/(.*)/(.*)
+  script: admin.py
+  secure: always
+  
+- url: /update/(.*)
+  script: admin.py
+  secure: always
+  
+- url: /upload/(.*)/(.*)
+  script: admin.py
+  secure: optional
+  
+- url: /upload/(.*)
+  script: admin.py
+  secure: optional
+  
+- url: /users/(.*)
+  script: users.py
+  secure: optional
+  
+- url: /(.*)/(.*)/(.*)
+  script: search.py
+  secure: optional
+  
+- url: /(.*)/(.*)
+  script: search.py
+  secure: optional
+  
+- url: /(.*)
+  script: search.py
+  secure: optional
+
+- url: /
+  script: search.py
+  secure: optional
+
+- url: .*
+  script: search.py
+  secure: optional

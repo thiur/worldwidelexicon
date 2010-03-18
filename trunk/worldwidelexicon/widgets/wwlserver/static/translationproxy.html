@@ -1,0 +1,37 @@
+Building A Translation Proxy Server
+by Brian McConnell, Worldwide Lexicon Project
+
+While the web has rendered time and distance moot, the language barrier is still standing. Services like Babelfish and Google Translate have made a few dents in the wall, yet the web remains not a worldwide network, but dozens of smaller networks mostly isolated from each other. The language barrier can be overcome, through a "best effort" technique that combines inputs from professional translators, volunteers (user community), and machine generated translations. I recently wrote about this in my essay, The End of the Language barrier. 
+
+In this article, I'll describe how to build a translation proxy server. This is a service that can be placed in front of any web server to inject translations into pages as they are served. First, what does this mean for users? It means they visit a website as they do normally, and if translations are required, the page will be translated as best as possible. The goal is to make this process automatic and effortless, and to require no software updates to either the web server or the browser. This last point is especially important. If either the user or the website owner needs to install anything, even something as simple as a browser add-on or Javascript widget, it reduces adoption by 90%. 
+
+Our next tool we're building at the Worldwide Lexicon is an open source translation proxy that does just this. It is based on our most recent work, a Firefox Translator that automatically translates pages using a combination of professional, volunteer and machine translations, and allows users to edit and score translations. The tool consists of two components: a C/C++ based proxy server, combined with a Javascript translator that is being repurposed from our Firefox Translator. 
+
+Here's how it works:
+
+The translation proxy is a C/C++ program that acts as a tunneling agent, and does the following tasks:
+
+* Looks for HTTP requests for a domain (e.g. translate.yoursite.com or nn.yoursite.com where nn is an ISO language code)
+* Tunnels through to www.yoursite.com to obtain web content for the requested URL
+* Injects a Javascript translator from a WWL server in the page header
+* Tunnels web API calls from the Javascript translator to a WWL server (to circumvent Javascript cross-domain security limitations)
+* The Javascript widget, like the Firefox Translator, activates when needed, and translates texts on the page using the best available resources (it can be controlled in detail by inserting DIV tags that tell it which texts can or can't be translated, can be edited by users, etc)
+
+In the first version of the translation proxy, we are using a Javascript widget to view and edit translations within the user's browser. This allows the translation proxy to be a dumb program that does not need to parse or manipulate HTML beyond replacing </head> with <script src=..></script></head>. The second version will offer the option to inject translations directly at the proxy server, eliminating the need for Javascript (we wanted to avoid having to write and debug a robust HTML parser for the first version). In the long-run, we want to make this process completely transparent to the end user, who will simply open a URL with no further action required in most cases.
+
+For the user, translations appear automatically and, if the site allows it, can be edited via an popup editor on mousing over a text. The Javascript widget detects the user's language preferences (via browser settings and a site specific cookie), the source document language, and if translation is needed, will translate the texts that are allowed to be translated. The proxy server relays queries to WWL servers, so that the Javascript widget can talk to them as a third-party service (normally this would be blocked).  
+
+The service is configured using two methods: DNS subdomains, and DIV tags embedded within web pages. This makes it possible to run this either as a hosted SaaS application, or as a DIY self-hosted service. 
+
+With DNS, a website owner will map domains such as: translate.yoursite.com or fr.yoursite.com to the proxy server, while www.yoursite.com goes to the original site. The proxy server receives requests to fr.yoursite.com (French) and tunnels through to www.yoursite.com by default unless otherwise specified. There are many possible configurations like this, but this is a good example of a default setup.
+
+DIV tags embedded in the web page, if present, tell the Javascript translator how to behave. For example, you may have localized your website's user interface in several language but not its content. To prevent the translator from trying to translate menus that have already been localized, you can bracket those items like this:
+
+<div translate="n">Home</div>
+<div translate="n">About</div>
+
+You can also specify, on a per-page or per-text basis, settings like whether to allow machine translations, whether to allow anonymous translations, whether to allow the viewer to edit or score translations, minimum quality scores, etc. This allows a site to opt for a default, auto-pilot implementation with no HTML changes, or to exert a lot of control over how translations are displayed and edited simply by inserting DIV tags where desired. 
+
+While this approach does make some compromises (it will not work for secure web pages, for example), it eliminates the need to install translation software on either the browser or server, so this will work automatically for the majority of users on the majority of pages. If you need to support embedded translations on secure sites, for example, then you'll either need to install translation software on your webserver, or have your users install a plugin that translates pages within their browser. 
+
+Ultimately the goal is to make best effort translation an ambient, and mostly invisible, service that is embedded in most web servers and browsers. That will take a few years to sort itself out, but in the meanwhile we can use techniques like this to make almost any website translatable via both humans and machines. 

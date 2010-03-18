@@ -1,0 +1,99 @@
+<h2>Guidelines For Implementing TransKit Libraries</h2>
+Brian McConnell, Worldwide Lexicon Project<br>
+<br>
+This document provides guidelines to follow when implementing TransKit libraries that talk to the WWL API to request and submit translations. If you follow these guidelines, your library will run efficiently, while providing the developers using it with a high degree of control over how translations are inserted into their documents and applications.<br>
+<br>
+<h3>Key Objectives</h3>
+<ul>
+<li>Optimize for performance using in memory or disk cache (e.g. memcached)</li>
+<li>Defer to existing localization services, gettext() and PO files in particular, when available</li>
+<li>Use best effort translation selecting for professional/trusted translations, then user translations, then machine translations as fallback</li>
+</li>Use default settings, but allow calling application to override filter criteria as desired</li>
+<li>Simple configuration via config file (if no config settings, defaults should work with public WWL server at www.worldwidelexicon.org)</li>
+<li>Mirror basic WWL API calls to get/submit translations, submit scores, get/submit comments, create/login/logout users</li>
+</ul>
+<br>
+<h3>Performance Optimization</h3>
+The library should be optimized to minimize communication with the Worldwide Lexicon translation memory since a document may require dozens of texts to be translated as it is rendered. It's up to you whether you want to implement your own cache, which will simplify installation and use, or use an existing cache such as memcached (ideally you should support both, with internal cache as the default so the library will run "out of the box"). The general workflow to implement is as follows:<br>
+<br>
+<ol>
+<li>Check in memory cache to see if there is a translation cached for the source text and selected target language and is within its time to live. If yes, use that.</li>
+<li>Check disk cache to see if there is a translation. If yes, use that.</li>
+<li>Check gettext(), if enabled, to see if the string is defined in a localization setting there.</li>
+<li>Call WWL server to request translation, if one matches filter criteria, cache it in memory and disk, and use it.</li>
+<li>In event of cache engine fault, restart, and reload in memory cache from disk image.</li>
+<li>When processing a user submitted translation, update cache and echo submission to WWL server.</li>
+</ol>
+<br>
+<h3>Using Existing Localization Services</h3>
+<br>
+Many websites use gettext() and its associated translation files (e.g. PO files) to localize the user interface for the site. If these are present, you should assume that strings or patterns defined for translation in gettext() take precedence over WWL translations. (Localization is a different process, involving different people and roles, compared to content translation, which WWL is optimized for).<br>
+<br>
+As a general rule, you should implement the following workflow for dealing with gettext() versus WWL. This workflow is invoked if the text to be translated has not already been found in the cache.<br>
+<br>
+<ol>
+<li>Call gettext() function to translate the string.</li>
+<li>If it returns a translation, cache it in memory and disk, and use it.</li>
+<li>If not, proceed to WWL translation lookup.</li>
+</ol>
+<h3>Best Effort Translation Rules (Defaults)</h3>
+<ol>
+<li>Look for the one with the highest editor score (if present)</li>
+<li>Then look for the one with the highest average user score (avgscore)</li>
+<li>Then look for an unscored translation from a registered user (not anonymous) and not marked as spam (these are usually filtered)</li>
+<li>Then look for an unscored translation from an anonymous user
+</li>
+<li>All other things being equal, use the most recent human translation of any type</li>
+<li>Then fall back to machine translation</li>
+<li>If no machine translation, then use the original untranslated text</li>
+</ol>
+<br>
+When returning translations from your lookup function, you should allow the option for a text-only reply, or a structured reply which returns a data structure with both the translation and meta data about the type and quality of translation, username, etc.<br><br>
+<h3>Allowing User Defined Rules</h3>
+You should allow the user to override default settings when requesting translations, via optional parameters:<br>
+<br>
+<ul>
+<li>allow_machine = y/n</li>
+<li>allow_anonymous = y/n</li>
+<li>minimum_score = 0..5</li>
+<li>require_professional = y/n</li>
+<li>require_approval = y/n</li>
+</ul>
+<br>
+<h3>Configuration</h3>
+Configuration should be selected based on the following workflow:<br>
+<br>
+<ul><li>If optional parameters are provided during API call, override default configuration</li>
+<li>If configuration file or global declarations are present, override default configuration</li>
+</ul>
+<br>
+The default configuration is as follows:<br>
+<br>
+<ul>
+<li>Public WWL server: worldwidelexicon.appspot.com (supports HTTP and secure HTTP), alternatively www.worldwidelexicon.org (HTTP only)</li>
+<li>allow_machine = y</li>
+<li>allow_anonymous = y</li>
+<li>minimum_score = 0</li>
+<li>require_professional = n</li>
+<li>require_approval = n</li>
+</ul>
+<br>
+<h3>Mirroring WWL API</h3>
+<br>
+The WWL API is well documented and can be found at www.worldwidelexicon.org/api The API calls you want to focus on (ranked in importance) are:<br>
+<br>
+<ul>
+<li>/t : simple translation interface, a sort of "I Feel Lucky" API where you call www.worldwidelexicon.org/t/en/es/Hello and get a text back</li>
+<li>/q : translation query : returns multiple translations for a text or URL, along with meta data you can use to select best translation</li>
+<li>/submit : submit a translation</li>
+<li>/scores/vote : score a translation</li>
+<li>/comments/get : get comments about a translation or source text</li>
+<li>/comments/submit : submit comment about a translation</li>
+<li>/users/new : create new user account</li>
+<li>/users/auth : authenticate user</li>
+<li>/users/logout : logout</li>
+</ul>
+<br>
+There are some additional API calls, but these are the services you should be most concerned with.<br>
+<br>
+NOTE: we are working on a way to track user submissions via proxy, so if you want to log submissions to WWL via user identities on your system you can do so without sharing credentials with the WWL server. This interface will be published in November/December 2009.
