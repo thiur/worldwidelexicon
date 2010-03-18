@@ -55,6 +55,8 @@ import string
 import md5
 import datetime
 import codecs
+# import WWL modules
+from database import Urls
 
 def clean(text):
     try:
@@ -96,7 +98,55 @@ class ProxyController(webapp.RequestHandler):
         self.response.out.write('lspusername=foo\n')
         self.response.out.write('lsppw=bar\n')
 
-application = webapp.WSGIApplication([(r'/proxy/(.*)', ProxyController)],
+class ProxySubmit(webapp.RequestHandler):
+    """
+    /proxy/submit
+
+    This API call is used to report to the global translation memory which URLs are being
+    viewed in translation (for example on a Word Press site that is using the translation
+    plugin). This enables WWL / Der Mundo to build a global picture of what posts are being
+    read in various languages.
+
+    It expects the following parameters:
+
+    sl = source language
+    tl = target language
+    st = source text (can be partial)
+    tt = translated text (can be partial)
+    domain = main domain
+    url = permalink (original)
+    turl = permalink (translated)
+    stitle = source title
+    ttitle = translated title
+    remote_addr = user IP address
+    
+    """
+    def get(self):
+        self.requesthandler()
+    def post(self):
+        self.requesthandler()
+    def requesthandler(self):
+        sl = self.request.get('sl')
+        tl = self.request.get('tl')
+        st = self.request.get('st')
+        tt = self.request.get('tt')
+        domain = self.request.get('domain')
+        url = self.request.get('url')
+        turl = self.request.get('turl')
+        stitle = self.request.get('stitle')
+        ttitle = self.request.get('ttitle')
+        remote_addr = self.request.remote_addr
+        user_ip = self.request.get('remote_addr')
+        exists = memcache.get('/ratelimit/proxy/submit/' + user_ip)
+        if exists is not None:
+            self.response.out.write('ok')
+        else:
+            Urls.log(url, turl=turl, domain=domain, sl=sl, tl=tl, st=st, tt=tt, stitle=stitle, ttitle=ttitle, remote_addr = remote_addr, user_ip=user_ip)
+            self.response.out.write('ok')
+            memcache.set('/ratelimit/proxy/submit/' + user_ip, 'y', 1)
+
+application = webapp.WSGIApplication([('/proxy/submit', ProxySubmit),
+                                      (r'/proxy/(.*)', ProxyController)],
                                      debug=True)
 
 def main():
