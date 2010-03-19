@@ -119,6 +119,9 @@ handlers:
 - url: /api
   script: home.py
 
+- url: /batch
+  script: translations.py
+
 - url: /cache/(.*)
   script: translations.py
 
