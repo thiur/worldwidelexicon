@@ -1078,7 +1078,7 @@ class Queue(db.Model):
         if len(guid) > 0 and len(tt) > 0:
             tdb = db.Query(Queue)
             tdb.filter('guid = ', guid)
-            item = db.get()
+            item = tdb.get()
             if item is not None:
                 sl = item.sl
                 tl = item.tl
@@ -1223,6 +1223,40 @@ class Queue(db.Model):
                     return False
         else:
             return False
+    @staticmethod
+    def selectwinners(minimum_score, minimum_votes=1):
+        tdb = db.Query(Queue)
+        tdb.filter('translated = ', True)
+        tdb.filter('numscores >= ', minimum_votes)
+        results = tdb.fetch(limit=100)
+        for r in results:
+            if r.avgscore < minimum_score:
+                r.delete()
+            if r.avgscore > minimum_score:
+                sl = r.sl
+                tl = r.tl
+                st = r.st
+                tt = r.tt
+                domain = r.domain
+                url = r.url
+                swords = string.split(string.lower(st))
+                twords = string.split(string.lower(tt))
+                username = r.username
+                remote_addr = r.remote_addr
+                item = Translation()
+                item.sl = sl
+                item.tl = tl
+                item.st = st
+                item.tt = tt
+                item.domain = domain
+                item.url = url
+                item.username = username
+                item.avgscore = avgscore
+                item.scores = r.numscores
+                item.locked = True
+                item.put()
+                r.delete()
+        return True
     
 class Revisions(db.Model):
     action = db.StringProperty(default = '')
@@ -2132,6 +2166,7 @@ class Translation(db.Model):
     userrawscore = db.IntegerProperty(default=0)
     comments = db.IntegerProperty(default=0)
     professional = db.BooleanProperty(default=False)
+    locked = db.BooleanProperty(default = True)
     ngrams = db.ListProperty(str)
     @staticmethod
     def author(guid):
