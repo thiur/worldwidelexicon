@@ -72,12 +72,21 @@ def clean(text):
     return text
 
 class ProxyController(webapp.RequestHandler):
+    """
+    /proxy/*
+
+    This web service is used by WWL proxy servers to find out what settings to use for a website.
+
+    
+    """
     def get(self, domain):
         self.requesthandler(domain)
     def post(self, domain):
         self.requesthandler(domain)
     def requesthandler(self, domain):
         self.response.headers['Content-Type']='text/plain'
+        proxy_api_key = self.request.get('proxy_api_key')
+        tl = self.request.get('tl')
         subdomains = string.split(domain,'.')
         if len(subdomains) == 3:
             targetdomain = 'www.' + subdomains[1] + '.' + subdomains[2]
@@ -96,9 +105,10 @@ class ProxyController(webapp.RequestHandler):
         self.response.out.write('allow_edit=y\n')
         self.response.out.write('allow_anonymous=y\n')
         self.response.out.write('require_professional=n\n')
-        self.response.out.write('lsp=speaklike\n')
-        self.response.out.write('lspusername=foo\n')
-        self.response.out.write('lsppw=bar\n')
+        if len(proxy_api_key) > -1:
+            self.response.out.write('lsp=speaklike\n')
+            self.response.out.write('lspusername=foo\n')
+            self.response.out.write('lsppw=bar\n')
 
 class ProxyRegister(webapp.RequestHandler):
     """

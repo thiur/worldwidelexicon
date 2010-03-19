@@ -1117,7 +1117,56 @@ class SendLSP(webapp.RequestHandler):
             item.put()
         self.response.out.write('ok')
 
+class BatchTranslation(webapp.RequestHandler):
+    """
+    /batch
+
+    Batch translation request handler. This request handler implements a two-step batch request handler
+    where the requester first sends a list of texts to be translated, and then repeats the query to read
+    results out of memcached registers. This two step approach allows WWL clients to submit large numbers
+    of texts to be translated, and to mask the delays associated with a sequential query process. 
+    """
+    def get(self):
+        self.requesthandler()
+    def post(self):
+        self.requesthandler()
+    def requesthandler(self):
+        sl = self.request.get('sl')
+        tl = self.request.get('tl')
+        allow_machine = self.request.get('allow_machine')
+        lsp = self.request.get('lsp')
+        lspusername = self.request.get('lspusername')
+        lsppw = self.request.get('lsppw')
+        remote_addr = self.request.get('remote_addr')
+        guid = self.request.get('guid')
+        if len(guid) > 8:
+            ctr = 0
+            while ctr < 200:
+                text = memcache.get('/batch/' + guid + '/' + str(ctr))
+                if text is not None:
+                    self.response.out.write(text)
+                ctr = ctr + 1
+        else:
+            m = md5.new()
+            m.update(remote_addr)
+            m.update(sl)
+            m.update(st)
+            m.update(str(datetime.datetime.now()))
+            md5hash = str(m.hexdigest())
+            ctr = 0
+            st = dict()
+            while ctr < 200:
+                st[ctr]=self.request.get('st' + str(ctr))
+                ctr = ctr + 1
+            ctr = 0
+            while ctr < 200:
+                if len(st.get(ctr)) > 0:
+                    pass
+                    # generate async urlfetch
+                    ctr = ctr + 1
+
 application = webapp.WSGIApplication([('/q', GetTranslations),
+                                      ('/batch', BatchTranslation),
                                       ('/log', LogQueries),
                                       ('/cache/(.*)', Cache),
                                       ('/queue/add', AddQueue),
