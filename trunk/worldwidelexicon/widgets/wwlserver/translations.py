@@ -202,13 +202,9 @@ class QueueSubmit(webapp.RequestHandler):
     volunteer community. It expects the following parameters:
     
     guid : record locator for the translation job
-    sl : source language
-    tl : target language
-    st : source text (utf 8)
     tt : translated text (utf 8)
-    domain : domain (e.g. www.worldwidelexicon.org)
-    url : url of source document
     username : username to attribute translation to
+    pw : password (for WWL user, send an API key if submitting on behalf of an LSP)
     
     """
     def get(self):
@@ -217,19 +213,17 @@ class QueueSubmit(webapp.RequestHandler):
         self.requesthandler()
     def requesthandler(self):
         guid = self.request.get('guid')
-        sl = self.request.get('sl')
-        tl = self.request.get('tl')
-        st = clean(self.request.get('st'))
         tt = clean(self.request.get('tt'))
         domain = self.request.get('domain')
         url = self.request.get('url')
         remote_addr = self.request.remote_addr
         username = self.request.get('username')
-        qr = Queue.complete(guid)
-        tr = Translation.submit(sl=sl, st=st, tl=tl, tt=tt, username=username, remote_addr=remote_addr, domain=domain, url=url)
+        pw = self.request.get('pw')
+        remote_addr = self.request.remote_addr
+        result = Queue.submit(guid, tt, username, pw, remote_addr)
         if len(guid) > 0:
             self.response.headers['Content-Type']='text/plain'
-            if qr and tr:
+            if result:
                 self.response.out.write('ok')
             else:
                 self.response.out.write('error')
@@ -238,13 +232,9 @@ class QueueSubmit(webapp.RequestHandler):
             self.response.out.write('<form action=/queue/submit method=get>')
             self.response.out.write('<table>')
             self.response.out.write('<tr><td>guid (guid)</td><td><input type=text name=guid></td></tr>')
-            self.response.out.write('<tr><td>Source Language (sl)</td><td><input type=text name=sl></td></tr>')
-            self.response.out.write('<tr><td>Target Language (tl)</td><td><input type=text name=tl></td></tr>')
-            self.response.out.write('<tr><td>Source Text (st)</td><td><input type=text name=st></td></tr>')
             self.response.out.write('<tr><td>Translated Text (tt)</td><td><input type=text name=tt></td></tr>')
-            self.response.out.write('<tr><td>Domain (domain)</td><td><input type=text name=domain></td></tr>')
-            self.response.out.write('<tr><td>URL (url)</td><td><input type=text name=url></td></tr>')
             self.response.out.write('<tr><td>Username (username)</td><td><input type=text name=username></td></tr>')
+            self.response.out.write('<tr><td>Password or LSP API key</td><td><input type=password name=pw></td></tr>')
             self.response.out.write('<tr><td colspan=2><input type=submit value="OK"></td></tr>')
             self.response.out.write('</table></form>')
 

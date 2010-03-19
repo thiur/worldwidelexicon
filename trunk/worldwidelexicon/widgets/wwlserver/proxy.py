@@ -55,7 +55,9 @@ import string
 import md5
 import datetime
 import codecs
+from webappcookie import Cookies
 # import WWL modules
+from database import Users
 from database import Urls
 
 def clean(text):
@@ -133,9 +135,29 @@ class ProxyRegister(webapp.RequestHandler):
         success_url = '/proxy/admin'
         error_url = '/proxy/error/login'
         if len(email) < 8 or len(pw) < 6 or len(domain) < 3 or len(sl) < 2:
-            self.redirect(error_url)
+            self.response.out.write('<form action=/proxy/register method=post>')
+            self.response.out.write('<table>')
+            self.response.out.write('<tr><td>Email</td><td><input type=text name=email></td></tr>')
+            self.response.out.write('<tr><td>Password</td><td><input type=password name=pw></td></tr>')
+            self.response.out.write('<tr><td>Confirm Password (For New Account)</td><td><input type=password name=pw2></td></tr>')
+            self.response.out.write('<tr><td>Your Domain (www.yoursite.com)</td><td><input type=text name=domain></td></tr>')
+            self.response.out.write('<tr><td>Primary Language (use 2/3 letter language code)</td><td><input type=text name=sl maxlength=3></td></tr>')
+            self.response.out.write('<tr><td colspan=2><input type=submit value="Signup"></td></tr></form></table>')
         else:
-            pass
+            if pw == pw2 and len(pw) > 5 and len(email) > 0:
+                result = Users.new(username=email, email=email, pw=pw, remote_addr=remote_addr)
+                if not result:
+                    self.redirect(error_url)
+                sessioninfo['session']=''
+                sessioninfo['username']=''
+            else:
+                sessioninfo = Users.auth(username=email, pw=pw, session='', remote_addr=remote_addr)
+                if sessioninfo is None:
+                    self.redirect(error_url)
+            cookies = Cookies(self)
+            cookies['session']=sessioninfo.get('session')
+            self.redirect('/proxy/admin')
+        
 
 class ProxyAdmin(webapp.RequestHandler):
     """
@@ -156,7 +178,29 @@ class ProxyAdmin(webapp.RequestHandler):
     def post(self):
         self.requesthandler()
     def requesthandler(self):
-        pass
+        cookies = Cookies(self)
+        try:
+            session = cookies['session']
+        except:
+            session = ''
+        email = self.request.get('email')
+        pw = self.request.get('pw')
+        remote_addr = self.request.remote_addr
+        if len(session) < 8 and len(email) < 6 and len(pw) < 6:
+            self.response.out.write('<h3>Worldwide Lexicon Translation Service</h3><hr>')
+            self.response.out.write('<form action=/proxy/admin method=post>')
+            self.response.out.write('Email: <input type=text name=email>  <input type=password name=pw> ')
+            self.response.out.write('<input type=submit value="OK"></form>')
+        elif len(session) < 8:
+            sessioninfo = Users.auth(username=email, pw=pw, session='', remote_addr=remote_addr)
+            if sessioninfo is not None:
+                session = sessioninfo.get('session','')
+                cookies['session']=session
+            else:
+                self.redirect('/proxy/admin')
+        else:
+            self.response.out.write('<h3>Worldwide Lexicon Translation Service</h3><hr>')
+            self.response.out.write('Ipsum orum')
 
 class ProxySubmit(webapp.RequestHandler):
     """
@@ -206,6 +250,9 @@ class ProxySubmit(webapp.RequestHandler):
             memcache.set('/ratelimit/proxy/submit/' + user_ip, 'y', 1)
 
 application = webapp.WSGIApplication([('/proxy/submit', ProxySubmit),
+                                      ('/proxy/register', ProxyRegister),
+                                      (r'/proxy/admin/(.*)', ProxyAdmin),
+                                      ('/proxy/admin', ProxyAdmin),
                                       (r'/proxy/(.*)', ProxyController)],
                                      debug=True)
 
