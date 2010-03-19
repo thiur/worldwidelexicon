@@ -1151,16 +1151,18 @@ class BatchTranslation(webapp.RequestHandler):
         lsppw = self.request.get('lsppw')
         remote_addr = self.request.get('remote_addr')
         guid = self.request.get('guid')
+        query = self.request.get('query')
         async = self.request.get('async')
+        output = self.request.get('output')
         if len(guid) > 8:
             ctr = 0
             while ctr < 200:
-                text = memcache.get('/batch/' + guid + '/' + str(ctr))
+                text = memcache.get('/batch/' + guid + '/' +output + '/' + str(ctr))
                 if text is not None:
                     self.response.out.write(text)
                 ctr = ctr + 1
         else:
-            if len(sl) > 1:
+            if len(sl) > 1 and query != 'y':
                 m = md5.new()
                 m.update(remote_addr)
                 m.update(sl)
@@ -1174,10 +1176,26 @@ class BatchTranslation(webapp.RequestHandler):
                     ctr = ctr + 1
                 ctr = 0
                 while ctr < 200:
-                    if len(st.get(ctr)) > 0:
-                        pass
-                        # generate async urlfetch
+                    stext = st.get(ctr)
+                    if len(stext) > 0:
+                        rpc = urlfetch.create_rpc()
+                        params = dict()
+                        params['sl']=sl
+                        params['tl']=tl
+                        params['st']=st
+                        params['query']='y'
+                        params['guid']=guid
+                        params['output']=output
+                        params['ctr']=str(ctr)
+                        text = urllib.urlencode(params)
+                        urlfetch.make_fetch)call, rpc, url='http://3.latest.worldwidelexicon.appspot.com/batch/' + text)
                         ctr = ctr + 1
+            elif query == 'y':
+                ctr = self.request.get('ctr')
+                tt = Translation.lucky(sl=sl, tl=tl, st=st, output=output)
+                if len(tt) > 0:
+                    memcache.set('/batch/' + guid + '/' + output + '/' + ctr, tt, 360)
+                self.response.out.write('ok')
             else:
                 www.serve(self,self.__doc__, title='/batch')
                 self.response.out.write('<table><form action=/batch method=get>')
