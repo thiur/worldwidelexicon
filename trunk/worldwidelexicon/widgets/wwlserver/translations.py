@@ -1121,10 +1121,22 @@ class BatchTranslation(webapp.RequestHandler):
     """
     /batch
 
-    Batch translation request handler. This request handler implements a two-step batch request handler
-    where the requester first sends a list of texts to be translated, and then repeats the query to read
-    results out of memcached registers. This two step approach allows WWL clients to submit large numbers
-    of texts to be translated, and to mask the delays associated with a sequential query process. 
+    Batch translation request handler. This request handler allows a client to submit a batch of texts to
+    be translated, and to requery in a separate transaction if desired. This request handler will spawn
+    a number of parallel queries that, in turn, write back to memcached. This allows for fast response
+    times on queries for a large number of texts. It expects the following parameters:
+
+    sl = source language
+    tl = target language
+    st0..199 = source text to translate
+    allow_machine = y/n (use machine translation)
+    lsp = name of LSP, if requesting professional translations
+    lspusername = username for LSP query
+    lsppw = pw or API key for LSP query
+    guid = MD5hash (if repeating a recently submitted query)
+    async = y/n (if yes, returns an MD5hash, and expects user to re-query after some delay)
+    output = xml, rss, or json
+    
     """
     def get(self):
         self.requesthandler()
@@ -1139,6 +1151,7 @@ class BatchTranslation(webapp.RequestHandler):
         lsppw = self.request.get('lsppw')
         remote_addr = self.request.get('remote_addr')
         guid = self.request.get('guid')
+        async = self.request.get('async')
         if len(guid) > 8:
             ctr = 0
             while ctr < 200:
@@ -1147,24 +1160,39 @@ class BatchTranslation(webapp.RequestHandler):
                     self.response.out.write(text)
                 ctr = ctr + 1
         else:
-            m = md5.new()
-            m.update(remote_addr)
-            m.update(sl)
-            m.update(st)
-            m.update(str(datetime.datetime.now()))
-            md5hash = str(m.hexdigest())
-            ctr = 0
-            st = dict()
-            while ctr < 200:
-                st[ctr]=self.request.get('st' + str(ctr))
-                ctr = ctr + 1
-            ctr = 0
-            while ctr < 200:
-                if len(st.get(ctr)) > 0:
-                    pass
-                    # generate async urlfetch
+            if len(sl) > 1:
+                m = md5.new()
+                m.update(remote_addr)
+                m.update(sl)
+                m.update(st)
+                m.update(str(datetime.datetime.now()))
+                md5hash = str(m.hexdigest())
+                ctr = 0
+                st = dict()
+                while ctr < 200:
+                    st[ctr]=self.request.get('st' + str(ctr))
                     ctr = ctr + 1
-
+                ctr = 0
+                while ctr < 200:
+                    if len(st.get(ctr)) > 0:
+                        pass
+                        # generate async urlfetch
+                        ctr = ctr + 1
+            else:
+                www.serve(self,self.__doc__, title='/batch')
+                self.response.out.write('<table><form action=/batch method=get>')
+                self.response.out.write('<tr><td>Async Query</td><td><input type=text name=async value=n></td></tr>')
+                self.response.out.write('<tr><td>Source Language</td><td><input type=text name=sl></td></tr>')
+                self.response.out.write('<tr><td>Target Language</td><td><input type=text name=tl></td></tr>')
+                self.response.out.write('<tr><td>Output Format</td><td><input type=text name=output value=rss></td></tr>')
+                ctr = 0
+                while ctr < 20:
+                    self.response.out.write('<tr><td>Source Text #' + str(ctr+1) + '</td>')
+                    self.response.out.write('<td><input type=text name=st' + str(ctr) + '></td></tr>')
+                    ctr = ctr + 1
+                self.response.out.write('<tr><td colspan=2><input type=submit value="OK"></td></tr>')
+                self.response.out.write('</form></table>')
+                
 application = webapp.WSGIApplication([('/q', GetTranslations),
                                       ('/batch', BatchTranslation),
                                       ('/log', LogQueries),
