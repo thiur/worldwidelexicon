@@ -57,6 +57,7 @@ import urllib
 import string
 import md5
 import datetime
+import time
 import pydoc
 import codecs
 import types
@@ -698,7 +699,6 @@ class SimpleTranslation(webapp.RequestHandler):
         allow_machine = self.request.get('allow_machine')
         min_score = self.request.get('min_score')
         output = self.request.get('output')
-        edit = self.request.get('edit')
         mtengine = self.request.get('mtengine')
         queue = self.request.get('queue')
         ip = self.request.get('ip')
@@ -709,26 +709,43 @@ class SimpleTranslation(webapp.RequestHandler):
         m.update(st)
         m.update(lsp)
         md5hash = str(m.hexdigest())
-        text = memcache.get('/t/' + md5hash)
+        if len(output) < 2:
+            output = 'text'
+        text = memcache.get('/t/' + md5hash + '/' + output)
+        self.response.headers['Accept-Charset'] = 'utf-8'
         if text is not None:
+            if output == 'xml' or output == 'rss':
+                self.response.headers['Content-Type']='text/xml'
+            elif output == 'html':
+                self.response.headers['Content-Type']='text/html'
+            else:
+                self.response.headers['Content-Type']='text/plain'
             self.response.out.write(text)
             return
-        self.response.headers['Accept-Charset'] = 'utf-8'
         if len(tl) > 0 and len(st) > 0:
-            if edit == 'y':
-                www.serve(self, 'Edit this translation using the form below.', title='Edit Translation')
-                self.response.out.write('<table><form action=/t/' + sl + '/' + tl + ' method=post accept-charset=utf-8>')
-                self.response.out.write('<input type=hidden name=st value="' + st + '">')
-                self.response.out.write('<tr><td>WWL Username <input type=text name=username></td></tr>')
-                self.response.out.write('<tr><td>WWL Password <input type=password name=pw></td></tr>')
-                self.response.out.write('<tr><td width=300>' + st + '</td></tr>')
-                self.response.out.write('<tr><td width=300><textarea name=tt>' + tt + '</textarea></td></tr>')
-                self.response.out.write('<tr><td colspan=2><input type=submit value="OK" onclick="window.close();"></td></tr>')
-                self.response.out.write('</table></form>')
-            else:
-                tt = Translation.lucky(sl=sl, tl=tl, st=st, allow_anonymous=allow_anonymous, allow_machine=allow_machine, min_score=min_score, output=output, edit=edit, lsp=lsp, lspusername=lspusername, lsppw = lsppw, mtengine=mtengine, queue=queue, ip=ip, userip=userip)
+            tt = Translation.lucky(sl=sl, tl=tl, st=st, allow_anonymous=allow_anonymous, allow_machine=allow_machine, min_score=min_score, output=output, lsp=lsp, lspusername=lspusername, lsppw = lsppw, mtengine=mtengine, queue=queue, ip=ip, userip=userip)
+            if output == 'text':
+                self.response.headers['Content-Type']='text/plain'
                 self.response.out.write(tt)
-                memcache.set('/t/' + md5hash, text, 300)
+                text = tt
+                return text
+            else:
+                d = DeepPickle()
+                p = dict()
+                p['sl']=sl
+                p['tl']=tl
+                p['st']=st
+                p['tt']=tt
+                text = d.makeRow(p, output)
+                if output == 'xml' or output == 'rss':
+                    text = '<item>' + text + '</item>'
+                    self.response.headers['Content-Type']='text/xml'
+                    self.response.out.write(text)
+                else:
+                    self.response.headers['Content-Type']='text/html'
+                    self.response.out.write(text)
+            memcache.set('/t/' + md5hash + '/' + output, text, 300)
+            return text
         else:
             www.serve(self,self.__doc__, title='/t')
             self.response.out.write('<table><form action=/t method=get accept-charset=utf-8>')
@@ -1116,7 +1133,7 @@ class SendLSP(webapp.RequestHandler):
             item.lsp = lsp
             item.put()
         self.response.out.write('ok')
-
+        
 class BatchTranslation(webapp.RequestHandler):
     """
     /batch
@@ -1152,9 +1169,8 @@ class BatchTranslation(webapp.RequestHandler):
         remote_addr = self.request.get('remote_addr')
         guid = self.request.get('guid')
         query = self.request.get('query')
-        async = self.request.get('async')
         output = self.request.get('output')
-        if len(guid) > 8:
+        if len(guid) > 8 and query != 'y':
             ctr = 0
             while ctr < 200:
                 text = memcache.get('/batch/' + guid + '/' +output + '/' + str(ctr))
@@ -1163,6 +1179,7 @@ class BatchTranslation(webapp.RequestHandler):
                 ctr = ctr + 1
         else:
             if len(sl) > 1 and query != 'y':
+                st = self.request.get('st')
                 m = md5.new()
                 m.update(remote_addr)
                 m.update(sl)
@@ -1172,30 +1189,36 @@ class BatchTranslation(webapp.RequestHandler):
                 ctr = 0
                 st = dict()
                 while ctr < 200:
-                    st[ctr]=self.request.get('st' + str(ctr))
+                    st[ctr]=urllib.unquote_plus(self.request.get('st' + str(ctr)))
                     ctr = ctr + 1
                 ctr = 0
+                if output == 'xml' or output == 'rss':
+                    self.response.headers['Content-Type']='text/xml'
+                    self.response.out.write('<?xml version=\"1.0\" encoding="utf-8"?>')
+                    if output == 'xml':
+                        self.response.out.write('<translations>')
+                    else:
+                        self.response.out.write('<rss version=\"2.0\"><channel>')
+                        self.response.out.write('<title>Translations</title>')
+                elif output == 'html':
+                    self.response.headers['Content-Type']='text/html'
+                else:
+                    self.response.headers['Content-Type']='text/plain'
                 while ctr < 200:
                     stext = st.get(ctr)
-                    if len(stext) > 0:
-                        rpc = urlfetch.create_rpc()
-                        params = dict()
-                        params['sl']=sl
-                        params['tl']=tl
-                        params['st']=st
-                        params['query']='y'
-                        params['guid']=guid
-                        params['output']=output
-                        params['ctr']=str(ctr)
-                        text = urllib.urlencode(params)
-                        urlfetch.make_fetch)call, rpc, url='http://3.latest.worldwidelexicon.appspot.com/batch/' + text)
-                        ctr = ctr + 1
-            elif query == 'y':
-                ctr = self.request.get('ctr')
-                tt = Translation.lucky(sl=sl, tl=tl, st=st, output=output)
-                if len(tt) > 0:
-                    memcache.set('/batch/' + guid + '/' + output + '/' + ctr, tt, 360)
-                self.response.out.write('ok')
+                    if len(stext) > 1:
+                        tt = Translation.lucky(sl=sl, tl=tl, st=stext, output=output)
+                        if output == 'rss':
+                            tt = '<item><title>' + stext + '</title><description>' + tt + '</description></item>'
+                        elif output == 'xml':
+                            tt = '<item><sl>' + sl + '</sl><tl>' + tl + '</tl><st>' + stext + '</st><tt>' + tt + '</tt></item>'
+                        self.response.out.write(tt)
+                    ctr = ctr + 1
+                if output == 'xml' or output == 'rss':
+                    if output == 'rss':
+                        self.response.out.write('</channel></rss>')
+                    else:
+                        self.response.out.write('</translations>')
             else:
                 www.serve(self,self.__doc__, title='/batch')
                 self.response.out.write('<table><form action=/batch method=get>')

@@ -2640,17 +2640,10 @@ class Translation(db.Model):
                     text = tt + '<p>' + response
                 elif output == 'json':
                     text = tt
+                elif output == 'xml' or output == 'rss':
+                    text = tt
                 else:
-                    text = '<div class="translation">' + tt
-                    text = text + ' (Machine Translation)'
-                    if edit != 'n':
-                        text = text + '<script type="text/javascript">'
-                        text = text + 'function editTrans() { mywindow = window.open '
-                        text = text + '("http://worldwidelexicon.appspot.com/t/' + sl + '/' + tl + '?edit=y&tt=' + urllib.quote_plus(tt.encode('utf-8')) + '&st=' + urllib.quote_plus(st.encode('utf-8')) + '","mywindow","location=1,status=0,scrollbars=0,width=450,height=600");'
-                        text = text + 'mywindow.moveTo(450,600); }'
-                        text = text + '</script>'
-                        text = text + '<span style="color:blue;" onclick="editTrans();"><img src=/image/edit-small.png></span>'
-                    text = text + '</div>'
+                    text = '<div class="translation">' + tt + '</div>'
             else:
                 text = ''
             if len(text) > 0:
