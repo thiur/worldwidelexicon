@@ -32,10 +32,6 @@ handlers:
   static_files: image/logo.png
   upload: image/logo.png
 
-- url: /robots.txt
-  static_files: docs/robots.txt
-  upload: docs/robots.txt
-
 - url: /ajax
   static_dir: ajax
 
