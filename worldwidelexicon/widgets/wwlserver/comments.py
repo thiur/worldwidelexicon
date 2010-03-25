@@ -18,7 +18,7 @@ data store is done via abstract methods, so it should be straightforward to
 port the system to use a different data store, or to read/write comments from
 an external system such as an existing web bulletin board.
 
-NEW FEATURES AND UPDATES (July 22nd, 2009)
+NEW FEATURES AND UPDATES (March 25, 2010)
 
 * All read/write operations are done via the Comment() class
 * Added Akismet spam detection and filtering (spam comments are saved but
@@ -26,7 +26,7 @@ NEW FEATURES AND UPDATES (July 22nd, 2009)
 * Most queries are memcached with a 5 minute time to live
 * Updated module and class level documentation
 
-Copyright (c) 1998-2009, Worldwide Lexicon Inc.
+Copyright (c) 1998-2010, Worldwide Lexicon Inc.
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification,
