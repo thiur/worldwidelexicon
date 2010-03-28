@@ -142,74 +142,6 @@ def smart_str(s, encoding='utf-8', errors='ignore', from_encoding='utf-8'):
     else:
         return smart_str(str(s), encoding, errors, from_encoding)
 
-class CSS(db.Model):
-    """
-    CSS()
-    
-    This datastore is used to store CSS stylesheets, which are accessed via
-    the /css path on the WWL server. This is not currently used much in the
-    system. 
-    """
-    name = db.StringProperty(default='')
-    language = db.StringProperty(default='')
-    description = db.TextProperty(default='')
-    text = db.TextProperty(default='')
-    owner = db.StringProperty(default='')
-    created = db.DateTimeProperty(auto_now_add=True)
-    @staticmethod
-    def get(path, language=''):
-        t = memcache.get('css|name=' + path + '|language=' + language)
-        if t is not None:
-            return t
-        else:
-            cdb = db.Query(CSS)
-            cdb.filter('name = ', path)
-            cdb.filter('language = ', language)
-            item = cdb.get()
-            if item is not None:
-                t = codecs.encode(item.text, encoding)
-                memcache.set('css|name=' + path + '|language=' + language, t, 300)
-                return t
-            else:
-                return ''
-    @staticmethod
-    def edit(path, language=''):
-        cdb = db.Query(CSS)
-        cdb.filter('name = ', path)
-        cdb.filter('language = ', language)
-        item = cdb.get()
-        if item is not None:
-            object = dict()
-            object['title'] = item.title
-            object['description'] = codecs.encode(item.description, encoding)
-            object['text'] = codecs.encode(item.text, encoding)
-            object['owner'] = item.owner
-            object['language'] = item.language
-            return object
-        else:
-            return None
-    @staticmethod
-    def save(path, language='', object=None):
-        cdb = db.Query(CSS)
-        cdb.filter('name = ', path)
-        cdb.filter('language = ', language)
-        item= cdb.get()
-        if item is None:
-            item = CSS()
-            item.name = path
-            item.language = language
-        if type(object) is dict:
-            item.title = object.get('title', '')
-            item.description = object.get('description','')
-            item.text = object.get('text','')
-            item.owner = object.get('owner','')
-            item.edited = datetime.datetime.now()
-            item.put()
-            memcache.set('css|name=' + path + '|language=' + language, object.get('text',''), 300)
-            return True
-        else:
-            return False
-        
 class Comment(db.Model):
     """
     Google Data Store for comments about translations, and related
@@ -251,6 +183,7 @@ class Comment(db.Model):
     url = db.StringProperty(default='')
     date = db.DateTimeProperty(auto_now_add=True)
     spam = db.BooleanProperty(default = False)
+    spamchecked = db.BooleanProperty(default = False)
     title = db.StringProperty(default = '', multiline = True)
     thread = db.StringProperty(default = '')
     group = db.StringProperty(default = '')
@@ -394,6 +327,14 @@ class Comment(db.Model):
                         c.longitude = fields.get('longitude')
                     except:
                         pass
+                    try:
+                        c.spam = fields.get('spam')
+                    except:
+                        c.spam = False
+                    try:
+                        c.spamchecked = fields['spamchecked']
+                    except:
+                        c.spamchecked = False
                     c.comment = fields.get('comment','')
                     c.tl = fields.get('tl','')
                     c.cl = fields.get('cl','')
@@ -435,232 +376,7 @@ class Comment(db.Model):
             return ctr
         else:
             return 0
-        
-class Feeds(db.Model):
-    website = db.StringProperty(default='')
-    rssurl = db.StringProperty(default='')
-    title = db.StringProperty(default='', multiline=True)
-    description = db.TextProperty(default='')
-    language = db.StringProperty(default='')
-    created = db.DateTimeProperty(auto_now_add=True)
-    indexed = db.DateTimeProperty()
-    autopublish = db.BooleanProperty(default=False)
-    @staticmethod
-    def add(website, rssurl, title='', description='', language='', autopublish=False):
-        fdb = db.Query(Feeds)
-        fdb.filter('website = ', website)
-        fdb.filter('rssurl = ', rssurl)
-        item = fdb.get()
-        if item is None:
-            item = Feeds()
-            item.website = website
-            item.rssurl = rssurl
-            item.title = title
-            item.description = description
-            item.language = language
-            item.autopublish = autopublish
-            item.put()
-        return True
-    @staticmethod
-    def delete(website, rssurl):
-        if len(website) > 0 and len(rssurl) > 0:
-            fdb = db.Query(Feeds)
-            fdb.filter('website = ', website)
-            fdb.filter('rssurl = ', rssurl)
-            item = fdb.get()
-            if item is not None:
-                item.delete()
-            return True
-        else:
-            return False
-    @staticmethod
-    def list(website=''):
-        fdb = db.Query(Feeds)
-        if len(website) > 0:
-            fdb.filter('website = ', website)
-        results = fdb.fetch(limit = 500)
-        return results
-    
-class Groups(db.Model):
-    """
-    This data store is used to store information about affinity groups, their
-    members, and basic statistics for a group (number of comments, number of
-    articles recommended, etc)
-    """
-    name = db.StringProperty(default = '', multiline = True)
-    title = db.StringProperty(default = '', multiline = True)
-    description = db.TextProperty(default = '')
-    created = db.DateTimeProperty(auto_now_add = True)
-    lastpost = db.DateTimeProperty()
-    members = db.ListProperty(str)
-    editors = db.ListProperty(str)
-    owner = db.StringProperty(default = '')
-    posts = db.IntegerProperty(default = 0)
-    articles = db.IntegerProperty(default = 0)
-    language = db.StringProperty(default='')
-    tags = db.ListProperty(str)
-    @staticmethod
-    def add(name, members=None, editors=None):
-        """
-        Add members or editors to an affinity group, can add members or editors
-        one at a time (string) or in bulk (list)
-        """
-        if len(name) > 0 and (members is not None or editors is not None):
-            gdb = db.Query(Groups)
-            gdb.filter('name = ', name)
-            item = gdb.get()
-            if item is not None:
-                if members is not None:
-                    if type(members) is str:
-                        gmembers = item.members
-                        if members not in gmembers:
-                            gmembers.append(members)
-                            item.members = gmembers
-                    elif type(members) is list:
-                        gmembers = item.members
-                        for m in members:
-                            if m not in gmembers:
-                                gmembers.append(m)
-                        item.members = gmembers
-                    else:
-                        pass
-                if editors is not None:
-                    if type(editors) is str:
-                        geditors = item.editors
-                        if editors not in geditors:
-                            geditors.append(editors)
-                            item.editors = geditors
-                    elif type(editors) is list:
-                        geditors = item.editors
-                        for m in editors:
-                            if m not in geditors:
-                                geditors.append(m)
-                        item.editors = geditors
-                    else:
-                        pass
-                item.put()
-                return True
-            else:
-                return False
-        else:
-            return False
-    @staticmethod
-    def new(name, title='', description='', owner='', language=''):
-        if len(name) > 0 and len(title) > 0:
-            gdb = db.Query(Groups)
-            gdb.filter('name = ', name)
-            item = gdb.get()
-            titlewords = string.split(string.lower(title), ' ')
-            dwords = string.split(string.lower(description), ' ')
-            tags = list()
-            if len(titlewords) > 0:
-                for t in titlewords:
-                    tags.append(t)
-            if len(dwords) > 0:
-                for t in dwords:
-                    tags.append(t)
-            if item is None:
-                item = Groups()
-                item.name = name
-                item.title = title
-                item.description = description
-                item.owner = owner
-                item.language = language
-                item.tags = tags
-                item.put()
-                return True
-            else:
-                return False
-        else:
-            return False
-    @staticmethod
-    def remove(name, members = None, editors = None):
-        if len(name) > 0 and (members is not None or editors is not None):
-            gdb = db.Query(Groups)
-            gdb.filter('name = ', name)
-            item = gdb.get()
-            if item is not None:
-                gmembers = item.members
-                geditors = item.editors
-                if members is not None:
-                    if type(members) is str:
-                        if members in gmembers:
-                            gmembers.remove(members)
-                    elif type(members) is list:
-                        for m in members:
-                            if m in gmembers:
-                                gmembers.remove(m)
-                    else:
-                        pass
-                    item.members = gmembers
-                if editors is not None:
-                    if type(editors) is str:
-                        if editors in geditors:
-                            geditors.remove(editors)
-                    elif type(editors) is list:
-                        for m in editors:
-                            if m in geditors:
-                                geditors.remove(m)
-                    else:
-                        pass
-                    item.editors = geditors
-                item.put()
-                return True
-            else:
-                return False
-        else:
-            return False
-        
-class Images(db.Model):
-    website = db.StringProperty(default='')
-    name = db.StringProperty(default='', multiline=True)
-    title = db.StringProperty(default='', multiline=True)
-    image = db.BlobProperty()
-    avatar = db.BlobProperty()
-    tags = db.ListProperty(str)
-    created = db.DateTimeProperty(auto_now_add=True)
-    modified = db.DateTimeProperty(auto_now_add=True)
-    @staticmethod
-    def save(website, name, title, image):
-        if len(website) > 0 and len(name) > 0 and len(title) > 0:
-            idb = db.Query(Images)
-            idb.filter('website = ', website)
-            idb.filter('name = ', name)
-            item = idb.get()
-            if item is None:
-                item = Images()
-                item.website = website
-                item.name = name
-            item.title = title
-            try:
-                item.image = db.Blob(image)
-            except:
-                return False
-            try:
-                avatar = images.resize(image, 64, 64)
-                item.avatar = avatar
-            except:
-                pass
-            item.modified = datetime.datetime.now()
-            item.put()
-            return True
-        else:
-            return True
-    @staticmethod
-    def gallery(website, name=''):
-        g=list()
-        if len(website) > 0:
-            idb = db.Query(Images)
-            idb.filter('website = ', website)
-            if len(name) > 0:
-                idb.filter('name = ', name)
-            results = idb.fetch(limit=200)
-            for r in results:
-                g.append(r.website + '/' + r.name)
-            return g
-        else:
-            return g
-    
+
 class languages():
     """
     This class implements several convenience methods for managing the list of supported languages on
@@ -866,160 +582,6 @@ class languages():
             if valid:
                 t = t + '<option value="' + l + '">' + langlist.get(l, '') + '</option>'
         return t
-    
-class Objects(db.Model):
-    website = db.StringProperty(default='', multiline=True)
-    name = db.StringProperty(default='', multiline=True)
-    title = db.StringProperty(default='', multiline=True)
-    sl = db.StringProperty(default='')
-    created = db.DateTimeProperty(auto_now_add=True)
-    published = db.BooleanProperty(default=True)
-    featured = db.BooleanProperty(default=False)
-    news = db.BooleanProperty(default=False)
-    author = db.StringProperty(default='')
-    content = db.TextProperty(default='')
-    description = db.TextProperty(default='')
-    tags = db.ListProperty(str)
-    divid = db.StringProperty(default='')
-    divclass = db.StringProperty(default='')
-    fromrss = db.BooleanProperty(default=False)
-    link = db.StringProperty(default='')
-    blog = db.BooleanProperty(default=True)
-    page = db.BooleanProperty(default=False)
-    guid = db.StringProperty(default='')
-    rssurl = db.StringProperty(default='', multiline=True)
-    @staticmethod
-    def get(website, name, language=''):
-        object = memcache.get('objects|website=' + website + '|name=' + name)
-        if object is not None:
-            return object
-        else:
-            odb = db.Query(Objects)
-            odb.filter('name = ', name)
-            odb.filter('website = ', website)
-            item = odb.get()
-            if item is None:
-                odb = db.Query(Objects)
-                odb.filter('guid = ', name)
-                odb.filter('website = ', website)
-                item = odb.get()
-            if item is not None:
-                object = dict()
-                object['name'] = item.name
-                object['title'] = item.title
-                object['sl'] = item.sl
-                object['created'] = item.created
-                object['author'] = item.author
-                object['tags'] = item.tags
-                object['content']=item.content
-                object['divid'] = item.divid
-                object['divclass'] = item.divclass
-                object['blog'] = item.blog
-                object['page'] = item.page
-                memcache.set('objects|website=' + website + '|name=' + name, object, 300)
-                return object
-            else:
-                return
-    @staticmethod
-    def purge(website, rssurl):
-        if len(website) > 0 and len(rssurl) > 0:
-            odb = db.Query(Objects)
-            odb.filter('website = ', website)
-            odb.filter('rssurl = ', rssurl)
-            results = odb.fetch(limit=500)
-            if results is not None:
-                db.delete(results)
-            return True
-        else:
-            return False
-    @staticmethod
-    def query(website, order='-created', offset=0, published=True, blog=None, featured=None, tag='', language='', news=None, verbose=True, limit=20, q =''):
-        if len(website) > 0:
-            odb = db.Query(Objects)
-            odb.filter('website = ', website)
-            if len(q) > 0:
-                odb.filter('tags = ', q)
-            odb.order(order)
-            results = odb.fetch(limit=100, offset=offset)
-            ctr = 0
-            if results is not None:
-                t = ''
-                for r in results:
-                    skiprecord = False
-                    if published and not r.published:
-                        skiprecord = True
-                    if blog is not None:
-                        if r.blog != blog:
-                            skiprecord = True
-                    if featured is not None:
-                        if r.featured != featured:
-                            skiprecord = True
-                    if news is not None:
-                        if r.news != news:
-                            skiprecord = True
-                    if not skiprecord:
-                        ctr = ctr + 1
-                        if ctr < limit+1:
-                            content = codecs.encode(r.content, 'utf-8')
-                            if len(r.name) < 1:
-                                name = r.guid
-                            else:
-                                name = r.name
-                            t = t + '<h3><a wwlapi="tr" href=/' + r.website + '/' + name + '>' + r.title + '</a></h3>'
-                            if verbose:
-                                content = string.replace(content, '<div>', '')
-                                content = string.replace(content, '</div>', '')
-                                content = string.replace(content, '</p>', '<p>')
-                                content = string.replace(content, '<br>', '<p>')
-                                texts = string.split(content, '<p>')
-                                if len(texts) > 0:
-                                    try:
-                                        content = string.replace(content[0:400], '<p>', '')
-                                        content = string.replace(content, '<div>', '')
-                                        content = string.replace(content, '</div>', '')
-                                        if len(texts[0]) > 0:
-                                            t = t + '<div wwlapi="tr">' + texts[0] + '</div>'
-                                    except:
-                                        pass
-                return t
-            else:
-                return
-        else:
-            return
-    @staticmethod
-    def save(website, name, title='', author='', sl='', description='', content='', tags=None, divid='', divclass=''):
-        # save the changes to the primary Objects() data store
-        odb = db.Query(Objects)
-        odb.filter('name = ', name)
-        odb.filter('website = ', website)
-        item = odb.get()
-        if item is None:
-            item = Objects()
-            item.name = name
-            item.website = website
-        item.title = title
-        item.author = author
-        item.sl = sl
-        item.description = description
-        item.content = content
-        item.divid = divid
-        item.divclass = divclass
-        if type(tags) is list:
-            item.tags = tags
-        item.put()
-        object = dict()
-        object['title]'] = title
-        object['author'] = author
-        object['sl']=sl
-        object['description']=description
-        object['content']=content
-        object['divid']=divid
-        object['divclass']=divclass
-        object['tags']=tags
-        memcache.set('objects|website=' + website + '|name=' + name, object, 300)
-        # add this edit to the revision history, so changes are logged, and rollback features can
-        # be implemented
-        return True
     
 class Queue(db.Model):
     """
@@ -1257,64 +819,6 @@ class Queue(db.Model):
                 item.put()
                 r.delete()
         return True
-    
-class Revisions(db.Model):
-    action = db.StringProperty(default = '')
-    website = db.StringProperty(default = '')
-    name = db.StringProperty(default = '')
-    title = db.StringProperty(default = '', multiline = True)
-    description = db.TextProperty(default = '')
-    content = db.TextProperty(default = '')
-    date = db.DateTimeProperty(auto_now_add = True)
-    username = db.StringProperty(default = '')
-    remote_addr = db.StringProperty(default = '')
-    city = db.StringProperty(default = '')
-    state = db.StringProperty(default = '')
-    country = db.StringProperty(default = '')
-    latitude = db.FloatProperty()
-    longitude = db.FloatProperty()
-    @staticmethod
-    def get(website, name):
-        results = memcache.get('revisions|website=' + website + '|name=' + name)
-        if results is not None:
-            return results
-        else:
-            rdb = db.Query(Revisions)
-            rdb.filter('website = ', website)
-            rdb.filter('name = ', name)
-            rdb.order('-date')
-            results = rdb.fetch(limit=100)
-            if results is not None:
-                memcache.set('revisions|website=' + website + '|name=' + name, results, 300)
-            return results
-    @staticmethod
-    def save(website, name, object, username='', remote_addr='', action='edit'):
-        if len(name) > 0 and type(object) is dict:
-            if len(remote_addr) > 0:
-                location = geo.get(remote_addr)
-            else:
-                location = None
-            rdb = Revisions()
-            rdb.action = action
-            rdb.website = website
-            rdb.name = name
-            rdb.title = object.get('title', '')
-            rdb.description = object.get('description', '')
-            rdb.username = username
-            rdb.remote_addr = remote_addr
-            if type(location) is dict:
-                rdb.city = location.get('city', '')
-                rdb.state = location.get('state', '')
-                rdb.country = location.get('country', '')
-                try:
-                    rdb.latitude = float(location.get('latitude', ''))
-                    rdb.longitude = float(longitude.get('longitude', ''))
-                except:
-                    pass
-            rdb.put()
-            return True
-        else:
-            return False
 
 class rec():
     sl = 'en'
@@ -1845,17 +1349,17 @@ class Settings(db.Model):
     modifiedby = db.StringProperty(default = '')
     @staticmethod
     def get(name, website=''):
-        value = memcache.get('settings|name=' + name + '|website=' + website)
+#        value = memcache.get('settings|name=' + name + '|website=' + website)
+        value = None
         if value is not None:
             return value
         else:
             sdb = db.Query(Settings)
             sdb.filter('name = ', name)
-            sdb.filter('website = ', website)
             item = sdb.get()
             if item is not None:
-                v = codecs.encode(item.value, encoding)
-                memcache.set('settings|name=' + name + '|website=' + website, v, 600)
+                v = item.value
+#                memcache.set('settings|name=' + name + '|website=' + website, v, 600)
                 return v
             else:
                 return ''
@@ -1874,106 +1378,19 @@ class Settings(db.Model):
         item.put()
         return str(timestamp)
     @staticmethod
-    def save(name, v, website=''):
+    def save(name, v, website='', user=''):
         sdb = db.Query(Settings)
         sdb.filter('name = ', name)
-        sdb.filter('website = ', website)
         item = sdb.get()
         if item is None:
             item = Settings()
             item.name = name
-            item.website = website
         item.value = v
-        item.put
+        item.modified = datetime.datetime.now()
+        item.modifiedby = user
+        item.put()
         memcache.set('settings|name=' + name + '|website=' + website, v, 600)
         return True
-    
-class SourceTexts(db.Expando):
-    """
-    SourceTexts() is the data store used to store source texts, as well as
-    meta data and summary stats related to translations. 
-    """
-    sl = db.StringProperty(default='', multiline=True)
-    st = db.TextProperty(default='')
-    md5hash = db.StringProperty(default='')
-    date = db.DateTimeProperty(auto_now_add = True)
-    domain = db.StringProperty(default='')
-    url = db.StringProperty(default='')
-    @staticmethod
-    def stats(sl, st):
-        if len(sl) > 0 and len(st) > 0:
-            m = md5.new()
-            m.update(sl)
-            m.update(st)
-            md5hash = str(m.hexdigest())
-            sdb = db.Query(SourceTexts)
-            sdb.filter('md5hash = ', md5hash)
-            item = sdb.get()
-            if item is not None:
-                return item
-    @staticmethod
-    def submit(sl, st, domain='', url=''):
-        """
-        Checks to see if a source text is already in the index, and if not
-        creates a stub record. 
-        """
-        result = memcache.get('sourcetexts|sl=' + sl + '|st=' + st)
-        if result is not None:
-            return True
-        else:
-            m = md5.new()
-            m.update(sl)
-            m.update(st)
-            md5hash = str(m.hexdigest())
-            sdb = db.Query(SourceTexts)
-            sdb.filter('md5hash = ', md5hash)
-            item = sdb.get()
-            if item is not None:
-                memcache.set('sourcetexts|sl=' + sl + 'st=' + st)
-                return True
-            else:
-                item = SourceTexts()
-                item.sl = sl
-                item.st = st
-                item.md5hash = md5hash
-                item.domain = domain
-                item.url = url
-                item.put()
-                return True
-    @staticmethod
-    def translate(sl, st, tl, tt, domain='', url=''):
-        if len(sl) > 0 and len(st) > 0 and len(tl) > 0 and len(tt) > 0:
-            m = md5.new()
-            m.update(sl)
-            m.update(st)
-            md5hash = str(m.hexdigest())
-            sdb = db.Query(SourceTexts)
-            sdb.filter('md5hash=', md5hash)
-            item = sdb.get()
-            if item is None:
-                item = SourceTexts()
-                item.sl = sl
-                item.st = st
-                item.md5hash = md5hash
-                item.domain = domain
-                item.url = url
-            edits = getattr(item, 'edits.' + tl)
-            if type(edits) is int:
-                edits = edits + 1
-                setattr(item, 'edits.' + tl, edits)
-            else:
-                setattr(item, 'edits.' + tl, 1)
-            words = getattr(item, 'words.' + tl)
-            twords = len(string.split(tt, ' '))
-            if type(words) is int:
-                words = words + twords
-            else:
-                words = twords
-            setattr(item, 'words.' + tl, words)
-            item.put()
-            return True
-        else:
-            return False
         
 class Stats(db.Expando):
     date = db.DateTimeProperty(auto_now_add = True)
@@ -2033,48 +1450,6 @@ class Stats(db.Expando):
         item.put()
         return True
         
-class Permissions(db.Model):
-    """
-    This data store contains additional permissions information, and is
-    used to keep track of fine grained access controls (e.g. UserX can
-    translate to Spanish but not German). This is generally only used in
-    closely managed sites.
-    """
-    website = db.StringProperty(default='')
-    username = db.StringProperty(default='')
-    allow_translations = db.ListProperty(str)
-    allow_scores = db.ListProperty(str)
-    @staticmethod
-    def check(website, username, language):
-        if len(username) < 1 or len(website) < 1:
-            return False
-        pdb = db.Query(Permissions)
-        pdb.filter('website = ', website)
-        pdb.filter('username = ', username)
-        pdb.filter('allow_translations = ', language)
-        item = pdb.get()
-        if item is not None:
-            return True
-        else:
-            return False
-    @staticmethod
-    def language(website, username, language, allow):
-        if len(website) > 0 and len(username) > 0 and len(language) > 0:
-            pdb = db.Query(Permissions)
-            pdb.filter('website = ', website)
-            pdb.filter('username = ', username)
-            item = pdb.get()
-            if item is None:
-                item = Permissions()
-            langlist = item.allow_translations
-            if language not in langlist:
-                langlist.append(language)
-                item.allow_translations = langlist
-            item.put()
-            return True
-        else:
-            return False
-
 class tx():
     sl = ''
 
@@ -2731,48 +2106,6 @@ class Translation(db.Model):
             else:
                 memcache.set('translations|fetch|sl=' + sl + '|tl=' + tl + '|domain=' + domain + '|url=' + url, results, 120)
         return filtered_results
-    
-class Presence(db.Model):
-    username = db.StringProperty(default='')
-    network = db.StringProperty(default='')
-    timestamp = db.DateTimeProperty()
-    status = db.StringProperty(default='')
-    languages = db.ListProperty(str)
-    @staticmethod
-    def set(username, network, status, languages):
-        if len(username) > 0 and len(network) > 0 and len(status) > 0 and type(languages) is list:
-            pdb = db.Query(Presence)
-            pdb.filter('username = ', username)
-            pdb.filter('network = ', network)
-            item = pdb.get()
-            if item is None:
-                item = Presence()
-                item.username = username
-                item.network = network
-            item.languages = languages
-            item.timestamp = datetime.datetime.now()
-            item.status = status
-            item.put()
-            memcache.set('presence|username=' + username + '|network=' + network, languages, 300)
-            return True
-        else:
-            return False
-    @staticmethod
-    def find(network, status, languages):
-        records = list()
-        if len(network) > 0 and len(status) > 0 and type(languages) is list:
-            pdb = db.Query(Presence)
-            pdb.filter('network = ', network)
-            pdb.filter('status = ', status)
-            if len(languages) > 0:
-                for l in languages:
-                    pdb.filter('languages = ', l)
-            pdb.order('-timestamp')
-            results = pdb.fetch(limit=100)
-            for r in results:
-                username = r.username
-                records.append(r.username)
-        return records
     
 class Users(db.Model):
     username = db.StringProperty(default='')

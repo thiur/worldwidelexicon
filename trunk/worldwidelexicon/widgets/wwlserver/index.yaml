@@ -7,12 +7,6 @@ indexes:
   - name: date
     direction: desc
     
-- kind: Objects
-  properties:
-  - name: website
-  - name: created
-    direction: desc
-    
 - kind: Queue
   properties:
   - name: completed
@@ -30,21 +24,6 @@ indexes:
   - name: domain
   - name: lsp
   - name: createdon
-    direction: desc
-    
-- kind: Presence
-  properties:
-  - name: network
-  - name: status
-  - name: timestamp
-    direction: desc
-    
-- kind: Presence
-  properties:
-  - name: languages
-  - name: network
-  - name: status
-  - name: timestamp
     direction: desc
     
 - kind: Search

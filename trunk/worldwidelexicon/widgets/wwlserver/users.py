@@ -62,7 +62,6 @@ from webappcookie import Cookies
 from www import www
 from geo import geo
 from database import Users
-from database import Presence
 
 #
 # Define Callback URLs for User Validation Success or Failure
@@ -709,143 +708,6 @@ class wwwGetParm(webapp.RequestHandler):
         else:
             txt = str(value)
         self.response.out.write(txt)
-        
-class presenceFind(webapp.RequestHandler):
-    """
-    /presence/find
-    
-    This request handler is used to find IM translators and other real-time
-    resources. It expects the following list of parameters:
-    
-    network = the IM or translation network to query
-    status = user status (e.g. 'available', 'busy', 'away', if omitted it
-            assumes you are looking for available users)
-    languages = comma separated list of language codes
-    
-    It returns a newline separated list of usernames that match the desired
-    state.
-    """
-    def get(self):
-        self.requesthandler()
-    def post(self):
-        self.requesthandler()
-    def requesthandler(self):
-        network = self.request.get('network')
-        status = self.request.get('status')
-        languages = string.split(self.request.get('languages'), ',')
-        if len(network) > 0 and len(status) > 0 and len(languages) > 0:
-            self.response.headers['Content-Type']='text/plain'
-            records = Presence.find(network,status,languages)
-            for r in records:
-                self.response.out.write(r + '\n')
-        else:
-            www.serve(self, self.__doc__)
-            self.response.out.write('<form action=/presence/find method=get><table>')
-            self.response.out.write('<tr><td>IM or Translation Network</td><td><input type=text name=network></td></tr>')
-            self.response.out.write('<tr><td>Status</td><td><input type=text name=status></td></tr>')
-            self.response.out.write('<tr><td>Languages (ISO codes, comma separated)</td><td><input type=text name=languages></td></tr>')
-            self.response.out.write('<tr><td colspan=2><input type=submit value=OK></td></tr>')
-            self.response.out.write('</table></form>')
-            
-class presenceSet(webapp.RequestHandler):
-    """
-    /presence/set
-    
-    Sets the current status of a user on a IM or translation network, used to
-    maintain an index of who is available to translate to which languages. You
-    should call this with an update at least once every two minutes, as these
-    updates have a short time to live (2 - 5 minutes)
-    
-    It expects the following parameters
-    
-    wwlusername = WWL username
-    pw = WWL password
-    username = username on IM network or translation network
-    network = IM or translation network (e.g. Skype)
-    status = current state
-    
-    It returns ok or an error message
-    """
-    def get(self):
-        self.requesthandler()
-    def post(self):
-        self.requesthandler()
-    def requesthandler(self):
-        wwlusername = self.request.get('wwlusername')
-        username = self.request.get('username')
-        pw = self.request.get('pw')
-        remote_addr = self.request.remote_addr
-        if len(wwlusername) > 0 and len(pw) > 0:
-            network = self.request.get('network')
-            status = self.request.get('status')
-            languages = string.split(self.request.get('languages'), ',')
-            self.response.headers['Content-Type']='text/plain'
-            if Users.pw(wwlusername, pw):
-                result = Presence.set(username, network, status, languages)
-                if result:
-                    self.response.out.write('ok')
-                else:
-                    self.response.out.write('error')
-            else:
-                self.response.out.write('error')
-        else:
-            www.serve(self, self.__doc__)
-            self.response.out.write('<form action=/presence/set method=get>')
-            self.response.out.write('<table>')
-            self.response.out.write('<tr><td>WWL Username</td><td><input type=text name=wwlusername></td></tr>')
-            self.response.out.write('<tr><td>WWL Password</td><td><input type=text name=pw></td></tr>')
-            self.response.out.write('<tr><td>Username (On IM Or Translation Network)</td><td><input type=text name=username></td></tr>')
-            self.response.out.write('<tr><td>IM or Translation Network</td><td><input type=text name=network></td></tr>')
-            self.response.out.write('<tr><td>Status</td><td><input type=text name=status></td></tr>')
-            self.response.out.write('<tr><td>Languages (ISO codes, comma separated)</td><td><input type=text name=languages></td></tr>')
-            self.response.out.write('<tr><td colspan=2><input type=submit value=OK></td></tr>')
-            self.response.out.write('</table></form>')
-            
-class presenceGet(webapp.RequestHandler):
-    """
-    /presence/get
-    
-    This request handler returns the current status of a user on an IM or
-    translation network that is using WWL to track user presence status for
-    translation. It expects the following parameters:
-    
-    username = username on target IM or translation network
-    network = IM or translation network (e.g. skype)
-    
-    It returns an empty string if the user is not available for translation,
-    or a comma separated list of language codes if the user is available to
-    translate. 
-    """
-    def get(self):
-        self.requesthandler()
-    def post(self):
-        self.requesthandler()
-    def requesthandler(self):
-        username = self.request.get('username')
-        network = self.request.get('network')
-        self.response.headers['Content-Type']='text/plain'
-        if len(username) > 0 and len(network) > 0:
-            status = memcache.get('presence|username=' + username + '|network=' + network)
-            languages = list()
-            if type(status) is list:
-                if len(status) > 1:
-                    txt = ''
-                    for s in status:
-                        if s not in languages:
-                            txt = txt + s + ','
-                            languages.append(s)
-                        self.response.out.write(txt)
-                elif len(status) > 0:
-                    self.response.out.write(status[0])
-                else:
-                    self.response.out.write('')
-        else:
-            www.serve(self, self.__doc__)
-            self.response.out.write('<form action=/presence/get method=get>')
-            self.response.out.write('<table><tr><td>Username</td><td><input type=text name=username></td></tr>')
-            self.response.out.write('<tr><td>Network</td><td><input type=text name=network></td></tr>')
-            self.response.out.write('<tr><td colspan=2><input type=submit value=OK></td></tr>')
-            self.response.out.write('</table></form>')
 
 application = webapp.WSGIApplication([('/users/auth', wwwAuth),
                                       ('/users/check', wwwCheckUser),
@@ -859,10 +721,7 @@ application = webapp.WSGIApplication([('/users/auth', wwwAuth),
                                       ('/users/setlanguage',wwwSetLanguage),
                                       ('/users/setoptions',wwwSetLanguage),
                                       ('/users/update', wwwUpdate),
-                                      ('/users/validate', wwwValidate),
-                                      ('/presence/find', presenceFind),
-                                      ('/presence/get', presenceGet),
-                                      ('/presence/set', presenceSet)],
+                                      ('/users/validate', wwwValidate)],
                                      debug=True)
 
 

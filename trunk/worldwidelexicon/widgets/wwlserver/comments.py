@@ -76,7 +76,7 @@ from geo import geo
 from akismet import Akismet
 from database import Users
 from database import Comment
-from database import Websites
+from database import Settings
 
 class GetComments(webapp.RequestHandler):
     """
@@ -199,17 +199,14 @@ class SubmitComment(webapp.RequestHandler):
         except:
             session = ''
         fields['session'] = session
-        username = memcache.get('sessions|' + session)
-        if username is not None:
-            fields['username']=username
-        else:
-            fields['username']=''
         if username is None:
             sessinfo = Users.auth(username, pw, '', remote_addr)
             if type(sessinfo) is dict:
                 username = sessinfo['username']
                 cookies['session'] = sessinfo['session']
                 fields['username'] = username
+            else:
+                fields['username']=''
         remote_addr=self.request.remote_addr
         fields['remote_addr'] = remote_addr
         output=self.request.get('output')
@@ -232,17 +229,25 @@ class SubmitComment(webapp.RequestHandler):
         else:
             emptyform=True
         if not emptyform:
-            akismetapi = Websites.parm(domain, 'akismetapi')
+            spamchecked = False
+            akismetkey = Settings.get('akismet')
+            root_url = Settings.get('root_url')
+            if len(root_url) > 0 and string.count(root_url, 'http://') < 1:
+                root_url = 'http://' + root_url
             a = Akismet()
-            a.setAPIKey(akismetapi)
-            try:
-                if a.verify_key():
-                    data = dict()
-                    data['user_ip']=remote_addr
-                    if a.comment_check(comment, data):
-                        fields['spam']=True
-            except:
+            a.setAPIKey(akismetkey, blog_url = root_url)
+            if a.verify_key():
+                data = dict()
+                data['user_ip']=remote_addr
+                data['user_agent']=self.request.headers['User-Agent']
+                if a.comment_check(comment, data):
+                    fields['spam']=True
+                else:
+                    fields['spam']=False
+                fields['spamchecked']=True
+            else:
                 fields['spam']=False
+                fields['spamchecked']=False
             result = Comment.save(guid,fields, url=url)
             self.response.headers['Content-Type']='text/plain'
             if len(callback) > 0:

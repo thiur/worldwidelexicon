@@ -24,7 +24,7 @@ import string
 import datetime
 # import WWL libraries
 from database import Websites
-from config import Config
+from database import Settings
 
 def clean(text):
     try:
@@ -60,56 +60,31 @@ class GeoLog(db.Model):
     username = db.StringProperty(default = '')
     sl = db.StringProperty(default = '')
     tl = db.StringProperty(default = '')
-    
-class GeoStats(db.Model):
-    parm = db.StringProperty(default = '')
-    value = db.StringProperty(default = '')
-    year = db.IntegerProperty(default = 2009)
-    month = db.IntegerProperty()
-    day = db.IntegerProperty()
-    hour = db.IntegerProperty()
-    views = db.IntegerProperty()
-    lastupdate = db.DateTimeProperty(auto_now_add = True)
 
 class geo():
     @staticmethod
     def log(remote_addr, city, state, country, latitude, longitude, action='', username='', sl ='', tl = '', website=''):
-        gdb = GeoLog()
-        gdb.website = website
-        gdb.remote_addr = remote_addr
-        gdb.city = city
-        gdb.state = state
-        gdb.country = country
-        try:
-            gdb.latitude = latitude
-            gdb.longitude = longitude
-        except:
-            pass
-        gdb.action = action
-        gdb.username = username
-        gdb.sl = sl
-        gdb.tl = tl
-        gdb.put()
         return True
     @staticmethod
     def countries():
-        clist = memcache.get('geo|countries')
-        if type(clist) is dict:
-            return clist
+        clist = dict()
+        return clist
+    @staticmethod
+    def purge():
+        now = datetime.datetime.now()
+        td = datetime.timedelta(days = -60)
+        lastdate = now + td
+        gdb = db.Query(GeoLog)
+        gdb.filter('date < ', lastdate)
+        results = gdb.fetch(limit=500)
+        if len(results) > 0:
+            db.delete(results)
+            return True
         else:
-            gdb = db.Query(GeoLog)
-            gdb.order('-date')
-            results = gdb.fetch(limit=1000)
-            clist = dict()
-            for r in results:
-                ctr = clist.get(r.country, 0)
-                ctr = ctr + 1
-                clist[r.country]=ctr
-            memcache.set('geo|countries', clist, 900)
-            return clist
+            return False
     @staticmethod
     def query(remote_addr, website=''):
-        license_key=Config.maxmind
+        license_key=Settings.get('maxmind')
         location = dict()
         geolist=list()
         location['country']=''
@@ -171,29 +146,29 @@ class geo():
                     return location
             if len(location.get('country', '')) < 2:
                 location = geo.query(remote_addr, website=website)
-                gdb = db.Query(GeoDB)
-                gdb.filter('remote_addr = ', remote_addr)
-                item = gdb.get()
-                if item is None:
-                    item = GeoDB()
-                try:
-                    item.remote_addr = remote_addr
-                    item.city = location['city']
-                    item.state = location['state']
-                    item.country = location['country']
-                except:
-                    pass
-                try:
-                    item.latitude = location['latitude']
-                    item.longitude = location['longitude']
-                except:
-                    pass
-                item.lastupdated = datetime.datetime.now()
-                item.website = website
-                try:
-                    item.put()
-                    geo.log(remote_addr, location['city'], location['state'], location['country'], location['latitude'], location['longitude'], username, action, sl, tl, website=website)
-                except:
-                    pass
-                memcache.set('geo|' + remote_addr, location, 1800)
+                if len(location.get('country','')) > 1:
+                    gdb = db.Query(GeoDB)
+                    gdb.filter('remote_addr = ', remote_addr)
+                    item = gdb.get()
+                    if item is None:
+                        item = GeoDB()
+                    try:
+                        item.remote_addr = remote_addr
+                        item.city = location['city']
+                        item.state = location['state']
+                        item.country = location['country']
+                    except:
+                        pass
+                    try:
+                        item.latitude = location['latitude']
+                        item.longitude = location['longitude']
+                    except:
+                        pass
+                    item.lastupdated = datetime.datetime.now()
+                    item.website = website
+                    try:
+                        item.put()
+                    except:
+                        pass
+                    memcache.set('geo|' + remote_addr, location, 1800)
                 return location
