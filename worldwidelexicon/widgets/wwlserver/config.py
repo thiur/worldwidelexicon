@@ -73,10 +73,6 @@ class Config():
     #
     # external web services, API keys, etc
     #
-    # Google Analytics API Key
-    googleanalytics = ''
-    # Maxmind geolocation API Key
-    maxmind = 'W2fqdWawiZ6d'
     # Machine Translation APIS
     mt_default = 'google'
     worldlingo_api = 'S000.1'
@@ -85,8 +81,6 @@ class Config():
     # ...
     #
     # Professional Language Service Providers
-    speaklike_username = 'bsmcconnell@gmail.com'
-    speaklike_pw = 'myra1571'
     speaklike_languages = ['ar','bg','ca','zh','zt','hr','cs','da','nl','en','fr','de','el','iw','ht','hi','hu','it','ja','ko','no','fa','pl','pt','ro','ru','es','sr','th','tr','uk','ur']
     @staticmethod
     def lspurl(lspname):

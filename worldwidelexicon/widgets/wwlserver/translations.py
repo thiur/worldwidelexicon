@@ -206,6 +206,9 @@ class QueueSubmit(webapp.RequestHandler):
     tt : translated text (utf 8)
     username : username to attribute translation to
     pw : password (for WWL user, send an API key if submitting on behalf of an LSP)
+    st (optional) : if submitting an inline translation directly, rather than picking a source text from the queue
+    domain (optional) : if submitting an inline translation directly, rather than via the translator user interface
+    url (optional) : if submitting an inline translation directly, rather than via the translator user interface
     
     """
     def get(self):
@@ -221,8 +224,24 @@ class QueueSubmit(webapp.RequestHandler):
         username = self.request.get('username')
         pw = self.request.get('pw')
         remote_addr = self.request.remote_addr
+        data = dict()
+        data['user_ip']=remote_addr
+        if len(username) > 0:
+            data['comment_author']=username
+        if len(url) > 0:
+            data['permalink']=url
+        comment = tt
+        # call Akismet to check that it is not a spam comment / translation
+        # if yes, say OK but discard the translation
+        # if no, say OK and accept the translation
+        pass
+        # lookup user and see if the user is valid and has a scoring history
+        # if user has > N scores and an average score > X, accept the submission
+        # automatically
+        pass
+        # otherwise, add it to the translation queue for scoring
         result = Queue.submit(guid, tt, username, pw, remote_addr)
-        if len(guid) > 0:
+        if len(guid) > 0 or len(st) > 0:
             self.response.headers['Content-Type']='text/plain'
             if result:
                 self.response.out.write('ok')
@@ -238,6 +257,44 @@ class QueueSubmit(webapp.RequestHandler):
             self.response.out.write('<tr><td>Password or LSP API key</td><td><input type=password name=pw></td></tr>')
             self.response.out.write('<tr><td colspan=2><input type=submit value="OK"></td></tr>')
             self.response.out.write('</table></form>')
+
+class QueueScore(webapp.RequestHandler):
+    """
+    /queue/score
+
+    Submit a score for a translation that has been submitted by another user.
+
+    Expects:
+
+    guid : guid of the translation
+    username : WWL username (if blank, uses IP)
+    pw : WWL password
+    score : score from 0-5
+
+    Returns:
+
+    ok or error
+    """
+    def get(self):
+        self.requesthandler()
+    def post(self):
+        self.requesthandler()
+    def requesthandler(self):
+        pass
+
+class QueueView(webapp.RequestHandler):
+    """
+    /queue/view
+
+    Loads an AJAX interface to view, translate and score items in the
+    community translation queue. 
+    """
+    def get(self):
+        self.requesthandler()
+    def post(self):
+        self.requesthandler()
+    def requesthandler(self):
+        pass
 
 class GetTranslations(webapp.RequestHandler):
     """
@@ -538,7 +595,7 @@ class SubmitTranslation(webapp.RequestHandler):
             display_docs = True
         else:
             display_docs = False
-        akismetapi = Websites.parm(domain, 'akismetapi')
+        akismetapi = Settings.get('akismet')
         if akismetapi is not None:
             if len(akismetapi) > 0:
                 a = Akismet()
@@ -1241,6 +1298,8 @@ application = webapp.WSGIApplication([('/q', GetTranslations),
                                       ('/queue/add', AddQueue),
                                       ('/queue/send', SendLSP),
                                       ('/queue/search', SearchQueue),
+                                      ('/queue/score', QueueScore),
+                                      ('/queue/view', QueueView),
                                       ('/queue/submit', QueueSubmit),
                                       ('/t/edit', EditTranslations),
                                       (r'/t/(.*)/(.*)/(.*)', SimpleTranslation),

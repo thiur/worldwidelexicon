@@ -12,6 +12,9 @@ handlers:
   script: incoming_email.py 
   login: admin
 
+- url: /robots.txt
+  script: admin.py
+
 - url: /translator.css
   static_files: translator.css
   upload: translator.css
@@ -124,33 +127,13 @@ handlers:
 - url: /doc
   script: home.py
   
-- url: /admin/saveuser/(.*)/(.*)
+- url: /admin
   script: admin.py
-  secure: always
-  
-- url: /admin/set/(.*)/(.*)
-  script: admin.py
-  secure: always
-  
-- url: /admin/set/(.*)
-  script: admin.py
-  secure: always
-  
-- url: /admin/(.*)/(.*)/(.*)
-  script: admin.py
-  secure: always
-  
-- url: /admin/(.*)/(.*)
-  script: admin.py
-  secure: always
+  secure: optional
 
 - url: /admin/(.*)
   script: admin.py
-  secure: always
-  
-- url: /admin
-  script: admin.py
-  secure: always
+  secure: optional
   
 - url: /comments/(.*)
   script: comments.py
@@ -182,20 +165,6 @@ handlers:
 - url: /edit/(.*)
   script: admin.py
   secure: optional
-  
-- url: /editcss/(.*)/(.*)
-  script: admin.py
-  secure: optional
-  
-- url: /editcss/(.*)
-  script: admin.py
-  secure: optional
-  
-- url: /gallery/(.*)/(.*)
-  script: image.py
-  
-- url: /gallery/(.*)
-  script: image.py
   
 - url: /headers
   script: admin.py
@@ -235,12 +204,11 @@ handlers:
 - url: /p
   script: search.py
   
-- url: /presence/(.*)
-  script: users.py
-  secure: optional
-  
 - url: /pro
   script: search.py
+
+- url: /purge/(.*)
+  script: purge.py
   
 - url: /q
   script: translations.py
@@ -308,22 +276,6 @@ handlers:
   
 - url: /unicode
   script: translations.py
-  
-- url: /update/(.*)/(.*)
-  script: admin.py
-  secure: always
-  
-- url: /update/(.*)
-  script: admin.py
-  secure: always
-  
-- url: /upload/(.*)/(.*)
-  script: admin.py
-  secure: optional
-  
-- url: /upload/(.*)
-  script: admin.py
-  secure: optional
   
 - url: /users/(.*)
   script: users.py

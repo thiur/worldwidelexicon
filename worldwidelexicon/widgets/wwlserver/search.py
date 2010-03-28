@@ -58,7 +58,6 @@ from google.appengine.api import urlfetch
 import feedparser
 import feedfinder
 from database import languages
-from database import Groups
 from database import Translation
 from database import Search
 from database import Users
