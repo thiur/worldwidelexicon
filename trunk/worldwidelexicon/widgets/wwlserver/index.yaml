@@ -25,6 +25,21 @@ indexes:
   - name: lsp
   - name: createdon
     direction: desc
+
+- kind: Queue
+  properties:
+  - name: sl
+  - name: tl
+  - name: translated
+  - name: createdon
+
+- kind: Queue
+  properties:
+  - name: sl
+  - name: tl
+  - name: domain
+  - name: translated
+  - name: createdon
     
 - kind: Search
   properties:

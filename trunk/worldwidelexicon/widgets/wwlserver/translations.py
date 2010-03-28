@@ -76,6 +76,7 @@ from database import Translation
 from database import languages
 from database import Users
 from database import Websites
+from database import Settings
 import feedparser
 
 def clean(text):
@@ -240,7 +241,31 @@ class QueueSubmit(webapp.RequestHandler):
         # automatically
         pass
         # otherwise, add it to the translation queue for scoring
-        result = Queue.submit(guid, tt, username, pw, remote_addr)
+        akismetapi = Settings.get('akismet')
+        if akismetapi is not None:
+            if len(akismetapi) > 0:
+                a = Akismet()
+                a.setAPIKey(akismetapi)
+                try:
+                    a.verify_key()
+                    data = dict()
+                    data['user_ip']= remote_addr
+                    try:
+                        data['user_agent'] = self.request.headers['User-Agent']
+                    except:
+                        pass
+                    if a.comment_check(tt, data):
+                        spam = True
+                    else:
+                        spam = False
+                except:
+                    spam = False
+            else:
+                spam = False
+        else:
+            spam = False
+        if not spam:
+            result = Queue.submit(guid, tt, username, pw, remote_addr)
         if len(guid) > 0 or len(st) > 0:
             self.response.headers['Content-Type']='text/plain'
             if result:
@@ -286,15 +311,58 @@ class QueueView(webapp.RequestHandler):
     """
     /queue/view
 
-    Loads an AJAX interface to view, translate and score items in the
-    community translation queue. 
+    Loads an HTML interface to view, translate and score items in the
+    community translation queue. This view is initiated by linking to the
+    URL:
+
+    www.worldwidelexicon.org/queue/view?sl=lang1&tl=lang2&domain=optionaldomain&tag=optionaltag
+
+    It will display a list of jobs that are awaiting translation from the source to the
+    target language, and it will display a list of jobs that are waiting to be scored. The user
+    interface is pretty basic, and does not use Flash, AJAX or other technologies so that it will
+    work on a wide range of browsers, including mobile devices.
+
+    If it senses the user is connecting from something other than Firefox, Safari, Chrome or
+    Internet Explorer, it will assume the user is connecting via a mobile browser and will display
+    fewer results and simplify the interface. It should work on any browser, including old text
+    mode browsers for mobile phones. 
     """
     def get(self):
         self.requesthandler()
     def post(self):
         self.requesthandler()
     def requesthandler(self):
-        pass
+        sl = self.request.get('sl')
+        tl = self.request.get('tl')
+        domain = self.request.get('domain')
+        tag = self.request.get('tag')
+        if len(sl) > 0 and len(tl) > 0:
+            qdb = db.Query(Queue)
+            qdb.filter('sl = ', sl)
+            qdb.filter('tl = ', tl)
+            if len(domain) > 0:
+                qdb.filter('domain = ', domain)
+            qdb.filter('translated = ', False)
+            qdb.order('createdon')
+            results = qdb.fetch(limit=100)
+            self.response.out.write('<h2><img src=/logo align=left>Worldwide Lexicon Translation Queue</h2><br><hr>')
+            self.response.out.write('<table><tr><td><b>Original Text</b></td><td><b>Translation</b></td><td></td></tr>')
+            for r in results:
+                self.response.out.write('<tr valign=top><td>' + r.st + '</td>')
+                self.response.out.write('<form action=/queue/submit method=get><td><textarea name=tt>' + r.tt + '</textarea></td>')
+                self.response.out.write('<td><input type=submit value="Save"></td></tr></form>')
+            self.response.out.write('</table>')
+        else:
+            self.response.out.write('<h2><img src=/logo align=left>Worldwide Lexicon Translations</h2>')
+            self.response.out.write('<br><hr>')
+            self.response.out.write('<form action=/queue/view method=get><table>')
+            self.response.out.write('<tr><td>Source Language Code</td><td><input type=text name=sl maxlength=3></td></tr>')
+            self.response.out.write('<tr><td>Target Language Code</td><td><input type=text name=tl maxlength=3></td></tr>')
+            self.response.out.write('<tr><td>Optional Domain</td><td><input type=text name=domain></td></tr>')
+            self.response.out.write('<tr><td>Optional Tag / Keyword</td><td><input type=text name=tag></td></tr>')
+            self.response.out.write('<tr><td colspan=2><input type=submit value="Go To Translation Queue"></td></tr>')
+            self.response.out.write('</table></form>')
+            self.response.out.write('<hr>')
 
 class GetTranslations(webapp.RequestHandler):
     """
@@ -604,6 +672,10 @@ class SubmitTranslation(webapp.RequestHandler):
                     a.verify_key()
                     data = dict()
                     data['user_ip']= remote_addr
+                    try:
+                        data['user_agent'] = self.request.headers['User-Agent']
+                    except:
+                        pass
                     if a.comment_check(tt, data):
                         spam = True
                     else:
@@ -625,7 +697,7 @@ class SubmitTranslation(webapp.RequestHandler):
         if sys_allow_anonymous is not None and sys_allow_anonymous == 'n' and validuser == False:
             valid_query = False
         result = False
-        if len(url) > 0:
+        if len(url) > 0 and not spam:
             p = dict()
             p['url']=url
             p['sl']=sl
@@ -633,7 +705,10 @@ class SubmitTranslation(webapp.RequestHandler):
             p['action']='translate'
             p['remote_addr']=self.request.remote_addr
             taskqueue.add(url = '/log', params = p)
-        result = Translation.submit(sl=sl, st=st, tl=tl, tt=tt, username=username, remote_addr=remote_addr, domain=domain, url=url, city=city, state=state, country=country, latitude=latitude, longitude=longitude, lsp=lsp, proxy=proxy)
+        if not spam:
+            result = Translation.submit(sl=sl, st=st, tl=tl, tt=tt, username=username, remote_addr=remote_addr, domain=domain, url=url, city=city, state=state, country=country, latitude=latitude, longitude=longitude, lsp=lsp, proxy=proxy)
+        else:
+            result = True
         if len(title) > 0 and len(url) > 0:
             p = dict()
             p['remote_addr'] = remote_addr
@@ -817,62 +892,6 @@ class SimpleTranslation(webapp.RequestHandler):
             self.response.out.write('<tr><td>Output Format</td><td><input type=text name=output value=html></td></tr>')
             self.response.out.write('<tr><td colspan=2><input type=submit value=GO></td></tr>')
             self.response.out.write('</form></table>')
-            
-class EditTranslations(webapp.RequestHandler):
-    def get(self):
-        sl = self.request.get('sl')
-        tl = self.request.get('tl')
-        st = self.request.get('st')
-        url = self.request.get('url')
-        domain = self.request.get('domain')
-        md5hash = self.request.get('md5hash')
-        prompt_edit_translations = 'Edit Translations'
-        prompt_save = 'Save Translation'
-        prompt_good = 'Good'
-        prompt_bad = 'Bad'
-        prompt_spam = 'Spam/Delete'
-        prompt_original = 'Original'
-        prompt_translation = 'Translation'
-        prompt_quality = 'Translation Quality'
-        www.serve(self, '', title=prompt_edit_translations)
-        results = Translation.fetch(sl=sl, tl=tl, st=st, url=url, md5hash=md5hash)
-        self.response.out.write('<table>')
-        self.response.out.write('<tr valign=top><td>' + prompt_original + '</td><td>' + prompt_translation + '</td><td>' + prompt_good + '</td><td>' + prompt_bad + '</td><td>' + prompt_spam + '</td></tr>')
-        for r in results:
-            self.response.out.write('<form action=/t/edit method=post>')
-            self.response.out.write('<input type=hidden name=guid value="' + r.guid + '">')
-            self.response.out.write('<tr valign=top><td>' + codecs.encode(r.st, 'utf-8') + '</td>')
-            self.response.out.write('<td><textarea name=tt rows=2>' + codecs.encode(r.tt, 'utf-8') + '</textarea><br>')
-            self.response.out.write('<input type=submit value="' + prompt_save + '"></form></td>')
-            self.response.out.write('<td><a href=/scores/vote?guid=' + r.guid + '&votetype=up><img src=/image/go-up.png></a></td>')
-            self.response.out.write('<td><a href=/scores/vote?guid=' + r.guid + '&votetype=down><img src=/image/go-down.png></a></td>')
-            self.response.out.write('<td><a href=/scores/vote?guid=' + r.guid + '&votetype=block><img src=/image/trash.png></a></td>')
-            self.response.out.write('</tr>')
-        self.response.out.write('</table>')
-    def post(self):
-        cookies = Cookies(self)
-        try:
-            session = cookies['session']
-        except:
-            session = ''
-        username = ''
-        validuser = False
-        if len(session) > 0:
-            username = memcache.get('sessions|' + session)
-            if username is None:
-                username = ''
-            else:
-                validuser = True
-        sl = self.request.get('sl')
-        tl = self.request.get('tl')
-        st = self.request.get('st')
-        tt = self.request.get('tt')
-        domain = self.request.get('domain')
-        url = self.request.get('url')
-        remote_addr = self.request.remote_addr
-        if len(sl) > 0 and len(tl) > 0 and len(st) > 0 and len(tt) > 0:
-            result = Translation.submit(sl, st, tl, tt, domain, url, remote_addr, username)
-        self.redirect('/t/edit')
         
 class Sidebar(webapp.RequestHandler):
     def post(self):
@@ -1301,7 +1320,6 @@ application = webapp.WSGIApplication([('/q', GetTranslations),
                                       ('/queue/score', QueueScore),
                                       ('/queue/view', QueueView),
                                       ('/queue/submit', QueueSubmit),
-                                      ('/t/edit', EditTranslations),
                                       (r'/t/(.*)/(.*)/(.*)', SimpleTranslation),
                                       (r'/t/(.*)/(.*)', SimpleTranslation),
                                       ('/t', SimpleTranslation),
