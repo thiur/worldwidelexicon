@@ -1,5 +1,5 @@
 application: worldwidelexicon
-version: 3
+version: 2
 runtime: python
 api_version: 1
 
@@ -163,7 +163,7 @@ handlers:
   secure: optional
   
 - url: /heartbeat
-  script: admin.py
+  script: purge.py
   secure: optional
   
 - url: /hosts/auth/(.*)
@@ -214,15 +214,6 @@ handlers:
   
 - url: /request
   script: search.py
-  
-- url: /rss/(.*)/(.*)
-  script: rss.py
-  
-- url: /rss/(.*)
-  script: rss.py
-  
-- url: /rss
-  script: rss.py
 
 - url: /scores/(.*)
   script: scores.py
@@ -243,7 +234,7 @@ handlers:
   secure: optional
   
 - url: /sidebar
-  script: translations.py
+  script: firefox.py
   secure: optional
   
 - url: /stats/scores
