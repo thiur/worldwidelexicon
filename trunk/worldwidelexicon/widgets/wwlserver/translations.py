@@ -77,6 +77,7 @@ from database import languages
 from database import Users
 from database import Websites
 from database import Settings
+from ip import ip
 import feedparser
 
 def clean(text):
@@ -218,13 +219,21 @@ class QueueSubmit(webapp.RequestHandler):
         self.requesthandler()
     def requesthandler(self):
         guid = self.request.get('guid')
+        st = clean(self.request.get('st'))
         tt = clean(self.request.get('tt'))
         domain = self.request.get('domain')
         url = self.request.get('url')
-        remote_addr = self.request.remote_addr
         username = self.request.get('username')
         pw = self.request.get('pw')
         remote_addr = self.request.remote_addr
+        # check if this IP address is rate limited (> one submit per second)
+        # if yes, return 500 error code
+        if not ip.allow(remote_addr, action='submit'):
+            self.response.clear()
+            self.response.set_status(500)
+            self.response.out.write('Rate limit exceeded')
+            return
+        # IP address not rate limited, so proceed normally
         data = dict()
         data['user_ip']=remote_addr
         if len(username) > 0:
@@ -305,7 +314,14 @@ class QueueScore(webapp.RequestHandler):
     def post(self):
         self.requesthandler()
     def requesthandler(self):
-        pass
+        remote_addr = self.request.remote_addr
+        allow = ip.allow(remote_addr)
+        if not allow:
+            self.response.clear()
+            self.response.set_status(500)
+            self.response.out.write('Rate limited exceeeded.')
+        else:
+            www.serve(self, self.__doc__)
 
 class QueueView(webapp.RequestHandler):
     """
@@ -610,12 +626,14 @@ class SubmitTranslation(webapp.RequestHandler):
         validquery = True
         emptyform = False
         remote_addr = self.request.remote_addr
-        exists = memcache.get('ratelimit|remote_addr=' + remote_addr)
-        if exists is not None:
-            self.response.headers['Content-Type']='text/plain'
-            self.response.out.write('error\nrate limit exceeeded')
-        else:
-            memcache.set('ratelimit|remote_addr=' + remote_addr, True, 5)
+        # check if this IP address is rate limited, if yes return a 500 error
+        result = ip.allow(remote_addr)
+        if not result:
+            self.response.clear()
+            self.response.set_status(500)
+            self.response.out.write('Rate limit exceeded')
+            return
+        # IP address is not rate limited, proceed normally
         cookies = Cookies(self,max_age=3600)
         try:
             session = cookies['session']
@@ -758,17 +776,6 @@ class SubmitTranslation(webapp.RequestHandler):
     def get(self):
         """ Processes HTTP GET calls """
         self.requesthandler()
-
-class ManageTranslations(webapp.RequestHandler):
-    """
-    This request handler implements the /translators/manage interface which allows
-    translators with permission to create and edit translations to edit, score
-    and delete translations via a system administrator's interface. 
-    """
-    def get(self):
-        pass
-    def post(self):
-        pass
     
 class SimpleTranslation(webapp.RequestHandler):
     """
@@ -1148,40 +1155,6 @@ class UnicodeTest(webapp.RequestHandler):
         self.response.headers['Accept-Charset']='utf-8'
         self.response.out.write(text)
         
-class Cache(webapp.RequestHandler):
-    """
-    /cache/*
-    
-    This request handler provides client applications (widgets, browser addons, etc)
-    with a simple interface for uploading and fetching cached machine translations
-    from a shared memcache system. This was implemented to boost page rendering
-    performance in the Firefox translation addon. 
-    """
-    def get(self, md5hash):
-        if len(md5hash) > 0:
-            self.response.headers['Content-Type']='text/plain'
-            text = memcache.get('cache|' + md5hash)
-            if text is None:
-                text = ''
-            self.response.out.write(text)
-        else:
-            self.response.out.write('<form action=/cache/ method=post>')
-            self.response.out.write('<table><tr><td>MD5 Hash</td><td><input type=text name=md5hash></td></tr>')
-            self.response.out.write('<tr><td colspan=2>Text<br><textarea name=text></textarea></td></tr>')
-            self.response.out.write('<tr><td colspan=2><input type=submit value=OK></td></tr>')
-            self.response.out.write('</form></table>')
-    def post(self, md5hash):
-        self.response.headers['Content-Type']='text/plain'
-        if len(md5hash) < 1:
-            md5hash = self.request.get('md5hash')
-        if len(md5hash) > 0:
-            text = self.request.get('text')
-            memcache.set('cache|' + md5hash, text, 300)
-            memcache.set('ratelimit|cache|remote_addr=' + self.request.remote_addr, True, 2)
-            self.response.out.write('ok')
-        else:
-            self.response.out.write('error')
-
 class SendLSP(webapp.RequestHandler):
     def get(self):
         self.requesthandler()
@@ -1313,7 +1286,6 @@ class BatchTranslation(webapp.RequestHandler):
 application = webapp.WSGIApplication([('/q', GetTranslations),
                                       ('/batch', BatchTranslation),
                                       ('/log', LogQueries),
-                                      ('/cache/(.*)', Cache),
                                       ('/queue/add', AddQueue),
                                       ('/queue/send', SendLSP),
                                       ('/queue/search', SearchQueue),
