@@ -964,6 +964,8 @@ This free tool automatically translates foreign websites into your language. Now
                         txt = response.content
                 except:
                     txt = ''
+                if txt is None:
+                    txt = ''
                 texts = string.split(txt, '\n')
                 if len(texts) > 0 and language != 'en':
                     txt = ''
@@ -972,7 +974,8 @@ This free tool automatically translates foreign websites into your language. Now
                             txt = txt + tx('en', language, t)
                         else:
                             txt = txt + t
-                memcache.set('static|language=' + language + '|page=' + page, txt, 300)
+                if len(txt) > 3:
+                    memcache.set('static|language=' + language + '|page=' + page, txt, 300)
                 self.response.out.write(txt)
                 
     def topsites(self, language):

@@ -1302,6 +1302,18 @@ class Search(db.Model):
         else:
             return False
     @staticmethod
+    def purge():
+        sdb = db.Query(Search)
+        td = datetime.timedelta(days=-90)
+        lastdate = datetime.datetime.now() + td
+        sdb.filter('date < ', lastdate)
+        results = sdb.fetch(limit=250)
+        if len(results) > 0:
+            db.delete(results)
+            return True
+        else:
+            return False
+    @staticmethod
     def query(tl='', q = ''):
         sdb = db.Query(Search)
         if len(tl) > 0:

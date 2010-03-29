@@ -70,18 +70,28 @@ class geo():
         clist = dict()
         return clist
     @staticmethod
-    def purge():
+    def purge(name=''):
         now = datetime.datetime.now()
         td = datetime.timedelta(days = -60)
         lastdate = now + td
-        gdb = db.Query(GeoLog)
-        gdb.filter('date < ', lastdate)
-        results = gdb.fetch(limit=500)
-        if len(results) > 0:
-            db.delete(results)
-            return True
+        if name == 'geodb':
+            gdb = db.Query(GeoDB)
+            gdb.filter('country = ', '')
+            results = gdb.fetch(limit=250)
+            if len(results) > 0:
+                db.delete(results)
+                return True
+            else:
+                return False
         else:
-            return False
+            gdb = db.Query(GeoLog)
+            gdb.filter('date < ', lastdate)
+            results = gdb.fetch(limit=250)
+            if len(results) > 0:
+                db.delete(results)
+                return True
+            else:
+                return False
     @staticmethod
     def query(remote_addr, website=''):
         license_key=Settings.get('maxmind')
