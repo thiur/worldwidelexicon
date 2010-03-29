@@ -158,14 +158,6 @@ handlers:
   script: admin.py
   secure: optional
   
-- url: /edit/(.*)/(.*)
-  script: admin.py
-  secure: optional
-  
-- url: /edit/(.*)
-  script: admin.py
-  secure: optional
-  
 - url: /headers
   script: admin.py
   secure: optional
@@ -216,6 +208,9 @@ handlers:
 - url: /queue/(.*)
   script: translations.py
   secure: optional
+
+- url: /ratelimit
+  script: ip.py
   
 - url: /request
   script: search.py
