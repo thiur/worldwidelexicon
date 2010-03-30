@@ -221,6 +221,7 @@ class Vote(webapp.RequestHandler):
 
     guid = the GUID of the translation being scored
     votetype = up, down or block
+    score = integer score from 0..5 (0=bad/spam, 5 = excellent/native)
     session (cookie) = session cookie, sent automatically if user is logged in to WWL server
     username = optional WWL username (can be used to authenticate user on submitting score)
     pw = WWL password
@@ -237,6 +238,7 @@ class Vote(webapp.RequestHandler):
             memcache.set('ratelimit|vote|' + self.request.remote_addr, True, 5)
             guid = self.request.get('guid')
             votetype = self.request.get('votetype')
+            score = self.request.get('score')
             remote_addr = self.request.remote_addr
             cookies = Cookies(self, max_age=7200)
             try:
@@ -265,11 +267,12 @@ class Vote(webapp.RequestHandler):
                 else:
                     username = ''
                     loggedin = False
-            if len(votetype) > 0:
+            if len(guid) > 0:
                 location = geo.get(remote_addr)
                 p = dict()
                 p['guid']=guid
                 p['votetype']=votetype
+                p['score']=score
                 p['remote_addr']=self.request.remote_addr
                 p['username']=username
                 if type(location) is dict:
@@ -286,11 +289,12 @@ class Vote(webapp.RequestHandler):
                 self.response.out.write('<tr><td>GUID of translation</td><td><input type=text name=guid></td></tr>')
                 self.response.out.write('<tr><td>WWL Username (optional)</td><td><input type=text name=username></td></tr>')
                 self.response.out.write('<tr><td>WWL Password (optional)</td><td><input type=text name=pw></td></tr>')
-                self.response.out.write('<tr><td>Action</td><td><select name=votetype>')
+                self.response.out.write('<tr><td>Action (votetype)</td><td><select name=votetype>')
                 self.response.out.write('<option value=up>Vote Up (+1)</option>')
                 self.response.out.write('<option value=down>Vote Down (-1)</option>')
                 self.response.out.write('<option value=block>Block/Ban Translator</option>')
                 self.response.out.write('</select></td></tr>')
+                self.response.out.write('<tr><td>Integer Score (0..5)</td><td><input type=text name=score maxlength=1></td></tr>')
                 self.response.out.write('<tr><td colspan=2><input type=submit value=OK></td></tr>')
                 self.response.out.write('</table></form>')
         else:
@@ -298,7 +302,7 @@ class Vote(webapp.RequestHandler):
 
 class ScoreSubmitWorker(webapp.RequestHandler):
     """
-    /score/worker
+    /scores/worker
 
     This request handler is called via the task queue, which serializes votes to minimize
     issues with data store contention, record locking, etc.
@@ -321,10 +325,18 @@ class ScoreSubmitWorker(webapp.RequestHandler):
         if len(guid) > 0:
             exists = Score.exists(guid, remote_addr)
             if not exists:
-                author = Translation.author(guid)
-                result = Score.save(guid, votetype=votetype, username=username, remote_addr=remote_addr, city=city, state=state, country=country, latitude=latitude, longitude=longitude)
-                result = Translation.score(guid, votetype)
-                result = Users.savescore(author,votetype,remote_addr)
+                try:
+                    author = Translation.author(guid)
+                except:
+                    pass
+                try:
+                    result = Score.save(guid, votetype=votetype, score=score, username=username, remote_addr=remote_addr, city=city, state=state, country=country, latitude=latitude, longitude=longitude)
+                except:
+                    pass
+                try:
+                    result = Users.savescore(author, votetype, remote_addr, score=score)
+                except:
+                    pass
             else:
                 result = False
         else:
