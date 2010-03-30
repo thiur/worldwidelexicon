@@ -51,6 +51,7 @@ from google.appengine.api import memcache
 from google.appengine.api import users
 from google.appengine.api.labs import taskqueue
 # import WWL modules
+from database import APIKeys
 from database import languages
 from database import Settings
 from database import Users
@@ -111,6 +112,47 @@ class SetVariable(webapp.RequestHandler):
         else:
             self.redirect('/admin')
 
+class ViewAPIKeys(webapp.RequestHandler):
+    def get(self):
+        user = users.get_current_user()
+        if user and users.is_current_user_admin():
+            results = APIKeys.fetch()
+            self.response.out.write('<form action=/admin/makekey method=get><table border=1>')
+            self.response.out.write('<tr><td>Username or Nickname</td><td><input type=text name=username></td></tr>')
+            self.response.out.write('<tr><td>Short Description</td><td><input type=text name=description></td></tr>')
+            self.response.out.write('<tr><td colspan=2><input type=submit value="Make Key"></td></tr></table></form>')
+            self.response.out.write('<hr><table border=1>')
+            self.response.out.write('<tr><td>Username</td><td>Hashkey</td><td></td></tr>')
+            for r in results:
+                self.response.out.write('<tr><td>' + r.username + '</td><td>' + r.guid + '</td>')
+                self.response.out.write('<td><a href=/admin/deletekey?guid=' + r.guid + '>Delete Key</a></td></tr>')
+            self.response.out.write('</table><hr>')
+        else:
+            self.redirect('/admin')
+
+class DeleteAPIKey(webapp.RequestHandler):
+    def get(self):
+        user = users.get_current_user()
+        if user and users.is_current_user_admin():
+            guid = self.request.get('guid')
+            if len(guid) > 8:
+                result = APIKeys.remove(guid)
+            self.redirect('/admin/keys')
+        else:
+            self.redirect('/admin')
+
+class MakeAPIKey(webapp.RequestHandler):
+    def get(self):
+        user = users.get_current_user()
+        if user and users.is_current_user_admin():
+            username = self.request.get('username')
+            description = self.request.get('description')
+            if len(username) > 0:
+                result = APIKeys.add(username, description=description)
+            self.redirect('/admin/keys')
+        else:
+            self.redirect('/admin')
+
 class Robots(webapp.RequestHandler):
     def get(self):
         self.response.out.write('User-agent: *\n')
@@ -125,6 +167,9 @@ class Headers(webapp.RequestHandler):
             self.response.out.write(h + ' : ' + headers[h] + '<br>')
 
 application = webapp.WSGIApplication([('/admin', Login),
+                                      ('/admin/keys', ViewAPIKeys),
+                                      ('/admin/makekey', MakeAPIKey),
+                                      ('/admin/deletekey', DeleteAPIKey),
                                       ('/admin/vars', Variables),
                                       ('/admin/setvar', SetVariable),
                                       ('/headers', Headers),

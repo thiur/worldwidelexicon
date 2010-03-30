@@ -23,7 +23,6 @@ import urllib
 import string
 import datetime
 # import WWL libraries
-from database import Websites
 from database import Settings
 
 def clean(text):

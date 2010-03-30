@@ -40,6 +40,18 @@ indexes:
   - name: domain
   - name: translated
   - name: createdon
+
+- kind: Score
+  properties:
+  - name: username
+  - name: date
+    direction: desc
+
+- kind: Score
+  properties:
+  - name: remote_addr
+  - name: date
+    direction: desc
     
 - kind: Search
   properties:

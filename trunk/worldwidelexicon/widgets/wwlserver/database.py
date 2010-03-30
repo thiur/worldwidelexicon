@@ -142,6 +142,69 @@ def smart_str(s, encoding='utf-8', errors='ignore', from_encoding='utf-8'):
     else:
         return smart_str(str(s), encoding, errors, from_encoding)
 
+class APIKeys(db.Model):
+    """
+    Data store for managing API keys for trusted submitters. The system
+    administrator will go to /admin/keys to create and manage API keys
+    which are then used to validate trusted submitters. Servers that submit
+    to the translation memory with an apikey parameter will be treated as
+    trusted sources, and their submissions will be stored directly in the
+    translation memory.
+    """
+    guid = db.StringProperty(default='')
+    username = db.StringProperty(default='')
+    description = db.StringProperty(default='')
+    remote_addr = db.StringProperty(default='')
+    createdon = db.DateTimeProperty(auto_now_add = True)
+    lastupdate = db.DateTimeProperty()
+    lastlogin = db.DateTimeProperty()
+    @staticmethod
+    def add(username, description=''):
+        adb = db.Query(APIKeys)
+        adb.filter('username = ', username)
+        item = adb.get()
+        if item is None:
+            item = APIKeys()
+            item.username = username
+            item.description = description
+            m = md5.new()
+            m.update(username)
+            m.update(str(datetime.datetime.now()))
+            guid = str(m.hexdigest())
+            item.guid = guid
+            item.put()
+            return guid
+        else:
+            return ''
+    @staticmethod
+    def remove(guid):
+        adb = db.Query(APIKeys)
+        adb.filter('guid = ', guid)
+        item = adb.get()
+        if item is not None:
+            item.delete()
+            return True
+        else:
+            return False
+    @staticmethod
+    def fetch():
+        adb = db.Query(APIKeys)
+        adb.order('username')
+        results = adb.fetch(limit=100)
+        return results
+    @staticmethod
+    def verify(guid):
+        if len(guid) > 8:
+            adb = db.Query(APIKeys)
+            adb.filter('guid = ', guid)
+            item = adb.get()
+            if item is not None:
+                return True
+            else:
+                return False
+        else:
+            return False
+
 class Comment(db.Model):
     """
     Google Data Store for comments about translations, and related
@@ -865,6 +928,33 @@ class Score(db.Model):
     lspname = db.StringProperty(default='')
     jobid = db.StringProperty(default='')
     @staticmethod
+    def get(remote_addr, username=''):
+        data = memcache.get('/scores/' + remote_addr + '/' + username)
+        if data is not None:
+            return data
+        elif len(username) > 0:
+            sdb = db.Query(Score)
+            sdb.filter('username = ', username)
+        else:
+            sdb = db.Query(Score)
+            sdb.filter('remote_addr = ', remote_addr)
+        results = sdb.fetch(limit=200)
+        scores = 0
+        rawscore = 0
+        for r in results:
+            if r.score is not None:
+                rawscore = rawscore + 1
+                scores = scores + 1
+        data = dict()
+        data['scores']=scores
+        data['rawscore']=rawscore
+        if scores > 0:
+            data['avgscore']=float(rawscore/scores)
+        else:
+            data['avgscore']=float(0)
+        memcache.set('/scores/' + remote_addr + '/' + username)
+        return data            
+    @staticmethod
     def batch(authors):
         if type(authors) is list:
             for a in authors:
@@ -963,7 +1053,7 @@ class Score(db.Model):
         else:
             return
     @staticmethod
-    def save(guid, votetype='', username='', remote_addr='', city='', state='', country='', latitude=None, longitude=None):
+    def save(guid, votetype='', username='', remote_addr='', score='', city='', state='', country='', latitude=None, longitude=None):
         """
         This method saves a score to the Score data store, after first checking to see if
         a score has already been recorded for this item (guid locator) from the user's IP
@@ -1006,10 +1096,19 @@ class Score(db.Model):
                 pass
             if votetype == 'up':
                 item.score = 5
-            else:
+            elif votetype == 'down':
+                item.score = 2
+            elif votetype == 'block':
                 item.score = 0
-            if votetype == 'block':
                 item.blocked = True
+            elif len(score) > 0:
+                try:
+                    if int(score) >= 0 and int(score) <= 5:
+                        item.score = int(score)
+                        if int(score) == 0:
+                            item.blocked = True
+                except:
+                    pass                    
             item.put()
             p = dict()
             p['guid']=guid
@@ -1742,8 +1841,8 @@ class Translation(db.Model):
         else:
             return False
     @staticmethod
-    def score(guid, votetype):
-        if len(guid) > 0 and len(votetype) > 0:
+    def score(guid, votetype, score=''):
+        if len(guid) > 0:
             tdb = db.Query(Translation)
             tdb.filter('guid = ', guid)
             item = tdb.get()
@@ -1751,19 +1850,25 @@ class Translation(db.Model):
                 upvotes = item.upvotes
                 downvotes = item.downvotes
                 blockedvotes = item.blockedvotes
+                rawscore = item.rawscore
                 scores = item.scores
                 if votetype == 'up':
                     upvotes = upvotes + 1
+                    rawscore = rawscore + 5
                     scores = scores + 1
                 elif votetype == 'down':
+                    rawscore = rawscore + 2
                     downvotes = downvotes + 1
                     scores = scores + 1
                 elif votetype == 'block':
                     blockedvotes = blockedvotes + 1
                     scores = scores + 1
+                elif len(score) > 0:
+                    if int(score) >=0 and int(score) <=5 :
+                        rawscore = rawscore + int(score)
+                        scores = scores + 1
                 else:
                     pass
-                rawscore = upvotes * 5
                 if scores > 0:
                     avgscore = float(rawscore/scores)
                 else:
@@ -1920,11 +2025,14 @@ class Translation(db.Model):
         else:
             return False
     @staticmethod
-    def userscore(username, upvotes, downvotes, blockedvotes, rawscore, scores):
-        if len(username) > 0 and scores > 0:
+    def userscore(remote_addr, username, upvotes, downvotes, blockedvotes, rawscore, scores):
+        if len(remote_addr) > 0 and scores > 0:
             avgscore = float(rawscore/scores)
             tdb = db.Query(Translation)
-            tdb.filter('username = ', username)
+            if len(username) > 0:
+                tdb.filter('username = ', username)
+            else:
+                tdb.filter('remote_addr = ', remote_addr)
             tdb.order('-date')
             results = tdb.fetch(limit=100)
             for r in results:
@@ -2121,6 +2229,7 @@ class Translation(db.Model):
     
 class Users(db.Model):
     username = db.StringProperty(default='')
+    remote_addr = db.StringProperty(default='')
     email = db.StringProperty(default='')
     pwhash = db.StringProperty(default='')
     session = db.StringProperty(default='')
@@ -2447,34 +2556,46 @@ class Users(db.Model):
             else:
                 return False
     @staticmethod
-    def savescore(username, votetype, remote_addr):
-        if len(username) > 0 and len(votetype) > 0 and len(remote_addr) > 0:
+    def savescore(remote_addr, username, votetype, score = ''):
+        if len(votetype) > 0 and len(remote_addr) > 0:
             udb = db.Query(Users)
-            udb.filter('username = ', username)
+            if len(username) > 0:
+                udb.filter('username = ', username)
+            else:
+                udb.filter('remote_addr = ', remote_addr)
             item = udb.get()
-            if item is not None:
+            if item is None:
+                if len(username) < 1 and len(remote_addr) > 0:
+                    item = Users()
+                    item.remote_addr = remote_addr
+                    item.scores = 0
+                else:
+                    return False
+            else:
                 upvotes = item.upvotes
                 downvotes = item.downvotes
                 blockedvotes = item.blockedvotes
                 scores = item.scores
+                rawscore = item.rawscore
                 if votetype == 'up':
-                    upvotes = upvotes + 1
+                    rawscore = rawscore + 5
                     scores = scores + 1
                 elif votetype == 'down':
-                    downvotes = downvites + 1
+                    rawscore = rawscore + 2
                     scores = scores + 1
                 elif votetype == 'block':
                     blockedvotes = blockedvotes + 1
                     scores = scores + 1
-                else:
-                    pass
-                rawscore = upvotes * 5
+                elif len(score) > 0:
+                    if int(score) >= 0 and int(score) <= 5:
+                        rawscore = rawscore + int(score)
+                        scores = scores + 1
+                        if int(score) == 0:
+                            blockedvotes = blockedvotes + 1
                 if scores > 0:
                     avgscore = float(rawscore/scores)
                 else:
                     avgscore = float(0)
-                item.upvotes = upvotes
-                item.downvotes = downvotes
                 item.blockedvotes = blockedvotes
                 item.scores = scores
                 item.avgscore = avgscore
