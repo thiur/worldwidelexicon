@@ -79,7 +79,6 @@ from webappcookie import Cookies
 from database import Score
 from database import Translation
 from database import Users
-from database import Websites
 from geo import geo
 
 class stat():
