@@ -332,20 +332,14 @@ class WebServer(webapp.RequestHandler):
             prompt_services = mt.getTranslation('en', language, prompt_services)
         self.response.out.write('<table border=0 width=100%>')
         self.response.out.write('<tr><td width=70%>')
-        self.response.out.write('<h1><a href=/>Der Mundo</a></h1><hr>')
-        self.response.out.write('<h4><a href=http://blog.worldwidelexicon.org/?page_id=2>' + prompt_about + '</a>')
-        self.response.out.write(' | <a href=http://blog.worldwidelexicon.org/?page_id=26>' + prompt_essay + '</a>')
-        # self.response.out.write(' | <a href=http://blog.worldwidelexicon.org>' + prompt_help + '</a>')
-        # self.response.out.write(' | ' + prompt_groups)
-        # self.response.out.write(' | ' + prompt_news)
-        # self.response.out.write(' | <a href=/s/donate.html>' + prompt_donate + '</a>')
+        self.response.out.write('<h1><a href=/>Worldwide Lexicon</a></h1><hr>')
+        self.response.out.write('<h4><a href=http://blog.worldwidelexicon.org/?page_id=26>' + prompt_essay + '</a>')
         self.response.out.write(' | <a href=http://blog.worldwidelexicon.org/?page_id=29>' + prompt_publishers + '</a>')
         self.response.out.write(' | <a href=/api>' + prompt_api + '</a>')
         self.response.out.write(' | <a href=http://blog.worldwidelexicon.org/?page_id=12>' + prompt_developers + '</a>')
         # self.response.out.write(' | <a href=http://blog.worldwidelexicon.org>' + prompt_services+ '</a>')
         self.response.out.write('</h4>')
         self.response.out.write('<hr>')
-        #self.response.out.write('<hr><h3>' + prompt_subtitle + '</h3><hr>')
         self.response.out.write('</td><td width=30%>')
         self.response.out.write('<table border=0><tr><td colspan=3>')
         self.selectlanguage(language)
@@ -826,14 +820,9 @@ class WebServer(webapp.RequestHandler):
         
     def sidebar(self, language, q='', username='', domain='', page=''):
         prompt_recent_translations = 'Recent Translations'
+        prompt_downloads = 'Downloads'
         prompt_add_website = 'Add A Website To The Directory'
         prompt_get_firefox = 'New: Firefox Translator'
-        prompt_essay = 'Essay : The End of the Language Barrier'
-        prompt_essay_details = 'Brian McConnell, founder of WWL, published this essay, \
-<a href=/s/essay.html>"The End of the Language Barrier"</a>. This essay describes the future \
-of the worldwide web, and how it will become a multilingual system. We invite you to share \
-and translate the essay and, if you think this is valuable work, to join our \
-<a href=/s/donate.html>fundraising campaign.</a><hr>'
         prompt_google_group = 'Visit This Group'
         google_group_badge = '<table style="background-color: #fff; padding: 5px;" cellspacing=0><tr><td>\
 <img src="http://groups.google.com/intl/en/images/logos/groups_logo_sm.gif" height=30 width=140 alt="Google Groups"></td></tr>\
@@ -848,24 +837,31 @@ and translate the essay and, if you think this is valuable work, to join our \
             ffl = 'pt-BR'
         else:
             ffl = language
-        prompt_get_firefox_details = '<a href=https://addons.mozilla.org/' + ffl + '/firefox/addon/13897>Download the WWL Translator for Firefox</a> \
-This free tool automatically translates foreign websites into your language. Now, browsing the web in other languages is as easy as browsing the web in your language.'
+        prompt_get_firefox_details = '<h4><a href=https://addons.mozilla.org/' + ffl + '/firefox/addon/13897>WWL Translator for Firefox</a></h4>'
+        prompt_wordpress = '<h4><a href=http://wordpress.org/extend/plugins/speaklike-worldwide-lexicon-translator/>Word Press Translator</a></h4>'
+        prompt_mediawiki = '<h4>MediaWiki Translator (Coming Soon)</h4>'
+        prompt_transkit = '<h4><a href=http://code.google.com/p/worldwidelexicon>TransKit Libraries</a></h4>'
         if language != 'en' and len(language) > 1:
+            prompt_downloads = tx('en', language, prompt_downloads)
             prompt_add_website = tx('en', language, prompt_add_website)
             prompt_get_firefox = tx('en', language, prompt_get_firefox)
             prompt_get_firefox_details = tx('en', language, prompt_get_firefox_details)
+            prompt_transkit = tx('en', language, prompt_transkit)
+            prompt_wordpress = tx('en', language, prompt_wordpress)
+            prompt_mediawiki = tx('en', language, prompt_mediawiki)
             prompt_recent_translatons = tx('en', language, prompt_recent_translations)
             prompt_essay = tx('en', language, prompt_essay)
             prompt_essay_details = tx('en', language, prompt_essay_details)
             prompt_google_group = tx('en', language, prompt_google_group)
             google_group_badge = string.replace(google_group_badge, 'Visit This Group', prompt_google_group)
-        self.response.out.write('<h2>' + prompt_get_firefox + '</h2>')
-        self.response.out.write('<img src=/image/firefoxlogo.jpg align=left>' + prompt_get_firefox_details)
+        self.response.out.write('<h2>' + prompt_downloads + '</h2>')
+        self.response.out.write(prompt_get_firefox_details)
+        self.response.out.write(prompt_wordpress)
+        self.response.out.write(prompt_transkit)
+        self.response.out.write(prompt_mediawiki)
         self.response.out.write('<hr>')
         self.response.out.write(google_group_badge)
         self.response.out.write('<hr>')
-        self.response.out.write('<h2>' + prompt_essay + '</h2>')
-        self.response.out.write(prompt_essay_details)
         if page == 'about.html':
             self.feed(language, 'http://wwl.unthinkingly.com/?feed=rss2', limit=10)
         if len(q) < 1 and len(username) < 1 and page != 'about.html':

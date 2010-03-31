@@ -27,9 +27,11 @@ WWL will expect an 'ok' or error message, followed by an optional translated tex
 
 If there is an exact match for the requested source text and target language in your translation memory, you can return this in response to the translation request. You should format your response as follows:
 
+<blockquote>
 ok<br>
 This is a translation.<br><br>
-
+</blockquote>
+                                         
 Where the response message 'ok' is followed by a line break, and then by the translation (UTF 8 encoding). If there are multiple translations, you should decide which one to return. This translation will be copied into the WWL translation memory immediately.<br><br>
 
 <h3>Submitting Translations To WWL</h3>
@@ -46,25 +48,14 @@ When the translation is completed, simply send the text to the callback URL with
 <li>url : source url</li>
 <li>username : username to attribute translation to (e.g. bob@yourservice)</li>
 <li>remote_addr : user IP address (optional)</li>
+<li>apikey : your WWL API key (contact bsmcconnell at gmail to request yours)
 </ul>
 
 This API responds with 'ok' or error message.<br><br>
 
 <h3>Joining the Public WWL Network</h3>
 
-When you are ready to begin testing your implementation, email bsmcconnell /at/ gmail with the incoming URL for your API, as well as the IP address you will be submitting translations from. We will add you to the default list of language service providers, at which point you will be able to send requests via the /t web API on WWL.<br><br>
-
-<h3>Configuring Your WWL System To Allow Third-Party Services</h3>
-
-The config.py file is used to configure support for third-party language services. There is a section for Language Service Providers where you can set the following options for each LSP:<br><br>
-
-<ul>
-<li>URL to send translation requests to</li>
-<li>IP address to expect translations from</li>
-<li>Allowed languages (list)</li>
-</ul>
-
-Submissions from external services are filtered by IP address, so only submissions from IP addresses associated with a service are accepted. This works because third-party services will typically route translations through a gateway that resides at a static IP address.<br><br> 
+When you are ready to begin testing your implementation, email bsmcconnell /at/ gmail to request your API key.<br><br>
 
 <h3>Special Cases</h3>
 
