@@ -76,7 +76,6 @@ from database import Search
 from database import Translation
 from database import languages
 from database import Users
-from database import Websites
 from database import Settings
 from ip import ip
 import feedparser

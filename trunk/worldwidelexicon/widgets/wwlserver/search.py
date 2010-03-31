@@ -61,7 +61,6 @@ from database import languages
 from database import Translation
 from database import Search
 from database import Users
-from database import Websites
 from geo import geo
 from geo import GeoDB
 from webappcookie import Cookies
