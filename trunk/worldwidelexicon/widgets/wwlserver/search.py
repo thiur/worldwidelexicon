@@ -850,8 +850,6 @@ class WebServer(webapp.RequestHandler):
             prompt_wordpress = tx('en', language, prompt_wordpress)
             prompt_mediawiki = tx('en', language, prompt_mediawiki)
             prompt_recent_translatons = tx('en', language, prompt_recent_translations)
-            prompt_essay = tx('en', language, prompt_essay)
-            prompt_essay_details = tx('en', language, prompt_essay_details)
             prompt_google_group = tx('en', language, prompt_google_group)
             google_group_badge = string.replace(google_group_badge, 'Visit This Group', prompt_google_group)
         self.response.out.write('<h2>' + prompt_downloads + '</h2>')
