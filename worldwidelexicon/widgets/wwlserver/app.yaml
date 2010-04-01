@@ -170,7 +170,7 @@ handlers:
   script: hosts.py
   secure: optional
   
-- url: /hosts/log
+- url: /hosts/(.*)
   script: hosts.py
   secure: optional
   
