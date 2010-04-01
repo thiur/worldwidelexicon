@@ -81,13 +81,96 @@ class ReadQueue(webapp.RequestHandler):
         else:
             self.response.out.write('error')
 
-class SubmitTranslation(webapp.RequestHandler):
+class AcceptJob(webapp.RequestHandler):
+    """
+    /lsp/accept
+
+    This request handler is called to accept a job. This will mark it as
+    pending until it is completed, rejected or deleted, and will not be assigned to
+    other requestors.
+
+    It is called with the parameters:
+
+    apikey = LSP api key
+    guid = unique ID of the job
+
+    It returns ok or error
+    """
     def get(self):
         self.requesthandler()
     def post(self):
         self.requesthandler()
     def requesthandler(self):
         pass
+
+class DeleteJob(webapp.RequestHandler):
+    """
+    /lsp/delete
+
+    Used to delete a job from the request queue
+
+    It is called with the following parameters:
+
+    apikey = LSP api key
+    guid = unique ID of the job to delete
+
+    It returns ok or error
+    """
+    def get(self):
+        self.requesthandler()
+    def post(self):
+        self.requesthandler()
+    def requesthandler(self):
+        pass
+
+class RejectJob(webapp.RequestHandler):
+    """
+    /lsp/reject
+
+    Used to reject a job and place it back in the translation queue
+
+    It is called with the following parameters:
+
+    apikey = LSP api key
+    guid = unique ID of the job to place back in the queue
+
+    It returns ok or error
+    """
+    def get(self):
+        self.requesthandler()
+    def post(self):
+        self.requesthandler()
+    def requesthandler(self):
+        pass
+
+class SubmitTranslation(webapp.RequestHandler):
+    """
+    /lsp/submit
+
+    Used to submit a completed translation to the translation memory.
+    This bypasses the usual community translation workflow that may require
+    additional review or scoring, and treats the submission as a trusted
+    source.
+
+    It expects the following parameters:
+
+    apikey = LSP api key
+    guid = unique ID of the translation job
+    tt = translated text (UTF-8 encoding only)
+
+    It returns ok or an error message
+
+    """
+    def get(self):
+        self.requesthandler()
+    def post(self):
+        self.requesthandler()
+    def requesthandler(self):
+        apikey = self.request.get('apikey')
+        if len(apikey) > 0:
+            username = APIKeys.auth(apikey)
+        else:
+            self.response.out.write('error')
 
 application = webapp.WSGIApplication([('/lsp/get', ReadQueue),
                                       ('/lsp/submit', SubmitTranslation)],
