@@ -440,9 +440,6 @@ class GetTranslations(webapp.RequestHandler):
         except:
             pass
         domain = self.request.get('domain')
-        sys_allow_anonymous = Websites.parm(domain,'tm_allow_anonymous')
-        sys_allow_machine = Websites.parm(domain,'tm_allow_machine')
-        sys_allow_unscored = Websites.parm(domain,'tm_allow_unscored')        
         url = self.request.get('url')
         md5hash = self.request.get('md5hash')
         fuzzy = self.request.get('fuzzy')
@@ -469,7 +466,7 @@ class GetTranslations(webapp.RequestHandler):
         except:
             allow_anonymous = self.request.get('allow_anonymous')
         doc = self.request.get('doc')
-        if string.lower(allow_anonymous) == 'n' or sys_allow_anonymous != 'y':
+        if string.lower(allow_anonymous) == 'n':
             display_anonymous = False
         else:
             display_anonymous = True
@@ -477,7 +474,7 @@ class GetTranslations(webapp.RequestHandler):
             allow_machine = cookies['allow_machine']
         except:
             allow_machine = self.request.get('allow_machine')
-        if string.lower(allow_machine) == 'n' or sys_allow_machine != 'y':
+        if string.lower(allow_machine) == 'n':
             display_machine = False
         else:
             display_machine = True
@@ -485,7 +482,7 @@ class GetTranslations(webapp.RequestHandler):
             allow_unscored = cookies['allow_unscored']
         except:
             allow_unscored = self.request.get('allow_unscored')
-        if string.lower(allow_unscored) == 'n' or sys_allow_unscored != 'y':
+        if string.lower(allow_unscored) == 'n':
             display_unscored = False
         else:
             display_unscored = True
@@ -711,7 +708,7 @@ class SubmitTranslation(webapp.RequestHandler):
             country = location['country']
             latitude = location['latitude']
             longitude = location['longitude']
-        sys_allow_anonymous = Websites.parm(domain, 'tm_allow_anonymous')
+        sys_allow_anonymous = 'y'
         if sys_allow_anonymous is not None and sys_allow_anonymous == 'n' and validuser == False:
             valid_query = False
         result = False

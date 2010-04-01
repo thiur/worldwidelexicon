@@ -1519,6 +1519,19 @@ class Stats(db.Expando):
     languages = db.ListProperty(str)
     views = db.IntegerProperty(default = 0)
     @staticmethod
+    def purge():
+        td = datetime.timedelta(days=-90)
+        now = datetime.datetime.now()
+        lastdate = now + td
+        sdb = db.Query(Stats)
+        sdb.filter('date < ', lastdate)
+        results = sdb.fetch(limit=200)
+        if len(results) > 0:
+            db.delete(results)
+            return True
+        else:
+            return False
+    @staticmethod
     def save(remote_addr, username = '', city = '', state = '', country = '', latitude = None, longitude = None, languages=None):
         now = datetime.datetime.now()
         year = now.year

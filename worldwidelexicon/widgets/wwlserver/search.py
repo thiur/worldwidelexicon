@@ -60,6 +60,7 @@ import feedfinder
 from database import languages
 from database import Translation
 from database import Search
+from database import Settings
 from database import Users
 from geo import geo
 from geo import GeoDB
@@ -148,7 +149,7 @@ def tx(sl, tl, st, split = 'n'):
     This convenience function fetches a human or machine translation for a text
     and displays it in a bilingual format.
     """
-    tt = Translation.lucky(sl=sl, tl=tl, st=st, domain='www.worldwidelexicon.org', lsp='speaklike', lspusername=Config.speaklike_username, lsppw=Config.speaklike_pw)
+    tt = Translation.lucky(sl=sl, tl=tl, st=st, domain='www.worldwidelexicon.org', lsp='speaklike', lspusername=Settings.get('speaklikeusername'), lsppw=Settings.get('speaklikepw'))
     if sl == tl or len(tl) < 2:
         return st
     elif len(tt) > 0:
