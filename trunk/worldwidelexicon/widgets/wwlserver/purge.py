@@ -4,6 +4,7 @@ from google.appengine.ext.webapp.util import run_wsgi_app
 from google.appengine.ext import db
 from geo import geo
 from database import Search
+from database import Stats
 
 class Purge(webapp.RequestHandler):
     def get(self, name=''):
@@ -11,6 +12,8 @@ class Purge(webapp.RequestHandler):
             result = Search.purge()
         elif name == 'geodb':
             result = geo.purge(name='geodb')
+        elif name == 'stats':
+            result = Stats.purge()
         else:
             result = geo.purge()
         self.response.out.write('ok')
