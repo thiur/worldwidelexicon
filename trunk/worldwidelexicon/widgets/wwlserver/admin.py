@@ -53,13 +53,48 @@ from google.appengine.api.labs import taskqueue
 # import WWL modules
 from database import APIKeys
 from database import languages
+from database import Languages
 from database import Settings
 from database import Users
+from mt import MT
 # import third party modules
 from webappcookie import Cookies
 
 # Define default settings
 encoding = 'utf-8'
+
+def header():
+    t = '<head><title>Worldwide Lexicon</title>'
+    t = t + '<link rel="stylesheet" href="/static/2col.css" type="text/css">'
+    t = t + '</head><body>'
+    t = t + '<div class="header">'
+    t = t + '<h1>Worldwide Lexicon Control Panel</h1>'
+    t = t + '</div>'
+    t = t + '<div class="colmask rightmenu"><div class="colleft">'
+    return t
+
+def footer():
+    t = right_menu()
+    t = t + '</div></div><div class="footer">'
+    t = t + '(c) 1998-2010 Brian S McConnell, <a href=http://www.worldwidelexicon.org>Worldwide Lexicon Inc</a></div>'
+    return t
+
+def is_admin():
+    user = users.get_current_user()
+    if users.is_current_user_admin():
+        return True
+    else:
+        return False
+
+def right_menu():
+    t = '<div class="col2">'
+    t = t + '<h4><a href=/admin/install>Quick Install</a></h4>'
+    t = t + '<h4><a href=/admin/keys>Manage API Keys</a></h4>'
+    t = t + '<h4><a href=/admin/languages>Languages</a></h4>'
+    t = t + '<h4><a href=/admin/mt>Machine Translation</a></h4>'
+    t = t + '<h4><a href=/admin/vars>System Variables</a></h4>'
+    t = t + '</div>'
+    return t
 
 class Login(webapp.RequestHandler):
     def get(self):
@@ -79,11 +114,12 @@ class Login(webapp.RequestHandler):
 
 class Variables(webapp.RequestHandler):
     def get(self):
-        user = users.get_current_user()
-        if user and users.is_current_user_admin():
+        if is_admin():
+            self.response.out.write(header())
+            self.response.out.write('<div class="col1">')
             self.response.out.write('<h3>System Variables</h3>')
             self.response.out.write('Use this form to create, edit and delete persistent system or environment variables.')
-            self.response.out.write('<table border=1>')
+            self.response.out.write('<table>')
             self.response.out.write('<tr><td>Name</td><td>Value</td><td></td></tr>')
             sdb = db.Query(Settings)
             sdb.order('name')
@@ -96,7 +132,8 @@ class Variables(webapp.RequestHandler):
                 self.response.out.write('</td><td><input type=submit value=Save></form></td></tr>')
             self.response.out.write('<tr valign=top><td><form action=/admin/setvar method=get>New Row: <input type=text name=name></td>')
             self.response.out.write('<td><input type=text name=value></td>')
-            self.response.out.write('<td><input type=submit value=Create></form></td></tr></table>')
+            self.response.out.write('<td><input type=submit value=Create></form></td></tr></table></div>')
+            self.response.out.write(footer())
         else:
             self.redirect('/admin')
 
@@ -117,7 +154,9 @@ class ViewAPIKeys(webapp.RequestHandler):
         user = users.get_current_user()
         if user and users.is_current_user_admin():
             results = APIKeys.fetch()
-            self.response.out.write('<form action=/admin/makekey method=get><table border=1>')
+            self.response.out.write(header())
+            self.response.out.write('<div class="col1">')
+            self.response.out.write('<form action=/admin/makekey method=get><table>')
             self.response.out.write('<tr><td>Username or Nickname</td><td><input type=text name=username></td></tr>')
             self.response.out.write('<tr><td>Short Description</td><td><input type=text name=description></td></tr>')
             self.response.out.write('<tr><td colspan=2><input type=submit value="Make Key"></td></tr></table></form>')
@@ -126,7 +165,8 @@ class ViewAPIKeys(webapp.RequestHandler):
             for r in results:
                 self.response.out.write('<tr><td>' + r.username + '</td><td>' + r.guid + '</td>')
                 self.response.out.write('<td><a href=/admin/deletekey?guid=' + r.guid + '>Delete Key</a></td></tr>')
-            self.response.out.write('</table><hr>')
+            self.response.out.write('</table></div>')
+            self.response.out.write(footer())
         else:
             self.redirect('/admin')
 
@@ -153,6 +193,124 @@ class MakeAPIKey(webapp.RequestHandler):
         else:
             self.redirect('/admin')
 
+class ManageLanguages(webapp.RequestHandler):
+    def get(self):
+        if is_admin():
+            self.response.out.write(header())
+            self.response.out.write('<div class="col1">')
+            self.response.out.write('<h2>Manage Languages</h2>')
+            self.response.out.write('<table')
+            results = Languages.find()
+            for r in results:
+                self.response.out.write('<tr><td>' + r.name + ' ('+ r.code + ')</td>')
+                self.response.out.write('<td><a href=/admin/deletelanguage?code=' + r.code + '>Delete</a></td></tr>')
+            self.response.out.write('</table>')
+            self.response.out.write('<hr>')
+            self.response.out.write('<h3>Add Language</h3>')
+            self.response.out.write('<form action=/admin/addlanguage method=get>')
+            self.response.out.write('<table><tr><td>Language Code (2-3 Letter ISO Code</td>')
+            self.response.out.write('<td><input type=text name=code maxlength=3></td></tr>')
+            self.response.out.write('<tr><td>Native Name</td><td><input type=text name=name></td></tr>')
+            self.response.out.write('<tr><td colspan=2><input type=submit value="Add Language"></td></tr>')
+            self.response.out.write('</form></table>')
+            self.response.out.write('</div>')
+            self.response.out.write(footer())
+        else:
+            self.redirect('/admin')
+
+class AddLanguage(webapp.RequestHandler):
+    def get(self):
+        if is_admin():
+            code = self.request.get('code')
+            name = self.request.get('name')
+            Languages.add(code,name)
+            self.redirect('/admin/languages')
+        else:
+            self.redirect('/admin')
+
+class DeleteLanguage(webapp.RequestHandler):
+    def get(self):
+        if is_admin():
+            code = self.request.get('code')
+            Languages.remove(code)
+            self.redirect('/admin/languages')
+        else:
+            self.redirect('/admin')
+
+class ManageMachineTranslation(webapp.RequestHandler):
+    def get(self):
+        if is_admin:
+            self.response.out.write(header())
+            self.response.out.write('<div class="col1">')
+            self.response.out.write('<h3>Machine Translation Settings</h3>')
+            self.response.out.write('<table>')
+            self.response.out.write('<form action=/admin/mt method=post>')
+            self.response.out.write('<tr><td>Default Translation Engine</td>')
+            self.response.out.write('<input type=hidden name=langpair value=default>')
+            self.response.out.write('<td>' + MT.select() + '</td>')
+            self.response.out.write('</td><td><input type=submit value="Save"></td></tr></form>')
+            self.response.out.write('<tr><td>Google API Key (optional)</td><td>')
+            self.response.out.write('<form action=/admin/mt method=post>')
+            googleapikey = Settings.get('googleapikey')
+            self.response.out.write('<input type=text name=googleapikey value="' + googleapikey + '"></td>')
+            self.response.out.write('<td><input type=submit value="Save"></td></tr></form>')
+            self.response.out.write('<tr><td>WorldLingo API Key</td><td>')
+            worldlingoapikey = Settings.get('worldlingoapikey')
+            self.response.out.write('<form action=/admin/mt method=post>')
+            self.response.out.write('<input type=text name=worldlingoapikey value="' + worldlingoapikey + '"></td>')
+            self.response.out.write('<td><input type=submit value="Save"></td></tr></form>')
+            self.response.out.write('</table>')
+            self.response.out.write('<hr>')
+            self.response.out.write('<h3>Language Settings</h3>')
+            self.response.out.write('<table>')
+            self.response.out.write('<tr><td>Language Pair</td><td>Translation Engine</td><td></td></tr>')
+            results = MT.find()
+            if len(results) > 0:
+                for r in results:
+                    self.response.out.write('<tr><td>' + r.langpair + '</td>')
+                    self.response.out.write('<td>' + r.mtengine + '</td>')
+                    self.response.out.write('<td><a href=/admin/deletemt?langpair=' + r.langpair + '>Delete</a></td></tr>')
+            self.response.out.write('</table>')
+            self.response.out.write('<h3>Add New Language Pair</h3>')
+            self.response.out.write('<table><form action=/admin/mt method=post>')
+            self.response.out.write('<tr><td>Source Language Code</td><td><input type=text name=sl></td></tr>')
+            self.response.out.write('<tr><td>Target Language Code</td><td><input type=text name=tl></td></tr>')
+            self.response.out.write('<tr><td>Translation Engine</td><td>' + MT.select() + '</td></tr>')
+            self.response.out.write('<tr><td colspan=2><input type=submit value="Save"></td></tr></table></form>')
+            self.response.out.write('</div>')
+            self.response.out.write(footer())
+        else:
+            self.redirect('/admin')
+    def post(self):
+        if is_admin:
+            googleapikey = self.request.get('googleapikey')
+            worldlingoapikey = self.request.get('worldlingoapikey')
+            sl = self.request.get('sl')
+            tl = self.request.get('tl')
+            langpair = self.request.get('langpair')
+            mtengine = self.request.get('mtengine')
+            if len(googleapikey) > 0:
+                Settings.set('googleapikey', googleapikey)
+            elif len(worldlingoapikey) > 0:
+                Settings.set('worldlingoapikey', worldlingoapikey)
+            elif len(sl) > 0 and len(tl) > 0 and len(mtengine) > 0:
+                MT.add(sl, tl, mtengine)
+            elif langpair == 'default':
+                MT.add(langpair,langpair,mtengine)
+            self.redirect('/admin/mt')
+        else:
+            self.redirect('/admin')
+
+class DeleteMTEngine(webapp.RequestHandler):
+    def get(self):
+        if is_admin:
+            langpair = self.request.get('langpair')
+            if len(langpair) > 3:
+                MT.remove(langpair)
+            self.redirect('/admin/mt')
+        else:
+            self.redirect('/admin')
+
 class Robots(webapp.RequestHandler):
     def get(self):
         self.response.out.write('User-agent: *\n')
@@ -167,8 +325,13 @@ class Headers(webapp.RequestHandler):
             self.response.out.write(h + ' : ' + headers[h] + '<br>')
 
 application = webapp.WSGIApplication([('/admin', Login),
+                                      ('/admin/addlanguage', AddLanguage),
+                                      ('/admin/deletelanguage', DeleteLanguage),
+                                      ('/admin/deletemt', DeleteMTEngine),
                                       ('/admin/keys', ViewAPIKeys),
+                                      ('/admin/languages', ManageLanguages),
                                       ('/admin/makekey', MakeAPIKey),
+                                      ('/admin/mt', ManageMachineTranslation),
                                       ('/admin/deletekey', DeleteAPIKey),
                                       ('/admin/vars', Variables),
                                       ('/admin/setvar', SetVariable),

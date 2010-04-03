@@ -57,7 +57,9 @@ import codecs
 import urllib
 import md5
 # import WWL and third party modules
+from akismet import Akismet
 import demjson
+from database import Settings
 from database import Users
 from www import www
 
@@ -78,6 +80,12 @@ class Hosts(db.Model):
     lastupdated = db.DateTimeProperty(auto_now_add = True)
 
 class DirectoryIP(db.Model):
+    """
+    This datastore maintains a map of IP addresses and the domains mapped to them.
+    This is used to limit the number of domains that can be submitted to the page
+    tracking system from a single IP address. We also use Akismet to detect and
+    filter spam submissions, as well as rate limit submissions. 
+    """
     remote_addr = db.StringProperty(default='')
     domains = db.ListProperty(str)
     apikey = db.StringProperty(default='')
@@ -139,38 +147,63 @@ class Directory(db.Model):
         else:
             return False
     @staticmethod
-    def save(remote_addr, domain, url, sl, tl, title, ttitle='', description='', tdescription='', tags='', hosttype=''):
+    def save(remote_addr, domain, url, sl, tl, title, ttitle='', description='', tdescription='', tags='', hosttype='', user_agent=''):
         if len(domain) > 0 and len(url) > 0 and len(sl) > 0 and len(tl) > 0:
-            valid = DirectoryIP.verify(remote_addr, domain)
-            if valid:
-                m = md5.new()
-                m.update(url)
-                m.update(sl)
-                m.update(tl)
-                guid = str(m.hexdigest())
-                hdb = db.Query(Directory)
-                hdb.filter('guid = ', guid)
-                item = hdb.get()
-                if item is None:
-                    item = Directory()
-                    item.guid = guid
-                    item.sl = sl
-                    item.tl = tl
-                    item.domain = domain
-                    item.url = url
-                    item.hosttype = hosttype
-                item.title = title
-                item.description = description
-                item.ttitle = ttitle
-                item.tdescription = tdescription
-                if len(tags) > 0:
-                    tags = string.lower(tags)
-                    tags = string.split(tags, ',')
+            # call Akismet to verify post is not spam
+            akismetapi = Settings.get('akismet')
+            if akismetapi is not None:
+                if len(akismetapi) > 0:
+                    a = Akismet()
+                    a.setAPIKey(akismetapi)
+                    try:
+                        a.verify_key()
+                        data = dict()
+                        data['user_ip']= remote_addr
+                        if len(user_agent) > 0:
+                            data['user_agent'] = self.request.headers['User-Agent']
+                        if a.comment_check(title + ' ' + description, data):
+                            spam = True
+                        else:
+                            spam = False
+                    except:
+                        spam = False
+                else:
+                    spam = False
+            else:
+                spam = False
+            if not spam:
+                valid = DirectoryIP.verify(remote_addr, domain)
+                if valid:
+                    m = md5.new()
+                    m.update(url)
+                    m.update(sl)
+                    m.update(tl)
+                    guid = str(m.hexdigest())
+                    hdb = db.Query(Directory)
+                    hdb.filter('guid = ', guid)
+                    item = hdb.get()
+                    if item is None:
+                        item = Directory()
+                        item.guid = guid
+                        item.sl = sl
+                        item.tl = tl
+                        item.domain = domain
+                        item.url = url
+                        item.hosttype = hosttype
+                    item.title = title
+                    item.description = description
+                    item.ttitle = ttitle
+                    item.tdescription = tdescription
                     if len(tags) > 0:
-                        item.tags = tags
-                item.lastupdated = datetime.datetime.now()
-                item.put()
-                return True
+                        tags = string.lower(tags)
+                        tags = string.split(tags, ',')
+                        if len(tags) > 0:
+                            item.tags = tags
+                    item.lastupdated = datetime.datetime.now()
+                    item.put()
+                    return True
+                else:
+                    return False
             else:
                 return False
         else:
@@ -193,13 +226,14 @@ class HostsSubmit(webapp.RequestHandler):
     ttitle = translated page title
     description = page description or initial block of body text
     tdescription = translated page description
+    hosttype = type of host (e.g. wordpress, apache, etc)
     tags = tags (optional)
     apikey = API key (to unlock multiple domains per IP address
                 otherwise, only allows one domain per IP address)
 
-    Returns ok or error message (only if API key is invalid, otherwise
-    it does not reveal if it accepted or rejected the submission (i.e.
-    flagged as spam by Akismet)
+    Returns ok or error (if WWL APIKey is provided and is invalid)
+    Submissions are also screened by Akismet and other spam filtering
+    services. 
     """
     def get(self):
         self.requesthandler()
