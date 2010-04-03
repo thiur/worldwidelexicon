@@ -88,7 +88,7 @@ def is_admin():
 
 def right_menu():
     t = '<div class="col2">'
-    t = t + '<h4><a href=/admin/install>Quick Install</a></h4>'
+    t = t + '<h4><a href=/admin/setup>Quick Install</a></h4>'
     t = t + '<h4><a href=/admin/keys>Manage API Keys</a></h4>'
     t = t + '<h4><a href=/admin/languages>Languages</a></h4>'
     t = t + '<h4><a href=/admin/mt>Machine Translation</a></h4>'
@@ -259,10 +259,14 @@ class ManageMachineTranslation(webapp.RequestHandler):
             googleapikey = Settings.get('googleapikey')
             self.response.out.write('<input type=text name=googleapikey value="' + googleapikey + '"></td>')
             self.response.out.write('<td><input type=submit value="Save"></td></tr></form>')
-            self.response.out.write('<tr><td>WorldLingo API Key</td><td>')
-            worldlingoapikey = Settings.get('worldlingoapikey')
+            self.response.out.write('<tr><td>WorldLingo Subscription</td><td>')
+            worldlingosubscription = Settings.get('worldlingosubscription')
             self.response.out.write('<form action=/admin/mt method=post>')
-            self.response.out.write('<input type=text name=worldlingoapikey value="' + worldlingoapikey + '"></td>')
+            self.response.out.write('<input type=text name=worldlingosubscription value="' + worldlingosubscription + '"></td>')
+            self.response.out.write('<td></td></tr>')
+            worldlingopw = Settings.get('worldlingopw')
+            self.response.out.write('<tr><td>WorldLingo password</td>')
+            self.response.out.write('<td><input type=text name=worldlingopw value="' + worldlingopw + '"></td>')
             self.response.out.write('<td><input type=submit value="Save"></td></tr></form>')
             self.response.out.write('</table>')
             self.response.out.write('<hr>')
@@ -289,15 +293,17 @@ class ManageMachineTranslation(webapp.RequestHandler):
     def post(self):
         if is_admin:
             googleapikey = self.request.get('googleapikey')
-            worldlingoapikey = self.request.get('worldlingoapikey')
+            worldlingosubscription = self.request.get('worldlingosubscription')
+            worldlingopw = self.request.get('worldlingopw')
             sl = self.request.get('sl')
             tl = self.request.get('tl')
             langpair = self.request.get('langpair')
             mtengine = self.request.get('mtengine')
             if len(googleapikey) > 0:
                 Settings.set('googleapikey', googleapikey)
-            elif len(worldlingoapikey) > 0:
-                Settings.set('worldlingoapikey', worldlingoapikey)
+            elif len(worldlingosubscription) > 0 and len(worldlingopw) > 0:
+                Settings.set('worldlingosubscription', worldlingosubscription)
+                Settings.set('worldlingopw', worldlingopw)
             elif len(sl) > 0 and len(tl) > 0 and len(mtengine) > 0:
                 MT.add(sl, tl, mtengine)
             elif langpair == 'default':
@@ -329,6 +335,57 @@ class Headers(webapp.RequestHandler):
         for h in headerkeys:
             self.response.out.write(h + ' : ' + headers[h] + '<br>')
 
+class Setup(webapp.RequestHandler):
+    def get(self):
+        if is_admin():
+            self.response.out.write(header())
+            self.response.out.write('<div class="col1">')
+            self.response.out.write('<h2>Worldwide Lexicon Quick Setup</h2>')
+            self.response.out.write('<table><form action=/admin/setup method=post>')
+            title = Settings.get('title')
+            if len(title) < 1:
+                title = 'Worldwide Lexicon Server'
+            self.response.out.write('<tr><td>Website Title</td><td><input type=text name=title value="' + title + '"></td></tr>')
+            self.response.out.write('<tr><td>Root URL</td><td><input type=text name=root_url value="' + Settings.get('root_url') + '"></td></tr>')
+            primary_language = Settings.get('primary_language')
+            if len(primary_language) < 1:
+                primary_language = 'en'
+            self.response.out.write('<tr><td>Primary Language</td><td><select name=primary_language>' + languages.select(selected=primary_language) + '</select></td></tr>')
+            self.response.out.write('<tr><td><a href=http://www.akismet.com>Akismet</a> Anti-Spam Key</td><td><input type=text name=akismet value="' + Settings.get('akismet') + '"></td></tr>')
+            self.response.out.write('<tr><td><a href=http://www.maxmind.com>Maxmind Geolocation</a> Key</td><td><input type=text name=maxmind value="' + Settings.get('maxmind') + '"></td></tr>')
+            self.response.out.write('<tr><td><a href=http://www.google.com/analytics>Google Analytics</a> Key</td><td><input type=text name=googleanalytics value="' + Settings.get('googleanalytics') + '"></td></tr>')
+            self.response.out.write('<tr><td colspan=2><input type=submit value="Save"></td></tr>')
+            self.response.out.write('</table></form>')
+            self.response.out.write('</div>')
+            self.response.out.write(footer())
+        else:
+            self.redirect('/admin')
+    def post(self):
+        if is_admin():
+            title = self.request.get('title')
+            root_url = self.request.get('root_url')
+            primary_language = self.request.get('primary_language')
+            akismet = self.request.get('akismet')
+            maxmind = self.request.get('maxmind')
+            googleanalytics = self.request.get('googleanalytics')
+            if len(title) > 0:
+                Settings.save('title', title)
+            if len(root_url) > 0:
+                if string.count(root_url, 'http://') < 1:
+                    root_url = 'http://' + root_url
+                Settings.save('root_url', root_url)
+            if len(primary_language) > 1:
+                Settings.save('primary_language', primary_language)
+            if len(akismet) > 1:
+                Settings.save('akismet', akismet)
+            if len(maxmind) > 1:
+                Settings.save('maxmind', maxmind)
+            if len(googleanalytics) > 1:
+                Settings.save('googleanalytics', googleanalytics)
+            self.redirect('/admin/setup')
+        else:
+            self.redirect('/admin')
+
 application = webapp.WSGIApplication([('/admin', Login),
                                       ('/admin/addlanguage', AddLanguage),
                                       ('/admin/deletelanguage', DeleteLanguage),
@@ -339,6 +396,7 @@ application = webapp.WSGIApplication([('/admin', Login),
                                       ('/admin/mt', ManageMachineTranslation),
                                       ('/admin/deletekey', DeleteAPIKey),
                                       ('/admin/vars', Variables),
+                                      ('/admin/setup', Setup),
                                       ('/admin/setvar', SetVariable),
                                       ('/headers', Headers),
                                       ('/robots.txt', Robots)],
