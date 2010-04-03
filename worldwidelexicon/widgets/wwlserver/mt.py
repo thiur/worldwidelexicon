@@ -523,8 +523,8 @@ class WorldLingoProxy():
         if len(st) > 0:
             sl = WorldLingoLanguage(sl)
             tl = WorldLingoLanguage(tl)
-            subscription = Config.worldlingo_api
-            pw = Config.worldlingo_pw
+            subscription = Settings.get('worldlingosubscription')
+            pw = Settings.get('worldlingopw')
             baseurl = 'http://www.worldlingo.com/' + subscription + '/api?'
             st = st.encode('utf-8')
             ust = urllib.quote_plus(st)
