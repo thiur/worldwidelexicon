@@ -99,17 +99,21 @@ def right_menu():
 class Login(webapp.RequestHandler):
     def get(self):
         user = users.get_current_user()
-        if user:
-            if users.is_current_user_admin():
-                greeting = ("Welcome, %s! (<a href=\"%s\">sign out</a>)" %
+        if is_admin():
+            self.response.out.write(header())
+            self.response.out.write('<div class="col1">')
+            greeting = ("Welcome, %s! (<a href=\"%s\">sign out</a>)" %
                             (user.nickname(), users.create_logout_url("/admin")))
-            else:
-                greeting = ("Sorry, %s, you must be an administrator to access this module. (<a href=\"%s\">sign out</a>)" %
+            self.response.out.write(greeting)
+            self.response.out.write('</div>')
+            self.response.out.write(footer())
+            return
+        elif user:
+            greeting = ("Sorry, %s, you must be an administrator to access this module. (<a href=\"%s\">sign out</a>)" %
                             (user.nickname(), users.create_logout_url("/admin")))
         else:
             greeting = ("<a href=\"%s\">Sign in or register</a>." %
                         users.create_login_url("/admin"))
-
         self.response.out.write("<html><body>" + greeting + "</body></html>")
 
 class Variables(webapp.RequestHandler):
@@ -119,8 +123,8 @@ class Variables(webapp.RequestHandler):
             self.response.out.write('<div class="col1">')
             self.response.out.write('<h3>System Variables</h3>')
             self.response.out.write('Use this form to create, edit and delete persistent system or environment variables.')
-            self.response.out.write('<table>')
-            self.response.out.write('<tr><td>Name</td><td>Value</td><td></td></tr>')
+            self.response.out.write('<br><br><table>')
+            self.response.out.write('<tr><td><b>Name</b></td><td><b>Value</b></td><td></td></tr>')
             sdb = db.Query(Settings)
             sdb.order('name')
             results = sdb.fetch(200)
@@ -156,6 +160,7 @@ class ViewAPIKeys(webapp.RequestHandler):
             results = APIKeys.fetch()
             self.response.out.write(header())
             self.response.out.write('<div class="col1">')
+            self.response.out.write('Use this interface to manage Language Service providers and their API keys.')
             self.response.out.write('<form action=/admin/makekey method=get><table>')
             self.response.out.write('<tr><td>Username or Nickname</td><td><input type=text name=username></td></tr>')
             self.response.out.write('<tr><td>Short Description</td><td><input type=text name=description></td></tr>')
