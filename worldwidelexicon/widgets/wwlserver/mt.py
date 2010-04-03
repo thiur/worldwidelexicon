@@ -116,7 +116,7 @@ default_engine = 'google'
 # interface at /admin on your WWL server. 
 #
 lp = dict()
-lp['es-en']='moses'
+lp['es-en']='google'
 lp['en-es']='google'
 lp['en-ca']='google'
 lp['en-gl']='apertium'
@@ -155,6 +155,118 @@ lp['nb-nn']='apertium'
 lp['no-nb']='apertium'
 lp['nb-no']='apertium'
 
+class MT(db.Model):
+    langpair = db.StringProperty(default='')
+    mtengine = db.StringProperty(default='')
+    url = db.StringProperty(default='')
+    output = db.StringProperty(default='')
+    @staticmethod
+    def add(sl, tl, mtengine):
+        if len(sl) > 1 and len(tl) > 1:
+            mdb = db.Query(MT)
+            mdb.filter('langpair = ', sl + '-' + tl)
+            item = mdb.get()
+            if item is None:
+                item = MT()
+                item.langpair = sl + '-' + tl
+            item.mtengine = mtengine
+            item.put()
+            memcache.delete('/mtengines')
+            memcache.set('/mtengines/' + sl + '-' + tl, mtengine,300)
+            return True
+        else:
+            return False
+    @staticmethod
+    def defaults():
+        lpkeys = lp.keys()
+        for l in lpkeys:
+            mdb = db.Query(MT)
+            mdb.filter('langpair = ', l)
+            item = mdb.get()
+            if item is None:
+                item = MT()
+                item.langpair = l
+            item.mtengine = lp[l]
+            item.put()
+            memcache.set('/mtengines/' + l, lp[l], 300)
+    @staticmethod
+    def find():
+        results = memcache.get('/mtengines')
+        if results is not None:
+            return results
+        mdb = db.Query(MT)
+        mdb.order('langpair')
+        results = mdb.fetch(limit=200)
+        if len(results) < 1:
+            MT.defaults()
+            mdb = db.Query(MT)
+            mdb.order('langpair')
+            results = mdb.fetch(limit=200)
+            memcache.set('/mtengines', results, 300)
+            return results
+        else:
+            memcache.set('/mtengines', results, 300)
+            return results
+    @staticmethod
+    def pickengine(sl, tl):
+        mtengine = memcache.get('/mtengines/' + sl + '-' + tl)
+        if mtengine is not None:
+            return mtengine
+        else:
+            mdb = db.Query(MT)
+            mdb.filter('langpair = ', sl + '-' + tl)
+            item = mdb.get()
+            if item is not None:
+                memcache.set('/mtengines/' + sl + '-' + tl, item.mtengine, 300)
+                return item.mtengine
+            else:
+                mtengine = memcache.get('/mtengines/default-default')
+                if mtengine is not None:
+                    return mtengine
+                else:
+                    mdb = db.Query(MT)
+                    mdb.filter('langpair = ', 'default-default')
+                    item = mdb.get()
+                    if item is not None:
+                        mtengine = item.mtengine
+                        memcache.set('/mtengines/default-default', mtengine,900)
+                        return mtengine
+                    else:
+                        memcache.set('/mtengines/default-default', 'google', 900)
+                        return 'google'
+    @staticmethod
+    def remove(langpair):
+        if len(langpair) > 2:
+            mdb = db.Query(MT)
+            mdb.filter('langpair = ', langpair)
+            item = mdb.get()
+            if item is not None:
+                item.delete()
+                memcache.delete('/mtengines')
+                memcache.delete('/mtengines/' + langpair)
+                return True
+            else:
+                return False
+        else:
+            return False
+    @staticmethod
+    def select():
+        engines = list()
+        engines.append('apertium')
+        engines.append('google')
+        engines.append('moses')
+        engines.append('worldlingo')
+        t = '<select name=mtengine>'
+        defaultengine = MT.pickengine('default', 'default')
+        if len(defaultengine) < 1:
+            defaultengine = 'google'
+        t = t + '<option selected value="' + defaultengine + '">' + string.capitalize(defaultengine) + '</option>'
+        for e in engines:
+            if e != defaultengine:
+                t = t + '<option value="' + e + '">' + string.capitalize(e) + '</option>'
+        t = t + '</select>'
+        return t
+
 class MTWrapper():
     """
     This is a wrapper class that encapsulates methods to make HTTP queries to other
@@ -190,11 +302,7 @@ class MTWrapper():
         which is used, in turn, to decide which
         MT proxy class to call to submit an external CGI query. 
         """
-        engine = Config.mt_default
-        try:
-            engine = lp[sl + '-' + tl]
-        except:
-            pass
+        engine = MT.pickengine(sl,tl)
         return engine
     
     def getTranslation(self,sl='en',tl='es',st='',mtengine='',domain='',url='', mode='text', userip=''):

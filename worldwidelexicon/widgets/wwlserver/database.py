@@ -440,6 +440,41 @@ class Comment(db.Model):
         else:
             return 0
 
+class Languages(db.Model):
+    code = db.StringProperty(default='')
+    name = db.StringProperty(default='')
+    @staticmethod
+    def add(code, name):
+        if len(code) > 0 and len(name) > 0:
+            ldb = db.Query(Languages)
+            ldb.filter('code = ', code)
+            item = ldb.get()
+            if item is None:
+                item = Languages()
+                item.code = code
+            item.name = name
+            item.enabled = True
+            item.put()
+            return True
+        else:
+            return False
+    @staticmethod
+    def remove(code):
+        if len(code) < 4:
+            ldb = db.Query(Languages)
+            ldb.filter('code = ', code)
+            item = ldb.get()
+            if item is not None:
+                item.delete()
+                return True
+        return False
+    @staticmethod
+    def find():
+        ldb = db.Query(Languages)
+        ldb.order('code')
+        results = ldb.fetch(limit=200)
+        return results
+
 class languages():
     """
     This class implements several convenience methods for managing the list of supported languages on
@@ -481,149 +516,95 @@ class languages():
         list to a smaller pre-defined list of languages (if you only want to allow
         translations to a smaller group of languages on your site.
         """
-        langs = memcache.get('languages|local|english=' + english)
-        if len(languages) < 1 and langs is not None:
-            return langs
-        else:
-            ln=dict()
-            ln['en']=u'English'
-            ln['es']=u'Spanish'
-            ln['af']=u'Afrikaans'
-            ln['ar']=u'Arabic'
-            ln['bg']=u'Bulgarian'
-            ln['da']=u'Danish'
-            ln['de']=u'German'
-            ln['fr']=u'French'
-            ln['he']=u'Hebrew'
-            ln['id']=u'Indonesian'
-            ln['it']=u'Italian'
-            ln['ja']=u'Japanese'
-            ln['ko']=u'Korean'
-            ln['ru']=u'Russian'
-            ln['th']=u'Thai'
-            ln['tl']=u'Tagalog'
-            ln['zh']=u'Chinese'
-            ln['ca']=u'Catalan'
-            ln['cs']=u'Czech'
-            ln['cy']=u'Welsh'
-            ln['el']=u'Greek'
-            ln['et']=u'Estonian'
-            ln['eu']=u'Basque'
-            ln['fa']=u'Farsi'
-            ln['fi']=u'Finnish'
-            ln['ga']=u'Gaelic'
-            ln['gl']=u'Galician'
-            ln['gu']=u'ગુજરાતી'
-            ln['hi']=u'Hindi'
-            ln['hr']=u'Croatian'
-            ln['ht']=u'Haitian Creole'
-            ln['hu']=u'Hungarian'
-            ln['is']=u'Icelandic'
-            ln['iu']=u'ᐃᓄᒃᑎᑐᑦ'
-            ln['jv']=u'Basa Jawa'
-            ln['ku']=u'كوردی'
-            ln['la']=u'Latin'
-            ln['lt']=u'Lithuanian'
-            ln['lv']=u'Latvian'
-            ln['mn']=u'Mongolian'
-            ln['ms']=u'بهاس ملايو‎'
-            ln['my']=u'Burmese'
-            ln['ne']=u'Nepalese'
-            ln['nl']=u'Dutch'
-            ln['no']=u'Norwegian (Bokmal)'
-            ln['nn']=u'Norwegian (Norsk)'
-            ln['oc']=u'Occitan'
-            ln['pa']=u'ਪੰਜਾਬੀ '
-            ln['po']=u'Polish'
-            ln['ps']=u'پښتو'
-            ln['pt']=u'Portuguese'
-            ln['ro']=u'Romanian'
-            ln['sk']=u'Slovak'
-            ln['sr']=u'српски језик'
-            ln['sv']=u'Swedish'
-            ln['sw']=u'Swahili'
-            ln['tr']=u'Turkish'
-            ln['uk']=u'Ukranian'
-            ln['vi']=u'Vietnamese'
-            ln['yi']=u'Yiddish'
-            l=dict()
-            l['en']=u'English'
-            l['es']=u'Español'
-            l['af']=u'Afrikaans'
-            l['ar']=u'العربية'
-            l['bg']=u'български език'
-            l['bo']=u'བོད་ཡིག'
-            l['de']=u'Deutsch'
-            l['fr']=u'Français'
-            l['he']=u'עברית '
-            l['id']=u'Indonesian'
-            l['it']=u'Italiano'
-            l['ja']=u'日本語'
-            l['ko']=u'한국어'
-            l['ru']=u'русский'
-            l['th']=u'ไทย '
-            l['tl']=u'Tagalog'
-            l['zh']=u'中文 '
-            l['ca']=u'Català'
-            l['cs']=u'česky'
-            l['cy']=u'Cymraeg'
-            l['da']=u'Dansk'
-            l['el']=u'Ελληνικά'
-            l['et']=u'Eesti keel'
-            l['eu']=u'Euskara'
-            l['fa']=u'فارسی '
-            l['fi']=u'suomen kieli'
-            l['ga']=u'Gaeilge'
-            l['gl']=u'Galego'
-            l['gu']=u'ગુજરાતી'
-            l['hi']=u'हिन्दी '
-            l['hr']=u'Hrvatski'
-            l['ht']=u'Kreyòl ayisyen'
-            l['hu']=u'Magyar'
-            l['is']=u'Íslenska'
-            l['iu']=u'ᐃᓄᒃᑎᑐᑦ'
-            l['jv']=u'basa Jawa'
-            l['ku']=u'كوردی'
-            l['la']=u'lingua latina'
-            l['lt']=u'lietuvių'
-            l['lv']=u'latviešu'
-            l['mn']=u'Монгол '
-            l['ms']=u'بهاس ملايو‎'
-            l['my']=u'Burmese'
-            l['ne']=u'नेपाली '
-            l['nl']=u'Nederlands'
-            l['no']=u'Norsk Bokmal'
-            l['nn']=u'Norsk'
-            l['oc']=u'Occitan'
-            l['pa']=u'ਪੰਜਾਬੀ '
-            l['po']=u'polski'
-            l['ps']=u'پښتو'
-            l['pt']=u'Português'
-            l['ro']=u'română'
-            l['sk']=u'slovenčina'
-            l['sr']=u'српски језик'
-            l['sv']=u'svenska'
-            l['sw']=u'Kiswahili'
-            l['tr']=u'Türkçe'
-            l['uk']=u'Українська'
-            l['vi']=u'Tiếng Việt'
-            l['yi']=u'ייִדיש'
-            if type(languages) is list:
-                if len(languages) < 1:
-                    memcache.set('languages|local|english=' + english, l, 72000)
-                    return l
-                langs = dict()
-                for k in languages:
-                    lang = l.get(k)
-                    if len(lang) > 0:
-                        langs[k]=l[k]
-                return langs
-            elif len(languages) > 0:
-                langname = l.get(languages, '')
-                return langname
+        langs = memcache.get('/languages')
+        if langs is not None:
+            if len(languages) > 0:
+                language = langs.get(languages,'')
+                return language
             else:
-                if english == 'y':
+                return langs
+        else:
+            results = Languages.find()
+            if len(results) > 0:
+                ln = dict()
+                for r in results:
+                    ln[r.code]=r.name
+                memcache.set('/languages', ln, 300)
+                if len(languages) > 0:
+                    language = ln.get(languages,'')
+                    return language
+                else:
                     return ln
+            else:
+                l=dict()
+                l['en']=u'English'
+                l['es']=u'Español'
+                l['af']=u'Afrikaans'
+                l['ar']=u'العربية'
+                l['bg']=u'български език'
+                l['bo']=u'བོད་ཡིག'
+                l['de']=u'Deutsch'
+                l['fr']=u'Français'
+                l['he']=u'עברית '
+                l['id']=u'Indonesian'
+                l['it']=u'Italiano'
+                l['ja']=u'日本語'
+                l['ko']=u'한국어'
+                l['ru']=u'русский'
+                l['th']=u'ไทย '
+                l['tl']=u'Tagalog'
+                l['zh']=u'中文 '
+                l['ca']=u'Català'
+                l['cs']=u'česky'
+                l['cy']=u'Cymraeg'
+                l['da']=u'Dansk'
+                l['el']=u'Ελληνικά'
+                l['et']=u'Eesti keel'
+                l['eu']=u'Euskara'
+                l['fa']=u'فارسی '
+                l['fi']=u'suomen kieli'
+                l['ga']=u'Gaeilge'
+                l['gl']=u'Galego'
+                l['gu']=u'ગુજરાતી'
+                l['hi']=u'हिन्दी '
+                l['hr']=u'Hrvatski'
+                l['ht']=u'Kreyòl ayisyen'
+                l['hu']=u'Magyar'
+                l['is']=u'Íslenska'
+                l['iu']=u'ᐃᓄᒃᑎᑐᑦ'
+                l['jv']=u'basa Jawa'
+                l['ku']=u'كوردی'
+                l['la']=u'lingua latina'
+                l['lt']=u'lietuvių'
+                l['lv']=u'latviešu'
+                l['mn']=u'Монгол '
+                l['ms']=u'بهاس ملايو‎'
+                l['my']=u'Burmese'
+                l['ne']=u'नेपाली '
+                l['nl']=u'Nederlands'
+                l['no']=u'Norsk Bokmal'
+                l['nn']=u'Norsk'
+                l['oc']=u'Occitan'
+                l['pa']=u'ਪੰਜਾਬੀ '
+                l['po']=u'polski'
+                l['ps']=u'پښتو'
+                l['pt']=u'Português'
+                l['ro']=u'română'
+                l['sk']=u'slovenčina'
+                l['sr']=u'српски језик'
+                l['sv']=u'svenska'
+                l['sw']=u'Kiswahili'
+                l['tr']=u'Türkçe'
+                l['uk']=u'Українська'
+                l['vi']=u'Tiếng Việt'
+                l['yi']=u'ייִדיש'
+                lnkeys = l.keys()
+                for ln in lnkeys:
+                    Languages.add(ln, l[ln])
+                memcache.set('/languages', l, 300)
+                if len(languages) > 0:
+                    language = l.get(languages,'')
+                    return language
                 else:
                     return l
     @staticmethod
