@@ -186,6 +186,9 @@ handlers:
 - url: /log
   script: translations.py
 
+- url: /lsp/(.*)
+  script: lsp.py
+
 - url: /mt
   script: mt.py
   

@@ -658,9 +658,5 @@ class MTServer(webapp.RequestHandler):
 application = webapp.WSGIApplication([('/mt', MTServer)],
                                      debug=True)
 
-# Note: to run this service as a standalone machine translation proxy,
-# add an entry ('/', MTServer) to the WSGIApplication call, and update
-# app.yaml to send queries to / to my.py instead of main.py
-
 def main():
   run_wsgi_app(application)

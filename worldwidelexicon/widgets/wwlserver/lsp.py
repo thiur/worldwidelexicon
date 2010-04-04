@@ -50,10 +50,8 @@ import string
 import md5
 import codecs
 from database import APIKeys
-from database import Queue
-from database import Translation
+from database import LSPQueue
 from deeppickle import DeepPickle
-from config import Config
 from www import www
 
 def clean(text):
@@ -66,82 +64,6 @@ def clean(text):
             utext = text
     text = utext.decode('utf-8')
     return text
-
-class ReadQueue(webapp.RequestHandler):
-    def get(self):
-        self.requesthandler()
-    def post(self):
-        self.requesthandler()
-    def requesthandler(self):
-        apikey = self.request.get('apikey')
-        if len(apikey) > 0:
-            username = APIKeys.auth(apikey)
-            if len(username) > 0:
-                pass
-        else:
-            self.response.out.write('error')
-
-class AcceptJob(webapp.RequestHandler):
-    """
-    /lsp/accept
-
-    This request handler is called to accept a job. This will mark it as
-    pending until it is completed, rejected or deleted, and will not be assigned to
-    other requestors.
-
-    It is called with the parameters:
-
-    apikey = LSP api key
-    guid = unique ID of the job
-
-    It returns ok or error
-    """
-    def get(self):
-        self.requesthandler()
-    def post(self):
-        self.requesthandler()
-    def requesthandler(self):
-        pass
-
-class DeleteJob(webapp.RequestHandler):
-    """
-    /lsp/delete
-
-    Used to delete a job from the request queue
-
-    It is called with the following parameters:
-
-    apikey = LSP api key
-    guid = unique ID of the job to delete
-
-    It returns ok or error
-    """
-    def get(self):
-        self.requesthandler()
-    def post(self):
-        self.requesthandler()
-    def requesthandler(self):
-        pass
-
-class RejectJob(webapp.RequestHandler):
-    """
-    /lsp/reject
-
-    Used to reject a job and place it back in the translation queue
-
-    It is called with the following parameters:
-
-    apikey = LSP api key
-    guid = unique ID of the job to place back in the queue
-
-    It returns ok or error
-    """
-    def get(self):
-        self.requesthandler()
-    def post(self):
-        self.requesthandler()
-    def requesthandler(self):
-        pass
 
 class SubmitTranslation(webapp.RequestHandler):
     """
@@ -157,6 +79,7 @@ class SubmitTranslation(webapp.RequestHandler):
     apikey = LSP api key
     guid = unique ID of the translation job
     tt = translated text (UTF-8 encoding only)
+    score = 0..5 (if submitting a score for a translation)
 
     It returns ok or an error message
 
@@ -167,18 +90,30 @@ class SubmitTranslation(webapp.RequestHandler):
         self.requesthandler()
     def requesthandler(self):
         apikey = self.request.get('apikey')
-        if len(apikey) > 0:
-            username = APIKeys.auth(apikey)
+        tt = clean(self.request.get('tt'))
+        score = self.request.get('score')        
+        if len(apikey) > 0 and len(guid) > 0:
+            result = LSPQueue.submit(apikey, guid, tt=tt, score=score)
+            if result:
+                self.response.out.write('ok')
+            else:
+                self.response.out.write('error')
         else:
-            self.response.out.write('error')
+            www.serve(self, self.__doc__)
+            self.response.out.write('<table>')
+            self.response.out.write('<form action=/lsp/submit method=post>')
+            self.response.out.write('<tr><td>LSP API Key (apikey)</td><td><input type=text name=apikey></td></tr>')
+            self.response.out.write('<tr><td>Job ID (guid)</td><td><input type=text name=guid></td></tr>')
+            self.response.out.write('<tr><td>Translated Text (tt)</td><td><input type=text name=tt></td></tr>')
+            self.response.out.write('<tr><td>Score (score=0..5)</td><td><input type=text name=score></td></tr>')
+            self.response.out.write('<tr><td colspan=2><input type=submit value="Submit"></td></tr>')
+            self.response.out.write('</table></form>')
 
-application = webapp.WSGIApplication([('/lsp/get', ReadQueue),
-                                      ('/lsp/submit', SubmitTranslation)],
+application = webapp.WSGIApplication([('/lsp/submit', SubmitTranslation)],
                                      debug=True)
-
-# Note: to run this service as a standalone machine translation proxy,
-# add an entry ('/', MTServer) to the WSGIApplication call, and update
-# app.yaml to send queries to / to my.py instead of main.py
 
 def main():
   run_wsgi_app(application)
+
+if __name__ == "__main__":
+    main()

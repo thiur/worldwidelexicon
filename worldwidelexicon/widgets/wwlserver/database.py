@@ -158,6 +158,7 @@ class APIKeys(db.Model):
     createdon = db.DateTimeProperty(auto_now_add = True)
     lastupdate = db.DateTimeProperty()
     lastlogin = db.DateTimeProperty()
+    url = db.StringProperty(default='')
     @staticmethod
     def add(username, description=''):
         adb = db.Query(APIKeys)
@@ -204,6 +205,32 @@ class APIKeys(db.Model):
                 return ''
         else:
             return ''
+    @staticmethod
+    def request_translation(lsp, guid, sl, tl, st, domain, url, priority, username, pw):
+        if len(lsp) > 0 and len(sl) > 0 and len(tl) > 0 and len(st) > 0:
+            adb = db.Query(APIKeys)
+            adb.filter('username = ', lsp)
+            item = adb.get()
+            if item is not None:
+                url = item.url
+                return LSPQueue.add('translate', url, guid, sl, tl, st, '', domain, url, priority, username, pw)
+            else:
+                return False
+        else:
+            return False
+    @staticmethod
+    def request_score(lsp, guid, sl, tl, st, tt, domain, url, priority, username, pw):
+        if len(lsp) > 0 and len(sl) > 0 and len(tl) > 0 and len(st) > 0:
+            adb = db.Query(APIKeys)
+            adb.filter('username = ', lsp)
+            item = adb.get()
+            if item is not None:
+                url = item.url
+                return LSPQueue.add('score', url, guid, sl, tl, st, tt, domain, url, priority, username, pw)
+            else:
+                return False
+        else:
+            return False
     @staticmethod
     def verify(guid):
         if len(guid) > 8:
@@ -638,6 +665,108 @@ class languages():
             if valid:
                 t = t + '<option value="' + l + '">' + langlist.get(l, '') + '</option>'
         return t
+
+class LSPQueue(db.Model):
+    action = db.StringProperty(default='translate')
+    guid = db.StringProperty(default='')
+    sl = db.StringProperty(default='')
+    tl = db.StringProperty(default='')
+    st = db.TextProperty(default='')
+    tt = db.TextProperty(default='')
+    domain = db.StringProperty(default='')
+    url = db.StringProperty(default='')
+    priority = db.StringProperty(default='')
+    username = db.StringProperty(default='')
+    pw = db.StringProperty(default='')
+    sent = db.BooleanProperty(default=False)
+    createdon = db.DateTimeProperty(auto_now_add=True)
+    completed = db.BooleanProperty(default=False)
+    completedon = db.DateTimeProperty()
+    tries = db.IntegerProperty(default=0)
+    @staticmethod
+    def add(action,external_url,guid,sl,tl,st,tt,domain,url,priority,username,pw):
+        qdb = db.Query(LSPQueue)
+        qdb.filter('guid = ', guid)
+        item = qdb.get()
+        if item is None:
+            item = LSPQueue()
+            item.guid = guid
+            item.action = action
+            item.sl = sl
+            item.tl = tl
+            item.st = st
+            item.tt = tt
+            item.domain = domain
+            item.url = url
+            item.priority = priority
+            item.username = username
+            item.pw = pw
+            d = dict()
+            d['guid']=guid
+            d['action']=action
+            d['sl']=sl
+            d['tl']=tl
+            d['st']=st
+            d['tt']=tt
+            d['domain']=domain
+            d['url']=url
+            d['priority']=priority
+            d['username']=username
+            d['pw']=pw
+            form_data = urllib.urlencode(d)
+            try:
+                result = urlfetch.fetch(url=external_url,
+                                      payload=form_data,
+                                      method=urlfetch.POST,
+                                      headers={'Content-Type' : 'application/x-www-form-urlencoded','Accept-Charset' : 'utf-8'})
+                response = result.content
+                if string.count(response.lower(), 'ok') > 0:
+                    item.sent = True
+                    item.put()
+                    return True
+                else:
+                    return False
+            except:
+                return False
+        else:
+            return False
+    @staticmethod
+    def submit(apikey, guid, tt='', score=''):
+        if len(apikey) > 0 and len(guid) > 0 and len(tt) > 0:
+            username = APIKeys.getusername(apikey)
+            if len(username) > 0:
+                qdb = db.Query(LSPQueue)
+                qdb.filter('guid = ', guid)
+                item = qdb.get()
+                if item is not None:
+                    if item.action == 'translate':
+                        sl = item.sl
+                        tl = item.tl
+                        st = item.st
+                        url = item.url
+                        domain = item.domain
+                        item.pw = ''
+                        item.completed = True
+                        item.completedon = datetime.datetime.now()
+                        item.put()
+                        result = Translation.submit(sl=sl, tl=tl, st=st, tt=tt, url=url, domain=domain, apikey=apikey)
+                        return result
+                    elif item.action == 'score':
+                        guid = item.guid
+                        item.pw = ''
+                        item.completed = True
+                        item.completedon = datetime.datetime.now()
+                        item.put()
+                        result = Score.vote(guid, score=score)
+                        return result
+                    else:
+                        return False
+                else:
+                    return False
+            else:
+                return False
+        else:
+            return False
     
 class Queue(db.Model):
     """
