@@ -193,6 +193,18 @@ class APIKeys(db.Model):
         results = adb.fetch(limit=100)
         return results
     @staticmethod
+    def getusername(guid):
+        if len(guid) > 8:
+            adb = db.Query(APIKeys)
+            adb.filter('guid = ', guid)
+            item = adb.get()
+            if item is not None:
+                return item.username
+            else:
+                return ''
+        else:
+            return ''
+    @staticmethod
     def verify(guid):
         if len(guid) > 8:
             adb = db.Query(APIKeys)
@@ -1879,7 +1891,7 @@ class Translation(db.Model):
         else:
             return False
     @staticmethod
-    def submit(sl='', st='', tl='', tt='', username='', remote_addr='', domain='', url='', city='', state='', country='', longitude=None, latitude=None, professional=False, lsp='', proxy='n'):
+    def submit(sl='', st='', tl='', tt='', username='', remote_addr='', domain='', url='', city='', state='', country='', longitude=None, latitude=None, professional=False, lsp='', proxy='n', apikey=''):
         if len(sl) > 0 and len(st) > 0 and len(tl) > 0 and len(tt) > 0:
             validquery = True
         else:
@@ -1913,8 +1925,16 @@ class Translation(db.Model):
             tdb.state = state
             tdb.country = country
             tdb.professional = professional
-            if lsp == 'speaklike' or lsp == 'proz':
+            if len(apikey) > 0:
+                username = APIKeys.getusername(apikey)
+                if len(username) > 0:
+                    tdb.professional = True
+                    tdb.anonymous = False
+                    tdb.reviewed = True
+                    tdb.username = username
+            if lsp == 'speaklike':
                 tdb.professional = True
+                tdb.reviewed = True
             if latitude is not None and longitude is not None:
                 try:
                     tdb.latitude = latitude

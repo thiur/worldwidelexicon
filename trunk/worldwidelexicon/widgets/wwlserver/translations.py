@@ -606,6 +606,7 @@ class SubmitTranslation(webapp.RequestHandler):
             (in proxy mode, we use you are filtering submissions upstream and will accept
             whatever username you provide)
     session - session key (cookie, stored whenever user logs into system)
+    apikey - API key (for trusted submitters and LSPs)
     
     The API call returns a text/plain object, with either an ok response or an error message.
     
@@ -640,6 +641,7 @@ class SubmitTranslation(webapp.RequestHandler):
         username = self.request.get('username')
         proxy = self.request.get('proxy')
         pw = self.request.get('pw')
+        apikey = self.request.get('apikey')
         if len(username) > 0 and len(pw) > 0:
             sessinfo = Users.auth(username, pw, '', remote_addr)
             if type(sessinfo) is dict:
@@ -721,7 +723,7 @@ class SubmitTranslation(webapp.RequestHandler):
             p['remote_addr']=self.request.remote_addr
             taskqueue.add(url = '/log', params = p)
         if not spam:
-            result = Translation.submit(sl=sl, st=st, tl=tl, tt=tt, username=username, remote_addr=remote_addr, domain=domain, url=url, city=city, state=state, country=country, latitude=latitude, longitude=longitude, lsp=lsp, proxy=proxy)
+            result = Translation.submit(sl=sl, st=st, tl=tl, tt=tt, username=username, remote_addr=remote_addr, domain=domain, url=url, city=city, state=state, country=country, latitude=latitude, longitude=longitude, lsp=lsp, proxy=proxy, apikey=apikey)
         else:
             result = True
         if len(title) > 0 and len(url) > 0:
@@ -764,6 +766,7 @@ class SubmitTranslation(webapp.RequestHandler):
                 self.response.out.write('<tr><td>WWL Username</td><td><input type=text name=username></td></tr>')
                 self.response.out.write('<tr><td>WWL Password</td><td><input type=password name=pw></td></tr>')
                 self.response.out.write('<tr><td>Proxy Mode (y/n)</td><td><input type=text name=proxy value=n></td></tr>')
+                self.response.out.write('<tr><td>API Key</td><td><input type=text name=apikey></td></tr>')
                 self.response.out.write('<tr><td>Output format</td><td><input type=text name=output value=text></td></tr>')
                 self.response.out.write('<tr><td colspan=2><input type=submit value=OK></td></tr>')
                 self.response.out.write('</table></form>')
