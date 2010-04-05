@@ -58,7 +58,7 @@ from google.appengine.api import urlfetch
 from google.appengine.api.labs import taskqueue
 # import WWL modules
 from mt import MTWrapper
-from config import Config
+from transcoder import transcoder
 import sgmllib
 
 class MyParser(sgmllib.SGMLParser):
@@ -93,54 +93,9 @@ class MyParser(sgmllib.SGMLParser):
     def handle_data(self, data):
         if self.inside_title and data:
             self.title = self.title + data + ' '
-            
-def clean(text):
-    """
-    This function is used to check character encodings and to encode
-    texts in the UTF-8 encoding. It will convert from ASCII and ISO-Latin-1
-    if the incoming text is not UTF-8. Support for detection and conversion
-    of other encodings will be added in the future.
-    """
-    try:
-        utext = text.encode('utf-8')
-    except:
-        try:
-            utext = text.encode('iso-8859-1')
-        except:
-            try:
-                utext = text.encode('ascii')
-            except:
-                utext = ''
-    text = utext.decode('utf-8')
-    return text
 
-def smart_unicode(s, encoding='utf-8', errors='strict'):
-    """
-    This is a convenience function that verifies UTF-8 encoding for a text
-    """
-    if type(s) in (unicode, int, long, float, types.NoneType):
-        return unicode(s)
-    elif type(s) is str or hasattr(s, '__unicode__'):
-        return unicode(s, encoding, errors)
-    else:
-        return unicode(str(s), encoding, errors)
-        
-def smart_str(s, encoding='utf-8', errors='ignore', from_encoding='utf-8'):
-    if type(s) in (int, long, float, types.NoneType):
-        return str(s)
-    elif type(s) is str:
-        if encoding != from_encoding:
-            return s.decode(from_encoding, errors).encode(encoding, errors)
-        else:
-            return s
-    elif type(s) is unicode:
-        return s.encode(encoding, errors)
-    elif hasattr(s, '__str__'):
-        return smart_str(str(s), encoding, errors, from_encoding)
-    elif hasattr(s, '__unicode__'):
-        return smart_str(unicode(s), encoding, errors, from_encoding)
-    else:
-        return smart_str(str(s), encoding, errors, from_encoding)
+def clean(text):
+    return transcoder.clean(text)
 
 class APIKeys(db.Model):
     """
@@ -1869,7 +1824,7 @@ class Translation(db.Model):
         tl = string.lower(tl)
         allow_translation = False
         if lsp == 'speaklike' and sl != tl:
-            if (tl in Config.speaklike_languages and sl in Config.speaklike_languages) and lspusername != 'bsmcconnell@gmail.com':
+            if lspusername != 'bsmcconnell@gmail.com' and len(lsppw) > 0:
                 allow_translation = True
             elif lspusername == 'bsmcconnell@gmail.com' and sl == 'en' and (tl == 'es' or tl == 'pt' or tl=='ja' or tl=='de' or tl=='zh' or tl=='ru'):
                 allow_translation = True
@@ -2236,13 +2191,10 @@ class Translation(db.Model):
         if sl == tl:
             return st
         if len(sl) > 0 and len(tl) > 0 and len(st) > 0:
+            # generate md5hash
             m = md5.new()
-            st = codecs.encode(st, 'utf-8')
             m.update(st)
             md5hash = str(m.hexdigest())
-            text = memcache.get('lucky|sl=' + sl + '|tl=' + tl + '|md5hash=' + md5hash + '|output=' + output)
-            if text is not None:
-                return text
             # look for professional translation
             tdb = db.Query(Translation)
             tdb.filter('sl = ', sl)
@@ -2266,11 +2218,9 @@ class Translation(db.Model):
                 item = tdb.get()
                 if item is not None:
                     tt = clean(item.tt)
-            if len(tt) < 1 and allow_machine != 'n':
-                if len(queue) > 0:
-                    Queue.add(sl, tl, st, domain=domain, url=url, lsp=queue)
+            if len(tt) < 2 and allow_machine != 'n':
                 mt = MTWrapper()
-                tt = mt.getTranslation(sl, tl, st, mtengine, userip=userip)
+                tt = mt.getTranslation(sl, tl, st, userip=userip)
             if len(tt) > 0:
                 if output == 'text':
                     text = tt

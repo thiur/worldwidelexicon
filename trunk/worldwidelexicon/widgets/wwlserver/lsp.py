@@ -52,18 +52,11 @@ import codecs
 from database import APIKeys
 from database import LSPQueue
 from deeppickle import DeepPickle
+from transcoder import transcoder
 from www import www
 
 def clean(text):
-    try:
-        utext = text.encode('utf-8')
-    except:
-        try:
-            utext = text.encode('iso-8859-1')
-        except:
-            utext = text
-    text = utext.decode('utf-8')
-    return text
+    return transcoder.clean(text)
 
 class SubmitTranslation(webapp.RequestHandler):
     """

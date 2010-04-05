@@ -73,10 +73,14 @@ from deeppickle import DeepPickle
 from www import www
 from webappcookie import Cookies
 from geo import geo
+from transcoder import transcoder
 from akismet import Akismet
 from database import Users
 from database import Comment
 from database import Settings
+
+def clean(text):
+    return transcoder.clean(text)
 
 class GetComments(webapp.RequestHandler):
     """
@@ -192,7 +196,7 @@ class SubmitComment(webapp.RequestHandler):
         fields['guid'] = guid
         md5hash = self.request.get('md5hash')
         fields['md5hash'] = md5hash
-        comment=self.request.get('comment')
+        comment=clean(self.request.get('comment'))
         fields['comment'] = comment
         try:
             session = cookies['session']
