@@ -65,18 +65,11 @@ from database import Search
 from database import Translation
 from database import languages
 from mt import MTWrapper
+from transcoder import transcoder
 import feedparser
 
 def clean(text):
-    try:
-        utext = text.encode('utf-8')
-    except:
-        try:
-            utext = text.encode('iso-8859-1')
-        except:
-            utext = text
-    text = utext.decode('utf-8')
-    return text
+    return transcoder.clean(text)
 
 class Sidebar(webapp.RequestHandler):
     """
@@ -116,7 +109,7 @@ class Sidebar(webapp.RequestHandler):
             username = memcache.get('sessions|' + session)
             if username is None:
                 username = ''
-        comment = self.request.get('comment')
+        comment = clean(self.request.get('comment'))
         if len(comment) > 0:
             guid = ''
             fields = dict()

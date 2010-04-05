@@ -248,7 +248,7 @@ handlers:
 - url: /t
   script: translations.py
   
-- url: /test/(.*)/(.*)
+- url: /test
   script: test.py
   
 - url: /unicode

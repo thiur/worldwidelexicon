@@ -68,7 +68,6 @@ from webappcookie import Cookies
 from www import www
 from geo import geo
 from akismet import Akismet
-from config import Config
 from transcoder import transcoder
 from database import Comment
 from database import Queue
@@ -528,7 +527,7 @@ class GetTranslations(webapp.RequestHandler):
                     p['url'] = url
                     p['username'] = lspusername
                     p['pw'] = lsppw
-                    lspurl = Config.lspurl(lsp)
+                    lspurl = Settings.get('url_' + lsp)
                     if len(lspurl) > 0:
                         taskqueue.add(url = lspurl, params=p)
                 try:
@@ -830,7 +829,6 @@ class SimpleTranslation(webapp.RequestHandler):
         if len(st) < 1:
             st = self.request.get('st')
         userip = self.request.remote_addr
-        tt = self.request.get('tt')
         lsp = self.request.get('lsp')
         lspusername = self.request.get('lspusername')
         lsppw = self.request.get('lsppw')
@@ -868,7 +866,6 @@ class SimpleTranslation(webapp.RequestHandler):
                 self.response.headers['Content-Type']='text/plain'
                 self.response.out.write(tt)
                 text = tt
-                return text
             else:
                 d = DeepPickle()
                 p = dict()
@@ -884,8 +881,8 @@ class SimpleTranslation(webapp.RequestHandler):
                 else:
                     self.response.headers['Content-Type']='text/html'
                     self.response.out.write(text)
-            memcache.set('/t/' + md5hash + '/' + output, text, 300)
-            return text
+            if len(text) > 0:
+                memcache.set('/t/' + md5hash + '/' + output, text, 300)
         else:
             www.serve(self,self.__doc__, title='/t')
             self.response.out.write('<table><form action=/t method=get accept-charset=utf-8>')
@@ -897,7 +894,7 @@ class SimpleTranslation(webapp.RequestHandler):
             self.response.out.write('<tr><td>LSP Username</td><td><input type=text name=lspusername></td></tr>')
             self.response.out.write('<tr><td>LSP Password</td><td><input type=text name=lsppw></td></tr>')
             self.response.out.write('<tr><td>Limit Results By IP Address or Pattern</td><td><input type=text name=ip></td></tr>')
-            self.response.out.write('<tr><td>Output Format</td><td><input type=text name=output value=html></td></tr>')
+            self.response.out.write('<tr><td>Output Format</td><td><input type=text name=output value=text></td></tr>')
             self.response.out.write('<tr><td colspan=2><input type=submit value=GO></td></tr>')
             self.response.out.write('</form></table>')
             
@@ -929,24 +926,6 @@ class LogQueries(webapp.RequestHandler):
             except:
                 pass
         self.response.out.write('ok')
-        
-class UnicodeTest(webapp.RequestHandler):
-    def get(self):
-        self.requesthandler()
-    def post(self):
-        self.requesthandler()
-    def requesthandler(self):
-        text = self.request.get('text')
-        try:
-            utext = text.encode('utf-8')
-        except:
-            try:
-                utext = text.encode('iso-8859-1')
-            except:
-                utext = text.encode('ascii')
-        text = utext.decode('utf-8')
-        self.response.headers['Accept-Charset']='utf-8'
-        self.response.out.write(text)
         
 class SendLSP(webapp.RequestHandler):
     def get(self):
@@ -1088,8 +1067,7 @@ application = webapp.WSGIApplication([('/q', GetTranslations),
                                       (r'/t/(.*)/(.*)/(.*)', SimpleTranslation),
                                       (r'/t/(.*)/(.*)', SimpleTranslation),
                                       ('/t', SimpleTranslation),
-                                      ('/submit', SubmitTranslation),
-                                      ('/unicode', UnicodeTest)],
+                                      ('/submit', SubmitTranslation)],
                                      debug=True)
 
 def main():

@@ -36,126 +36,38 @@ TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF TH
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 """
-# import standard Python libraries
-import urllib
-import urllib2
-import string
-import datetime
-import codecs
 # import Google App Engine modules
 import wsgiref.handlers
 from google.appengine.ext import webapp
 from google.appengine.ext.webapp.util import run_wsgi_app
 from google.appengine.api import memcache
-from google.appengine.api import urlfetch
 # import WWL modules
-from wwlgae import wwl
-
-# Define convenience functions
-
-def clean(text):
-    if text is not None:
-        try:
-            utext = text.encode('utf-8')
-        except:
-            try:
-                utext = text.encode('iso-8859-1')
-            except:
-                try:
-                    utext = text.encode('ascii')
-                except:
-                    utext = text
-        try:
-            text = utext.decode('utf-8')
-        except:
-            text = utext
-        return text
-    else:
-        return ''
-
-# Define default settings
-
-encoding = 'utf-8'
-default_language = 'en'
-default_title = 'Hello World'
-
-# standard footer and source code attribution, do not modify or hide
-standard_footer = 'Content management system and collaborative translation memory powered \
-                  by the <a href=http://www.worldwidelexicon.org>Worldwide Lexicon Project</a> \
-                  (c) 1998-2009 Brian S McConnell and Worldwide Lexicon Inc. All rights reserved. \
-                  WWL multilingual CMS and translation memory is open source software published \
-                  under a BSD style license. Contact: bsmcconnell on skype or gmail.'
-
-translation_server = 'http://worldwidelexicon.appspot.com'
+from mt import MTWrapper
+from www import www
 
 class Test(webapp.RequestHandler):
     """
-    This web service finds and displays a page with translations. It expects the
-    following URL format:
-    
-    /test/languagecode/page
-    
-    It will load the page and then call the WWL translation server to request translations
-    as needed. You can run this as a standalone App Engine script without the rest of the WWL
-    environment, so it can interact with a remote or public WWL server. 
-    
+    This web service is used to test Unicode/UTF-8 transcoding.   
     """
-    
-    def get(self,p1='', p2='', p3=''):
-        # get HTTP headers
-        tl = p1
-        page = p2
-        headers = self.request.headers
-        lang = headers.get('Accept-Language', '')
-        remote_addr = self.request.remote_addr
-        self.header(tl)
-        self.static(tl, page)
-        self.footer(tl)
-        
-    def header(self, language):
-        head_title = default_title
-        head_css = 'blueprint'
-        if len(language) < 1:
-            language = default_language
-        # generate HTML header, link to CSS stylesheet
-        self.response.headers['Content-Type']='text/html'
-        self.response.out.write('<head><title>' + clean(head_title) + '</title>')
-        self.response.out.write('<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"></meta>')
-        self.title = head_title
-        self.response.out.write('</head>')
-        
-    def footer(self, language):
-        self.response.out.write('<div id="footer"><font size=-2>')
-        self.response.out.write(standard_footer)
-        self.response.out.write('</font></div>')
-                
-    def static(self, language, page):
-        if len(page) > 0:
-            txt = memcache.get('static|language=' + language + '|page=' + page)
-            if txt is not None:
-                self.response.out.write(txt)
-            else:
-                host = self.request.host
-                url = 'http://' + host + '/static/' + page
-                try:
-                    response = urlfetch.fetch(url=url)
-                    if response.status_code == 200:
-                        txt = clean(response.content)
-                except:
-                    txt = ''
-                texts = string.split(txt, '\n')
-                if len(texts) > 0 and language != 'en':
-                    txt = ''
-                    for t in texts:
-                        t = t
-                        if len(t) > 8 and language != 'en' and len(language) > 1:
-                            txt = txt + clean(wwl.get('en', language, t))
-                        else:
-                            txt = txt + t
-                memcache.set('static|language=' + language + '|page=' + page, txt, 300)
-                self.response.out.write(txt)
+    def get(self):
+        self.request.charset = 'utf8'
+        sl = self.request.get('sl')
+        tl = self.request.get('tl')
+        st = self.request.get('st')
+        if len(sl) < 1 and len(tl) < 1:
+            www.serve(self,self.__doc__)
+            self.response.out.write('<table><form action=/test method=get>')
+            self.response.out.write('<tr><td>Source Language</td><td><input type=text name=sl></td></tr>')
+            self.response.out.write('<tr><td>Target Language</td><td><input type=text name=tl></td></tr>')
+            self.response.out.write('<tr><td>Source Text</td><td><input type=text name=st></td></tr>')
+            self.response.out.write('<tr><td colspan=2><input type=submit value="Submit"></td></tr>')
+            self.response.out.write('</table></form>')
+        else:
+            mt = MTWrapper()
+            tt = mt.getTranslation(sl, tl, st)
+            self.response.out.write(tt + '<p><a href=/test>Try Another</a>')
 
-application = webapp.WSGIApplication([(r'/test/(.*)/(.*)', Test)],
+application = webapp.WSGIApplication([(r'/test', Test)],
                                      debug=True)
 
 def main():

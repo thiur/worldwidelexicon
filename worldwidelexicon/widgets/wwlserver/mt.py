@@ -86,19 +86,11 @@ import string
 import md5
 import codecs
 from deeppickle import DeepPickle
-from config import Config
 from www import www
+from transcoder import transcoder
 
 def clean(text):
-    try:
-        utext = text.encode('utf-8')
-    except:
-        try:
-            utext = text.encode('iso-8859-1')
-        except:
-            utext = text
-    text = utext.decode('utf-8')
-    return text
+    return transcoder.clean(text)
 
 # 
 # Machine Translation Settings
@@ -329,21 +321,12 @@ class MTWrapper():
             response['engine']=''
             response['tt']=''
             return response
-      ut = st.encode('utf-8')
-      if len(st) < 200:
-        try:
-            tt = memcache.get('mt.' + sl + '.' + tl + '.' + st)
-        except:
-            tt = None
-      else:
-        try:
-            m = md5.new()
-            m.update(ut)
-            md5hash = str(m.hexdigest())
-            tt = memcache.get('mt.' + sl + '.' + tl + '.' + md5hash)
-        except:
-            md5hash = ''
-            tt = None
+      m = md5.new()
+      m.update(sl)
+      m.update(tl)
+      m.update(st)
+      md5hash = str(m.hexdigest())
+      tt = memcache.get('/mt/' + sl + '/' + tl + '/' + md5hash)
       if tt is not None:
           if len(tt) > 0:
               if mode == 'text':
@@ -377,11 +360,14 @@ class MTWrapper():
         tt = mt.getTranslation(sl,tl,st,userip)
       # parse return results
       if tt is not None:
+        tt = clean(tt)
         if len(tt) > 0:
-            if len(st) < 200:
-              memcache.set('mt.' + sl + '.' + tl + '.' + st,tt,3600)
+            if len(md5hash) > 0:
+                memcache.set('/mt/' + sl + '/' + tl + '/' + md5hash, tt, 3600)
+            elif len(st) < 200:
+                memcache.set('/mt/' + sl + '/' + tl + '/' + st, tt, 3600)
             else:
-              memcache.set('mt.' + sl + '.' + tl + '.' + md5hash,tt,3600)
+                pass
             if mode == 'text':
                 return tt
             else:
@@ -422,7 +408,7 @@ class BabelfishMTProxy():
           tt = result.content
       except:
           tt=''
-      return codecs.encode(tt,'utf-8')
+      return clean(tt)
 
 class GoogleMTProxy():
     """
@@ -434,7 +420,7 @@ class GoogleMTProxy():
       form_fields = {
         "langpair": sl + '|' + tl,
         "v" : "1.0",
-        "q": st.encode('utf-8'),
+        "q": st,
         "ie" : "UTF8",
         "userip" : userip
       }
@@ -450,7 +436,7 @@ class GoogleMTProxy():
               tt = results['responseData']['translatedText']
           except:
               tt = ''
-          return tt
+          return clean(tt)
       except:
           return ''
         
@@ -466,7 +452,7 @@ class ApertiumProxy():
         "mark" : "0",
         "format" : "html",
         "mode" : sl + '-' + tl,
-        "text" : codecs.encode(st,'utf-8')
+        "text" : st
       }
       form_data = urllib.urlencode(form_fields)
       try:
@@ -477,7 +463,7 @@ class ApertiumProxy():
           tt = result.content
       except:
           tt=''
-      return codecs.encode(tt,'utf-8')
+      return clean(tt)
 
 #
 # Some addition stubs for other machine translation systems (not yet implemented)
@@ -496,7 +482,7 @@ class MosesProxy():
         form_fields = {
             "langpair": sl + '|' + tl,
             "v" : "1.0",
-            "q": st.encode('utf-8'),
+            "q": st,
             "ie" : "UTF8"
         }
         form_data = urllib.urlencode(form_fields)
@@ -510,7 +496,7 @@ class MosesProxy():
                 tt = results['responseData']['translatedText']
             except:
                 tt = ''
-            return tt
+            return clean(tt)
         except:
             return ''
 
@@ -526,14 +512,13 @@ class WorldLingoProxy():
             subscription = Settings.get('worldlingosubscription')
             pw = Settings.get('worldlingopw')
             baseurl = 'http://www.worldlingo.com/' + subscription + '/api?'
-            st = st.encode('utf-8')
             ust = urllib.quote_plus(st)
             suffix = 'wl_password=' + pw + '&wl_srclang=' + sl + '&wl_trglang=' + tl + '&wl_opt=0&wl_errorstyle=1&' + '&wl_data=' + ust
             url = baseurl + suffix
             response = urlfetch.fetch(url=url)
             try:
                 tt = response.content
-                return tt
+                return clean(tt)
             except:
                 return ''
         else:

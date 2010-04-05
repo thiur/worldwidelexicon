@@ -36,9 +36,6 @@ TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF TH
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 """
-# set constants
-target_encoding = 'utf-8'
-source_encoding = 'utf-8'
 # import Python standard modules
 import codecs
 import datetime
@@ -46,15 +43,40 @@ import string
 import types
 import urllib
 
+def smart_str(s, encoding='utf-8', errors='ignore', from_encoding='utf-8'):
+    if type(s) in (int, long, float, types.NoneType):
+        return str(s)
+    elif type(s) is str:
+        if encoding != from_encoding:
+            return s.decode(from_encoding, errors).encode(encoding, errors)
+        else:
+            return s
+    elif type(s) is unicode:
+        return s.encode(encoding, errors)
+    elif hasattr(s, '__str__'):
+        return smart_str(str(s), encoding, errors, from_encoding)
+    elif hasattr(s, '__unicode__'):
+        return smart_str(unicode(s), encoding, errors, from_encoding)
+    else:
+        return smart_str(str(s), encoding, errors, from_encoding)
+
 class transcoder():
     @staticmethod
     def clean(text):
-        text = urllib.unquote_plus(text)
+        """
+        This function is used to check character encodings and to encode
+        texts in the UTF-8 encoding. It will convert from ASCII and ISO-Latin-1
+        if the incoming text is not UTF-8. Support for detection and conversion
+        of other encodings will be added in the future.
+        """
         try:
-            utext = codecs.decode(text, 'utf-8')
+            utext = smart_str(text, encoding='utf-8', from_encoding='utf-8')
         except:
             try:
-                utext = codecs.decode(text, 'iso-8859-1')
+                utext = smart_str(text, encoding='utf-8', from_encoding='iso-8859-1')
             except:
-                utext = text
-        return codecs.encode(text, 'utf-8')
+                try:
+                    utext = smart_str(text, encoding='utf-8', from_encoding='ascii')
+                except:
+                    utext = ''
+        return utext

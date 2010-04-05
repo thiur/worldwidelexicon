@@ -67,8 +67,8 @@ from geo import GeoDB
 from webappcookie import Cookies
 from mt import MTWrapper
 from deeppickle import DeepPickle
+from transcoder import transcoder
 from www import www
-from config import Config
 
 # Define convenience functions
 
@@ -104,43 +104,8 @@ class MyParser(sgmllib.SGMLParser):
     def handle_data(self, data):
         if self.inside_title and data:
             self.title = self.title + data + ' '
-
-def smart_str(s, encoding='utf-8', errors='ignore', from_encoding='utf-8'):
-    if type(s) in (int, long, float, types.NoneType):
-        return str(s)
-    elif type(s) is str:
-        if encoding != from_encoding:
-            return s.decode(from_encoding, errors).encode(encoding, errors)
-        else:
-            return s
-    elif type(s) is unicode:
-        return s.encode(encoding, errors)
-    elif hasattr(s, '__str__'):
-        return smart_str(str(s), encoding, errors, from_encoding)
-    elif hasattr(s, '__unicode__'):
-        return smart_str(unicode(s), encoding, errors, from_encoding)
-    else:
-        return smart_str(str(s), encoding, errors, from_encoding)
-
 def clean(text):
-    if text is not None:
-        try:
-            utext = text.encode('utf-8')
-        except:
-            try:
-                utext = text.encode('iso-8859-1')
-            except:
-                try:
-                    utext = text.encode('ascii')
-                except:
-                    utext = text
-        try:
-            text = utext.decode('utf-8')
-        except:
-            text = utext
-        return text
-    else:
-        return ''
+    return transcoder.clean(text)
 
 def tx(sl, tl, st, split = 'n'):
     """
@@ -420,7 +385,7 @@ class WebServer(webapp.RequestHandler):
             language = default_language
         # generate HTML header, link to CSS stylesheet
         self.response.headers['Content-Type']='text/html'
-        self.response.out.write('<head><title>' + smart_str(head_title) + '</title>')
+        self.response.out.write('<head><title>' + clean(head_title) + '</title>')
         self.response.out.write('<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"></meta>')
         self.response.out.write(google_analytics_header)
 #        self.response.out.write(javascript_header_init)
@@ -946,7 +911,7 @@ class WebServer(webapp.RequestHandler):
                 
     def static(self, language, page):
         if len(page) > 0:
-            txt = memcache.get('static|language=' + language + '|page=' + page)
+            txt = memcache.get('/static/' + language + '/' + page)
             if txt is not None:
                 self.response.out.write(txt)
             else:
@@ -964,12 +929,20 @@ class WebServer(webapp.RequestHandler):
                 if len(texts) > 0 and language != 'en':
                     txt = ''
                     for t in texts:
+                        t = clean(t)
                         if len(t) > 8 and language != 'en' and len(language) > 1:
-                            txt = txt + tx('en', language, t)
+                            try:
+                                tt = clean(tx('en', language, t))
+                            except:
+                                tt = t
+                            try:
+                                txt = txt + tt
+                            except:
+                                pass
                         else:
                             txt = txt + t
                 if len(txt) > 3:
-                    memcache.set('static|language=' + language + '|page=' + page, txt, 300)
+                    memcache.set('/static/' + language + '/' + page, txt, 300)
                 self.response.out.write(txt)
                 
     def topsites(self, language):
