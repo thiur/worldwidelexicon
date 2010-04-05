@@ -142,18 +142,6 @@ handlers:
 - url: /cron/(.*)
   script: cron.py
   
-- url: /css/(.*)/(.*)/(.*)
-  script: css.py
-  
-- url: /css/(.*)/(.*)
-  script: css.py
-
-- url: /css/(.*)
-  script: css.py
-
-- url: /css
-  script: css.py
-  
 - url: /domains/(.*)
   script: admin.py
   secure: optional
