@@ -168,7 +168,7 @@ handlers:
   secure: optional
   
 - url: /stream
-  script: search.py
+  script: main.py
   
 - url: /submit
   script: translations.py
