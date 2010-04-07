@@ -115,12 +115,6 @@ handlers:
   script: hosts.py
   secure: optional
   
-- url: /images/(.*)/(.*)
-  script: image.py
-  
-- url: /images/(.*)
-  script: image.py
-  
 - url: /language
   script: language.py
   
@@ -136,12 +130,6 @@ handlers:
 - url: /proxy/(.*)
   script: proxy.py
   secure: optional
-  
-- url: /p
-  script: search.py
-  
-- url: /pro
-  script: search.py
 
 - url: /purge/(.*)
   script: purge.py
@@ -162,12 +150,6 @@ handlers:
 - url: /scores/(.*)
   script: scores.py
   secure: optional
-  
-- url: /search/add
-  script: search.py
-  
-- url: /search
-  script: search.py
   
 - url: /setup
   script: admin.py
@@ -200,9 +182,6 @@ handlers:
   
 - url: /t
   script: translations.py
-  
-- url: /test
-  script: test.py
   
 - url: /unicode
   script: translations.py
