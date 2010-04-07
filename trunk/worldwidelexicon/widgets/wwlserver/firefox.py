@@ -147,6 +147,7 @@ is valuable work, consider <a href=http://www.worldwidelexicon.org target=_new>m
                 prompt_donate = mt.getTranslation('en', tl, prompt_donate)
             self.response.out.write(prompt_upgrade)
             self.response.out.write(prompt_donate)
+        return
         if len(url) > 0:
             txt = memcache.get('recenttranslations|tl=' + tl + '|url=' + url)
             if txt is not None:
