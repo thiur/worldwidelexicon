@@ -15,10 +15,6 @@ handlers:
 - url: /robots.txt
   script: admin.py
 
-- url: /translator.css
-  static_files: translator.css
-  upload: translator.css
-
 - url: /blueprint.html
   static_files: blueprint/index.html
   upload: blueprint/index.html
@@ -35,52 +31,9 @@ handlers:
   static_files: image/logo.png
   upload: image/logo.png
 
-- url: /ajax
-  static_dir: ajax
-
-- url: /ajax/css
-  static_dir: ajax/css
-
-- url: /ajax/js
-  static_dir: ajax/js
-
-- url: /ajax/icons
-  static_dir: ajax/icons
-
-- url: /ajax/gwt
-  static_dir: gwt
-
-- url: /ajax/gwt/standard
-  static_dir: ajax/gwt/standard
-
-- url: /ajax/gwt/standard/images
-  static_dir: ajax/gwt/standard/images
-
-- url: /ajax/gwt/standard/images/ie6
-  static_dir: ajax/gwt/standard/images/ie6
-  
 - url: /static
   static_dir: static
   
-- url: /translator.css
-  static_files: translator.css
-  upload: translator.css
-  
-- url: /translator
-  static_dir: translator
-  
-- url: /translator/gwt
-  static_dir: translator/gwt
-
-- url: /translator/gwt/standard
-  static_dir: translator/gwt/standard
-  
-- url: /translator/gwt/standard/images
-  static_dir: translator/gwt/standard/images
-  
-- url: /translator/gwt/standard/images/ie6
-  static_dir: translator/gwt/standard/images/ie6
-
 - url: /image
   static_dir: image
   
@@ -258,9 +211,6 @@ handlers:
   script: users.py
   secure: optional
 
-- url: /stats.*
-  script: $PYTHON_LIB/google/appengine/ext/appstats/ui.py
-  
 - url: /(.*)/(.*)/(.*)
   script: main.py
   secure: optional
