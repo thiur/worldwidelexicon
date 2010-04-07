@@ -1,5 +1,5 @@
 application: worldwidelexicon
-version: 3
+version: 2
 runtime: python
 api_version: 1
 
@@ -262,21 +262,21 @@ handlers:
   script: $PYTHON_LIB/google/appengine/ext/appstats/ui.py
   
 - url: /(.*)/(.*)/(.*)
-  script: search.py
+  script: main.py
   secure: optional
   
 - url: /(.*)/(.*)
-  script: search.py
+  script: main.py
   secure: optional
   
 - url: /(.*)
-  script: search.py
+  script: main.py
   secure: optional
 
 - url: /
-  script: search.py
+  script: main.py
   secure: optional
 
 - url: .*
-  script: search.py
+  script: main.py
   secure: optional
