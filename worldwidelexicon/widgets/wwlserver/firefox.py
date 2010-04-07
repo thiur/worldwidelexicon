@@ -109,29 +109,11 @@ class Sidebar(webapp.RequestHandler):
             username = memcache.get('sessions|' + session)
             if username is None:
                 username = ''
-        comment = clean(self.request.get('comment'))
-        if len(comment) > 0:
-            guid = ''
-            fields = dict()
-            fields['tl'] = tl
-            fields['cl'] = tl
-            fields['comment']=comment
-            fields['username']=username
-            fields['remote_addr']=self.request.remote_addr
-            Comment.save(guid, fields, url=url)
         urltexts = string.split(url, '/')
         if len(urltexts) > 0:
             domain = urltexts[0]
         else:
             domain = ''
-        if tl == 'es':
-            proz = 'esp'
-        elif tl == 'fr':
-            proz = 'fra'
-        elif tl == 'de':
-            proz = 'deu'
-        else:
-            proz = 'rus'
         google_analytics_header = '<script type="text/javascript">var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");\
         document.write(unescape("%3Cscript src=\'\" + gaJsHost + \"google-analytics.com/ga.js\' type=\'text/javascript\'%3E%3C/script%3E"));\
         </script>\
@@ -141,15 +123,15 @@ class Sidebar(webapp.RequestHandler):
         pageTracker._trackPageview();\
         } catch(err) {}</script>'
         self.response.out.write(google_analytics_header)
-        prozurl = 'http://www.proz.com/connectapi?key=b60c3f792ed225efcc473fa8cfeb309b&version=0.4&pair=eng_' + proz + '&output=rss'
-        f = memcache.get('proz|eng|' + proz)
-        if f is None:
-            response = urlfetch.fetch(url = prozurl)
-            if response.status_code == 200:
-                f = response.content
-                memcache.set('proz|eng|' + proz, f, 900)
-            else:
-                f = ''
+#        prozurl = 'http://www.proz.com/connectapi?key=b60c3f792ed225efcc473fa8cfeb309b&version=0.4&pair=eng_' + proz + '&output=rss'
+#        f = memcache.get('proz|eng|' + proz)
+#        if f is None:
+#            response = urlfetch.fetch(url = prozurl)
+#            if response.status_code == 200:
+#                f = response.content
+#                memcache.set('proz|eng|' + proz, f, 900)
+#            else:
+#                f = ''
         mt = MTWrapper()
         if version < 1.000:
             prompt_upgrade = '<h4>Upgrade To The Newest Firefox Translator</h4>\
@@ -157,7 +139,7 @@ class Sidebar(webapp.RequestHandler):
 includes several new features and improvements, including: faster page translation, more options for displaying translations, and new \
 community features.</font><hr>'
             prompt_donate = '<h4>New Essay</h4>\
-<font size=-1>Read this <b><a href=http://www.worldwidelexicon.org/s/essay.html target=_new>recently published essay, The End of the Language Barrier</a></b> by \
+<font size=-1>Read this <b><a href=http://blog.worldwidelexicon.org/?page_id=26 target=_new>recently published essay, The End of the Language Barrier</a></b> by \
 Brian McConnell. The essay describes his vision for the future, where people will be able to read any website in any language. If you think this \
 is valuable work, consider <a href=http://www.worldwidelexicon.org target=_new>making a donation</a> to support ongoing software development.</font><hr>'
             if tl != 'en' and len(tl) > 1:
@@ -200,6 +182,7 @@ is valuable work, consider <a href=http://www.worldwidelexicon.org target=_new>m
                 if len(authors) > 0:
                     txt = txt + '<ul><font size=-2>'
                     for a in authors:
+                        a = clean(a)
                         if string.count(a, '[PRO]') > 0:
                             link = string.replace(a, '[PRO] ', 'proz.')
                         else:
@@ -260,27 +243,30 @@ is valuable work, consider <a href=http://www.worldwidelexicon.org target=_new>m
                     for r in results:
                         if r.domain not in sitelist:
                             sitelist.append(r.domain)
-                            title = clean(r.title)
-                            if len(title) > 0:
-                                txt = txt + '<li><a target=_new href=http://' + r.domain + '>' + title + '</a></li>'
-                            else:
-                                txt = txt + '<li><a target=_new href=http://' + r.domain + '>' + r.domain + '</a></li>'
+                            title = r.title
+                            try:
+                                if len(title) > 0:
+                                    txt = txt + '<li><a target=_new href=http://' + r.domain + '>' + title + '</a></li>'
+                                else:
+                                    txt = txt + '<li><a target=_new href=http://' + r.domain + '>' + r.domain + '</a></li>'
+                            except:
+                                pass
                     txt = txt + '</font></ul>'
                     memcache.set('topsites|sl=' + sl, txt, 1800)
                     self.response.out.write(txt)
-            self.response.out.write('<hr>')
-            proz_heading = mt.getTranslation('en', tl, 'Find Professional Translators On ProZ.Com')
-            self.response.out.write('<h4 style="font-family: sans-serif"><a href=http://www.proz.com>' + proz_heading + '</a></h4>')
-            d = feedparser.parse(f)
-            entries = d.entries
-            if len(entries) > 0:
-                self.response.out.write('<ul>')
-                ctr = 0
-                for e in entries:
-                    ctr = ctr + 1
-                    if ctr < 10:
-                        self.response.out.write('<li style="font-family: sans-serif size: small"><a target=_new href=' + e.link + '>' + e.title + '</a></li>')
-                self.response.out.write('</ul>')
+#            self.response.out.write('<hr>')
+#            proz_heading = mt.getTranslation('en', tl, 'Find Professional Translators On ProZ.Com')
+#            self.response.out.write('<h4 style="font-family: sans-serif"><a href=http://www.proz.com>' + proz_heading + '</a></h4>')
+#            d = feedparser.parse(f)
+#            entries = d.entries
+#            if len(entries) > 0:
+#                self.response.out.write('<ul>')
+#                ctr = 0
+#                for e in entries:
+#                    ctr = ctr + 1
+#                    if ctr < 10:
+#                        self.response.out.write('<li style="font-family: sans-serif size: small"><a target=_new href=' + e.link + '>' + e.title + '</a></li>')
+#                self.response.out.write('</ul>')
         else:
             self.response.out.write('<form action=/sidebar method=get>')
             self.response.out.write('URL: <input type=text name=url size=30><p>')

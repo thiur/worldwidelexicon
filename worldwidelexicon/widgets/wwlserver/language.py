@@ -60,6 +60,10 @@ from mt import MTWrapper
 from webappcookie import Cookies
 from database import Comment
 from database import languages
+from transcoder import transcoder
+
+def clean(text):
+    return transcoder.clean(text)
 
 class Domains(db.Model):
     domain = db.StringProperty(default='')
@@ -68,7 +72,7 @@ class Domains(db.Model):
     date = db.DateTimeProperty(auto_now_add = True)
     @staticmethod
     def language(d='', text=''):
-        if len(text) > 0 and len(domain) < 1:
+        if len(text) > 0 and len(d) < 1:
             encodedtext = urllib.quote_plus(codecs.encode(text, 'utf-8'))
             url = 'http://ajax.googleapis.com/ajax/services/language/detect?v=1.0&q=' + encodedtext
             response = urlfetch.fetch(url = url)
