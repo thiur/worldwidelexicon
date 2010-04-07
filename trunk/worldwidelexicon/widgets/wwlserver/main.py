@@ -177,7 +177,16 @@ class WebServer(webapp.RequestHandler):
     def post(self, p1='', p2='', p3=''):
         self.redirect('http://blog.worldwidelexicon.org')
 
-application = webapp.WSGIApplication([(r'/(.*)/(.*)/(.*)', WebServer),
+class TranslationStats(webapp.RequestHandler):
+    def get(self):
+        self.requesthandler()
+    def post(self):
+        self.requesthandler()
+    def requesthandler(self):
+        self.response.out.write('')
+
+application = webapp.WSGIApplication([('/stream', TranslationStats),
+                                      (r'/(.*)/(.*)/(.*)', WebServer),
                                       (r'/(.*)/(.*)', WebServer),
                                       (r'/(.*)', WebServer),
                                       ('/', WebServer)],
