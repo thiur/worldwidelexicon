@@ -80,6 +80,8 @@ from ip import ip
 import feedparser
 
 def clean(text):
+    return transcoder.clean(text)
+    # skip this for now
     try:
         utext = text.encode('utf-8')
     except:

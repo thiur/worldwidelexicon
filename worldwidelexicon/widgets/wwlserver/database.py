@@ -1986,19 +1986,19 @@ class Translation(db.Model):
             twords = string.split(tt)
             swords = string.split(st)
             m = md5.new()
-            m.update(tt.encode('utf-8'))
+            m.update(tt)
             m.update(str(datetime.datetime.now()))
             guid = str(m.hexdigest())
             n = md5.new()
-            n.update(st.encode('utf-8'))
+            n.update(st)
             md5hash = str(n.hexdigest())
             tdb = Translation()
             tdb.md5hash = md5hash
             tdb.guid = guid
             tdb.sl = sl
             tdb.tl = tl
-            tdb.st = st
-            tdb.tt = tt
+            tdb.st = st.decode('utf-8')
+            tdb.tt = tt.decode('utf-8')
             tdb.domain = domain
             tdb.url = url
             tdb.username = username
