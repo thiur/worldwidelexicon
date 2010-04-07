@@ -25,16 +25,10 @@ The package contains the following modules:
 
     * / : this directory contains the main Python source used to create the translation memory, define
       databases and other services
-    * /ajax : this directory contains Alex Tolley's Javascript/AJAX translation viewer and
-      in line editing tools. 
     * /blueprint : this directory tree contains CSS and image files used by the Blueprint based
       stylesheets.
-    * /code : this URL will serve a current copy of the system source code (ZIP archive)
     * /docs : documentation (mostly Adobe Acrobat)
-    * /html : sample static webpages to demostrate Javsascript/AJAX widgets
     * /images : images and icons used in web apps
-    * /javascript : client-side Javascript/AJAX code
-    * /translator : new version of Alex Tolley's Javascript transator (alpha test)
 
 Installation (Translation Memory Server)
 
@@ -60,23 +54,6 @@ recommend that you create two applications on App Engine, one for public use, an
 can make frequent changes to the test system, and then copy code over to the public version when you are sure
 everything is working OK.
 
-Installation (Javascript Translation Viewer/Editor)
-
-You can make almost any website translatable with our Javascript translation viewer/editor (created
-by Alex Tolley). To use this tool, simply add the following line of code to your website's page
-headers.
-
-  <script language="javascript" src="http://yourwwlserver.com/ajax/com.wwl.Translator.nocache.js"></script>
-
-Then, wherever you want to make a text translatable include bracket the text with the following div tags.
-
-  <div wwlapi="tr" sl="{source language code}" edit="y|n">Hello World</div>
-
-The sl=xx parameter tells it the source language the text was written in (English by default).
-The edit=y|n parameter tells it whether to allow edits (yes by default if omitted)
-
-Complete documentation for our translation web kit can be found at www.worldwidelexicon.org
-
 Integrating WWL With Other Systems
 
 WWL is a translation memory, essentially a giant database of translations along as associated utilities that
@@ -101,14 +78,6 @@ widget. Examples of these type of implementations include:
 
 See Alex Tolley's AJAX translation viewer/editor for some ideas about how to do this.
 
-RSS Reader and Social Translator (reader.py)
-
-WWL ships with a pre-built RSS feed reader and social translator. This is a relatively simple demo
-application that illustrates how to build collaborative translation services. You can go to
-yoursite.appspot.com/reader It should load the popular Boing Boing (www.boingboing.net) RSS feed.
-You can configure it to use the central translation server (api.worldwidelexicon.org, default) or
-your local translation server to save and retrieve translations.
-
 CMS (Content Management System) Integration
 
 Another strategy is to integrate the WWL translation memory with a content management system, such as
@@ -125,26 +94,6 @@ type of implementations include:
       in the content management systems document store.
     * Lightweight widgets that are implemented as tightly integrated plugins, to allow easy deployment
       on a CMS (e.g. Word Press plugin)
-
-Language Service Provider Integration (lsp.py)
-
-The WWL server also exposes a web interface for LSPs to use to fetch and submit translations and metadata,
-where submissions from the LSP are treated as more trustworthy than public submissions and may bypass the
-normal peer review and scoring process. The LSP interface, defined in lsp.py, can be easily modified to
-implement whatever workflows or QA rules are needed when processing submissions from a known, trustworthy
-service bureau.
-
-Mobile Interface (mobile.py)
-
-WWL ships with a simple mobile interface (implemented in mobile.py) that implements a simple machine
-translation service, for looking up translations via Google Translate and other services, and a demo app
-that prompts users to write translations for their favorite websites or RSS feeds.
-
-Client Side (AJAX) Modules
-
-    * Alex Tolley has contributed a Javascript/AJAX translation viewer and editor that can be embedded
-      in almost any website. It is simple to deploy and use. The libraries and associated files are
-      contained in the /ajax directory tree.
 
 Server Side (Python) Modules
 
@@ -166,12 +115,7 @@ The code that defines the translation memory is sub-divided into a small number 
       source toolset)
     * mt.py : machine translation proxy service, provides a simple interface to call multiple
       machine translation services (Google, Apertium, Systran and others)
-    * rules.py : implements translation management rules (will be partially implemented in
-      June release)
     * scores.py : defines API calls for fetching and saving scores about translations
-    * search.py : translation search engine and multilingual portal (works in conjunction with our
-      Firefox translation addon)
-    * stats.py : defines API calls for fetching statistics, system counters and translation matrices
     * translations.py : this module implements classes and methods to save and retrieve translations
     * users.py : manages WWL users, authentication, etc (can be rewritten to act as proxy to
       external user management systems)
