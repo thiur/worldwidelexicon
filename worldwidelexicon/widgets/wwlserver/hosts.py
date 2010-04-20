@@ -59,7 +59,6 @@ import md5
 # import WWL and third party modules
 from akismet import Akismet
 import demjson
-from database import Hosts
 from database import Directory
 from database import DirectoryIP
 from database import Settings
