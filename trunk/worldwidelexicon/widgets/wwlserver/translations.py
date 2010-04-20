@@ -841,6 +841,7 @@ class SimpleTranslation(webapp.RequestHandler):
         mtengine = self.request.get('mtengine')
         queue = self.request.get('queue')
         ip = self.request.get('ip')
+        hostname = self.request.get('hostname')
         st = urllib.unquote(st)
         st = transcoder.clean(st)
         m = md5.new()
@@ -863,7 +864,7 @@ class SimpleTranslation(webapp.RequestHandler):
             self.response.out.write(text)
             return
         if len(tl) > 0 and len(st) > 0:
-            tt = Translation.lucky(sl=sl, tl=tl, st=st, allow_anonymous=allow_anonymous, allow_machine=allow_machine, min_score=min_score, output=output, lsp=lsp, lspusername=lspusername, lsppw = lsppw, mtengine=mtengine, queue=queue, ip=ip, userip=userip)
+            tt = Translation.lucky(sl=sl, tl=tl, st=st, allow_anonymous=allow_anonymous, allow_machine=allow_machine, min_score=min_score, output=output, lsp=lsp, lspusername=lspusername, lsppw = lsppw, mtengine=mtengine, queue=queue, ip=ip, userip=userip, hostname=hostname)
             if output == 'text':
                 self.response.headers['Content-Type']='text/plain'
                 self.response.out.write(tt)

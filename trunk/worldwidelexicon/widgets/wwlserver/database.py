@@ -59,6 +59,7 @@ from google.appengine.api.labs import taskqueue
 # import WWL modules
 from mt import MTWrapper
 from transcoder import transcoder
+from hosts import Directory
 import sgmllib
 
 class MyParser(sgmllib.SGMLParser):
@@ -2184,7 +2185,7 @@ class Translation(db.Model):
         else:
             return
     @staticmethod
-    def lucky(sl = '', tl = '', st = '', domain = '', url='', allow_anonymous='y', allow_machine ='y', min_score=0, userip='', output='text', edit='y', lsp='', lspusername = '', lsppw='', professional=False, mtengine='', queue='', ip=''):
+    def lucky(sl = '', tl = '', st = '', domain = '', url='', allow_anonymous='y', allow_machine ='y', min_score=0, userip='', hostname='', output='text', edit='y', lsp='', lspusername = '', lsppw='', professional=False, mtengine='', queue='', ip=''):
         text = ''
         response = ''
         st = clean(st)
@@ -2195,6 +2196,9 @@ class Translation(db.Model):
             m = md5.new()
             m.update(st)
             md5hash = str(m.hexdigest())
+            # add to WWL directory if hostname is provided
+            if len(hostname) > 0:
+                Directory.hostname(hostname, sl, tl, remote_addr=user_ip)
             # look for professional translation
             tdb = db.Query(Translation)
             tdb.filter('sl = ', sl)
