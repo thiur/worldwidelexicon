@@ -135,6 +135,25 @@ class Directory(db.Model):
     indexed = db.BooleanProperty(default=False)
     words = db.ListProperty(str)
     @staticmethod
+    def hostname(hostname, sl, tl, remote_addr=''):
+        exists = memcache.get('/hosts/' + hostname + '/' + sl + '/' + tl)
+        if exists is not None:
+            return
+        else:
+            hdb = db.Query(Directory)
+            hdb.filter('domain = ', hostname)
+            item = hdb.get()
+            if item is None:
+                item = Directory()
+                item.domain = string.replace(hostname, 'http://', '')
+                item.url = item.domain
+                item.tl = tl
+                item.sl = sl
+            item.lastupdated = datetime.datetime.now()
+            item.put()
+            memcache.set('/hosts/' + hostname + '/' + sl + '/' + tl, True, 7200)
+            return
+    @staticmethod
     def purge():
         td = datetime.timedelta(days=-30)
         lastdate = datetime.datetime.now() + td
