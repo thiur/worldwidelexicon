@@ -59,7 +59,6 @@ from google.appengine.api.labs import taskqueue
 # import WWL modules
 from mt import MTWrapper
 from transcoder import transcoder
-from hosts import Directory
 import sgmllib
 
 class MyParser(sgmllib.SGMLParser):
@@ -508,15 +507,44 @@ class Directory(db.Model):
     words = db.ListProperty(str)
     @staticmethod
     def hostname(hostname, sl, tl, remote_addr=''):
+        exists = memcache.get('/hosts/' + hostname)
+        if exists is None:
+            hdb = db.Query(Directory)
+            hdb.filter('domain = ', hostname)
+            hdb.filter('sl = ', sl)
+            hdb.filter('tl = ', 'root')
+            item = hdb.get()
+            if item is None:
+                item = Directory()
+                m = md5.new()
+                m.update(hostname)
+                m.update('root')
+                m.update(str(datetime.datetime.now()))
+                guid = str(m.hexdigest())
+                item.guid = guid
+                item.domain = hostname
+                item.sl = sl
+                item.tl = 'root'
+                item.lastupdated = datetime.datetime.now()
+                item.put()
+            memcache.set('/hosts/' + hostname, True, 7200)
         exists = memcache.get('/hosts/' + hostname + '/' + sl + '/' + tl)
         if exists is not None:
             return
         else:
             hdb = db.Query(Directory)
             hdb.filter('domain = ', hostname)
+            if len(tl) > 0:
+                hdb.filter('tl = ', tl)
             item = hdb.get()
             if item is None:
+                m = md5.new()
+                m.update(hostname)
+                m.update(str(datetime.datetime.now()))
+                m.update(tl)
+                guid = str(m.hexdigest())
                 item = Directory()
+                item.guid = guid
                 item.domain = string.replace(hostname, 'http://', '')
                 item.url = item.domain
                 item.tl = tl
@@ -2364,7 +2392,7 @@ class Translation(db.Model):
             md5hash = str(m.hexdigest())
             # add to WWL directory if hostname is provided
             if len(hostname) > 0:
-                Directory.hostname(hostname, sl, tl, remote_addr=user_ip)
+                Directory.hostname(hostname, sl, tl, remote_addr=userip)
             # look for professional translation
             tdb = db.Query(Translation)
             tdb.filter('sl = ', sl)

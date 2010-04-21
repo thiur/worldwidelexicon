@@ -817,7 +817,12 @@ class SimpleTranslation(webapp.RequestHandler):
     to exert direct control over how translations are displayed, to cache them locally
     and host the translations on the same publishing or web application environment.
     Note that this can also be used to localize a web interface as it provides a simple
-    gettext() style interface for fetching a translation for a string. 
+    gettext() style interface for fetching a translation for a string.
+
+    NOTE: we _strongly_ recommend that you use the POST method to submit texts for translation.
+    You can use HTTP GET for ASCII texts, but it will frequently break if you are submitting
+    UTF-8 (Unicode) texts. This happens because of the way characters are escape encoded in URLs.
+    We also recommend using POST because of the URL length limits that apply to GET queries. 
     """
     def get(self, sl='', tl='', st=''):
         self.requesthandler(sl, tl, st)
