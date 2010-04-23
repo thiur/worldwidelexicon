@@ -2382,13 +2382,16 @@ class Translation(db.Model):
     def lucky(sl = '', tl = '', st = '', domain = '', url='', allow_anonymous='y', allow_machine ='y', min_score=0, userip='', hostname='', output='text', edit='y', lsp='', lspusername = '', lsppw='', professional=False, mtengine='', queue='', ip=''):
         text = ''
         response = ''
-        st = clean(st)
+        #st = clean(st)
         if sl == tl:
             return st
         if len(sl) > 0 and len(tl) > 0 and len(st) > 0:
             # generate md5hash
             m = md5.new()
-            m.update(st)
+            try:
+                m.update(st.encode('utf-8'))
+            except:
+                m.update(smart_str(st))
             md5hash = str(m.hexdigest())
             # add to WWL directory if hostname is provided
             if len(hostname) > 0:
