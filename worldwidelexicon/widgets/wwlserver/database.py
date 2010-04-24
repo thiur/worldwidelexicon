@@ -2382,16 +2382,13 @@ class Translation(db.Model):
     def lucky(sl = '', tl = '', st = '', domain = '', url='', allow_anonymous='y', allow_machine ='y', min_score=0, userip='', hostname='', output='text', edit='y', lsp='', lspusername = '', lsppw='', professional=False, mtengine='', queue='', ip=''):
         text = ''
         response = ''
-        #st = clean(st)
+        st = clean(st)
         if sl == tl:
             return st
         if len(sl) > 0 and len(tl) > 0 and len(st) > 0:
             # generate md5hash
             m = md5.new()
-            try:
-                m.update(st.encode('utf-8'))
-            except:
-                m.update(smart_str(st))
+            m.update(st)
             md5hash = str(m.hexdigest())
             # add to WWL directory if hostname is provided
             if len(hostname) > 0:
@@ -2439,7 +2436,7 @@ class Translation(db.Model):
                 memcache.set('lucky|sl=' + sl + '|tl=' + tl + '|md5hash=' + md5hash + '|output=' + output, text, 300)
         return text
     @staticmethod
-    def fetch(sl='', tl='', st='', md5hash='', domain='', url='', userip='', allow_machine='y', allow_anonymous='', min_score=0, max_blocked_votes=0, fuzzy = 'n', mtengine=''):
+    def fetch(sl='', tl='', st='', md5hash='', domain='', url='', userip='', allow_machine='y', allow_anonymous='', min_score=0, max_blocked_votes=0, fuzzy = 'n', mtengine='', lsp='', lspusername='', lsppw=''):
         if len(url) > 500:
             url = url[0:499]
         if len(st) > 0 or len(md5hash) > 0:
@@ -2476,6 +2473,7 @@ class Translation(db.Model):
                 tdb.order('-date')
             results = tdb.fetch(limit=100)
         filtered_results = list()
+        professional_translation_found = False
         for r in results:
             skiprecord = False
             if allow_anonymous == 'n' and r.anonymous:
@@ -2488,6 +2486,10 @@ class Translation(db.Model):
                 skiprecord=True
             if max_blocked_votes > 0 and r.blockedvotes > max_blocked_votes:
                 skiprecord=True
+            if r.professional:
+                professional_translation_found = True
+            if len(lsp) > 0 and not professional_translation_found:
+                response=Translation.lsp(sl, tl, st, domain=domain, url=url, lsp=lsp, lspusername=lspusername, lsppw=lsppw)
             if not skiprecord:
                 t = tx()
                 t.sl = r.sl
