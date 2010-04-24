@@ -518,20 +518,8 @@ class GetTranslations(webapp.RequestHandler):
                 p['sl']=sl
                 p['tl']=tl
                 taskqueue.add(url='/log', params=p)
-            results = Translation.fetch(sl=sl, st=st, tl=tl, domain='', url=url, userip=remote_addr, allow_machine=allow_machine, allow_anonymous=allow_anonymous, min_score=minimum_score, max_blocked_votes=max_blocked_votes, fuzzy=fuzzy)
+            results = Translation.fetch(sl=sl, st=st, tl=tl, domain='', url=url, userip=remote_addr, allow_machine=allow_machine, allow_anonymous=allow_anonymous, min_score=minimum_score, max_blocked_votes=max_blocked_votes, fuzzy=fuzzy, lsp=lsp, lspusername=lspusername, lsppw=lsppw)
             if len(results) < 1 or fuzzy=='y':
-                if len(lsp) > 0:
-                    p = dict()
-                    p['sl'] = sl
-                    p['tl'] = tl
-                    p['st'] = st
-                    p['domain'] = domain
-                    p['url'] = url
-                    p['username'] = lspusername
-                    p['pw'] = lsppw
-                    lspurl = Settings.get('url_' + lsp)
-                    if len(lspurl) > 0:
-                        taskqueue.add(url = lspurl, params=p)
                 try:
                     st = urllib.unquote(st)
                 except:
@@ -583,6 +571,9 @@ class GetTranslations(webapp.RequestHandler):
             self.response.out.write('<option value=apertium>Apertium</option>')
             self.response.out.write('<option value=moses>Moses</option>')
             self.response.out.write('</select></td></tr>')
+            self.response.out.write('<tr><td>Language Servuce Provider (lsp)</td><td><input type=text name=lsp></td></tr>')
+            self.response.out.write('<tr><td>LSP Username</td><td><input type=text name=lspusername></td></tr>')
+            self.response.out.write('<tr><td>LSP Password</td><td><input type=text name=lsppw></td></tr>')
             self.response.out.write('<tr><td>Output Format</td><td><input type=text name=output value=rss></td></tr>')
             self.response.out.write('<tr><td colspan=2><input type=submit value=SEARCH></td></tr>')
             self.response.out.write('</table></form>')
