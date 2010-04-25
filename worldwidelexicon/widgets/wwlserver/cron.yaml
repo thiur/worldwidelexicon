@@ -2,16 +2,16 @@ cron:
 
 - description: system heartbeat
   url: /heartbeat
-  schedule: every 20 minutes
+  schedule: every 1 hours
 
 - description: purge old translation logs (older than 90 days)
   url: /purge/search
-  schedule: every 20 minutes
+  schedule: every 2 hours
 
 - description: purge old/invalid geolocation records
   url: /purge/geodb
-  schedule: every 20 minutes
+  schedule: every 2 hours
 
 - description: purge old stats data
   url: /purge/stats
-  schedule: every 20 minutes
+  schedule: every 2 hours
