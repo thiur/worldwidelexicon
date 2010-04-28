@@ -38,24 +38,39 @@ TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF TH
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 """
-# set constants
-encoding = 'utf-8'
 # import Python standard modules
-import codecs
 import datetime
 import md5
-import string
-import urllib
 # import Google App Engine modules
 import wsgiref.handlers
 from google.appengine.ext import webapp
 from google.appengine.ext.webapp.util import run_wsgi_app
 from google.appengine.ext import db
 from google.appengine.api import memcache
-from google.appengine.api import images
-from google.appengine.api import mail
-from google.appengine.api import urlfetch
-from google.appengine.api.labs import taskqueue
+# define constants
+keys = ['xyz123', 'abc987']
+ip_addresses = []
+
+class SensorNetwork(db.Model):
+    guid = db.StringProperty(default='')
+    timestamp = db.DateTimeProperty(auto_now_add = True)
+    node = db.StringProperty(default='')
+    text = db.TextProperty(default='')
+    @staticmethod
+    def save(node, text):
+        if len(node) > 0 and len(text) > 0:
+            m = md5.new()
+            m.update(str(datetime.datetime.now()))
+            m.update(node)
+            guid = str(m.hexdigest())
+            item = SensorNetwork()
+            item.guid = guid
+            item.node = node
+            item.text = text
+            item.put()
+            return True
+        else:
+            return False
 
 class WebQuery(webapp.RequestHandler):
     def get(self, zone=''):
@@ -85,7 +100,13 @@ class WebQuery(webapp.RequestHandler):
         The counts can be indexed by country or by user language preference
         depending on the reporting capabilities of the network.
         """
-        pass
+        text = ''
+        if len(zone) > 0:
+            t = memcache.get('/transense/' + zone)
+            if t is not None:
+                text = t
+        self.response.headers['Content-Type']='text/plain'
+        self.response.out.write(text)
     def post(self):
         """
         /transense
@@ -100,5 +121,29 @@ class WebQuery(webapp.RequestHandler):
 
         It returns ok or error
         """
-        pass
+        key = self.request.get('key')
+        remote_addr = self.request.remote_addr
+        node = self.request.get('node')
+        text = self.request.get('text')
+        valid_submission = True
+        self.response.headers['Content-Type']='text/plain'
+        if len(keys) > 0 and key not in keys:
+            valid_submission = False
+        if len(ip_addresses) > 0 and remote_addr not in ip_addresses:
+            valid_submission = False
+        if valid_submission and len(node) > 0 and len(text) > 0:
+            memcache.set('/transense/' + node, text, ttl)
+            SensorNetwork.save(node, text)
+            self.response.out.write('ok')
+        else:
+            self.response.out.write('error')
+            
+application = webapp.WSGIApplication([('/transense', WebQuery),
+                                      (r'/transense/(.*)', WebQuery)],
+                                     debug=True)
 
+def main():
+    run_wsgi_app(application)
+
+if __name__ == "__main__":
+    main()
