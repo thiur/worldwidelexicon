@@ -1,5 +1,5 @@
 application: worldwidelexicon
-version: 3
+version: 2
 runtime: python
 api_version: 1
 
@@ -182,6 +182,12 @@ handlers:
   
 - url: /t
   script: translations.py
+
+- url: /transense/(.*)
+  script: transense.py
+
+- url: /transense
+  script: transense.py
   
 - url: /unicode
   script: translations.py
