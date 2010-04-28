@@ -6,6 +6,12 @@ indexes:
   - name: url
   - name: date
     direction: desc
+
+- kind: Directory
+  properties:
+  - name: tl
+  - name: lastupdated
+    direction: desc
     
 - kind: Queue
   properties:
