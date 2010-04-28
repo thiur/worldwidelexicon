@@ -50,6 +50,7 @@ from google.appengine.api import memcache
 # define constants
 keys = ['xyz123', 'abc987']
 ip_addresses = []
+ttl = 120
 
 class SensorNetwork(db.Model):
     guid = db.StringProperty(default='')
