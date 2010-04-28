@@ -105,8 +105,15 @@ class WebQuery(webapp.RequestHandler):
             t = memcache.get('/transense/' + zone)
             if t is not None:
                 text = t
-        self.response.headers['Content-Type']='text/plain'
-        self.response.out.write(text)
+            self.response.headers['Content-Type']='text/plain'
+            self.response.out.write(text)
+        else:
+            self.response.out.write('<table><form action=/transense method=post>')
+            self.response.out.write('<tr><td>Key</td><td><input type=text name=key></td></tr>')
+            self.response.out.write('<tr><td>Node</td><td><input type=text name=node></td></tr>')
+            self.response.out.write('<tr><td colspan=2><textarea name=text></textarea></td></tr>')
+            self.response.out.write('<tr><td colspan=2><input type=submit value=Update></td></tr>')
+            self.response.out.write('</form></table>')            
     def post(self):
         """
         /transense
@@ -130,19 +137,11 @@ class WebQuery(webapp.RequestHandler):
             valid_submission = False
         if len(ip_addresses) > 0 and remote_addr not in ip_addresses:
             valid_submission = False
-        if valid_submission:
-            if len(node) > 0 and len(text) > 0:
-                self.response.headers['Content-Type']='text/plain'                
-                memcache.set('/transense/' + node, text, ttl)
-                SensorNetwork.save(node, text)
-                self.response.out.write('ok')
-            else:
-                self.response.out.write('<table><form action=/transense method=post>')
-                self.response.out.write('<tr><td>Key</td><td><input type=text name=key></td></tr>')
-                self.response.out.write('<tr><td>Node</td><td><input type=text name=node></td></tr>')
-                self.response.out.write('<tr><td colspan=2><textarea name=text></textarea></td></tr>')
-                self.response.out.write('<tr><td colspan=2><input type=submit value=Update></td></tr>')
-                self.response.out.write('</form></table>')
+        if valid_submission and len(node) > 0 and len(text) > 0:
+            self.response.headers['Content-Type']='text/plain'                
+            memcache.set('/transense/' + node, text, ttl)
+            SensorNetwork.save(node, text)
+            self.response.out.write('ok')
         else:
             self.response.headers['Content-Type']='text/plain'
             self.response.out.write('error')
