@@ -1,0 +1,85 @@
+<!ENTITY wwlbar.toolbar.name "World Wide Lexicon Toolbar">
+
+<!ENTITY wwlbar.translate "Translate">
+
+<!ENTITY wwlbar.bilingual "Bilingual view">
+<!ENTITY wwlbar.colorize "Colorize translations">
+<!ENTITY wwlbar.overflow "Show hidden texts">
+<!ENTITY wwlbar.machine "Allow machine translations">
+<!ENTITY wwlbar.anonymous "Allow anonymous translations">
+<!ENTITY wwlbar.unscored "Allow unscored translations">
+<!ENTITY wwlbar.score "Minimum score">
+<!ENTITY wwlbar.score.tip "Minimum score for the retrieved translation">
+<!ENTITY wwlbar.sidebar.check "Automate sidebar">
+<!ENTITY wwlbar.ui.check "Translate UI at startup">
+<!ENTITY wwlbar.login.check "Erase credentials on log-off">
+
+<!ENTITY wwlbar.sl "Source language">
+<!ENTITY wwlbar.sl.tip "Language of the current page">
+<!ENTITY wwlbar.arrow "->">
+<!ENTITY wwlbar.tl "Target language">
+<!ENTITY wwlbar.tl.tip "Language to translate to">
+<!ENTITY wwlbar.websearch "WWL web search">
+<!ENTITY wwlbar.websearch.link "Search:">
+<!ENTITY wwlbar.websearch.tip "Enter a keyword to search through recently translated pages">
+<!ENTITY wwlbar.ticker "Currently translated sites">
+<!ENTITY wwlbar.login "Log in">
+<!ENTITY wwlbar.profile "Profile">
+<!ENTITY wwlbar.community "Community">
+
+<!ENTITY wwlbar.options "Options">
+
+<!ENTITY wwlbar.sidebar.link "Sidebar">
+<!ENTITY wwlbar.sidebar.title "World Wide Lexicon sidebar">
+
+<!ENTITY wwlbar.login.title "World Wide Lexicon server login">
+<!ENTITY wwlbar.login.header "Please enter your WWL user name and password">
+<!ENTITY wwlbar.login.username "User name">
+<!ENTITY wwlbar.login.pass "Password">
+<!ENTITY wwlbar.login.newuser "New user?">
+<!ENTITY wwlbar.login.cancel "Anonymous login">
+
+<!ENTITY wwlbar.help "Help">
+
+<!ENTITY wwlbar.meta.header "Page metadata">
+<!ENTITY wwlbar.meta.title "Page title">
+<!ENTITY wwlbar.meta.ttitle "Translated page title">
+<!ENTITY wwlbar.meta.description "Page description">
+<!ENTITY wwlbar.meta.tdescription "Translated page description">
+<!ENTITY wwlbar.meta.keywords "Keywords">
+<!ENTITY wwlbar.meta.tkeywords "Translated keywords">
+
+<!ENTITY wwlbar.newuser.title "World Wide Lexicon - new user">
+<!ENTITY wwlbar.newuser.header "Please enter your user name, desired password and a valid e-mail.">
+<!ENTITY wwlbar.newuser.email "E-mail">
+<!ENTITY wwlbar.newuser.detail "I want to provide additional details upon creation of account">
+<!ENTITY wwlbar.newuser.button "Create WWL account">
+
+<!ENTITY wwlbar.userdetails.title "User details">
+<!ENTITY wwlbar.userdetails.header "Please provide any of the following">
+<!ENTITY wwlbar.userdetails.firstname "First name">
+<!ENTITY wwlbar.userdetails.lastname "Last name">
+<!ENTITY wwlbar.userdetails.description "About you">
+<!ENTITY wwlbar.userdetails.skype "Skype ID">
+<!ENTITY wwlbar.userdetails.facebook "Facebook URL">
+<!ENTITY wwlbar.userdetails.www "Webpage or blog URL">
+<!ENTITY wwlbar.userdetails.tags "Tags that best describe you">
+<!ENTITY wwlbar.userdetails.languages "Languages that you speak">
+<!ENTITY wwlbar.userdetails.accept "Save">
+
+<!ENTITY wwlbar.options.title "Options">
+<!ENTITY wwlbar.options.general "General">
+<!ENTITY wwlbar.options.servers "Servers">
+<!ENTITY wwlbar.options.add "Add server">
+<!ENTITY wwlbar.options.edit "Edit URL">
+<!ENTITY wwlbar.options.delete "Delete server">
+<!ENTITY wwlbar.options.servertip "List of additional server setups">
+
+<!ENTITY wwlbar.host.title "Additional server setup">
+<!ENTITY wwlbar.host.service "WWL Service URL">
+<!ENTITY wwlbar.host.for "for">
+<!ENTITY wwlbar.host.url "Particular URL">
+<!ENTITY wwlbar.host.pair "Language pair">
+
+<!ENTITY wwlbar.tip.click "Click">
+<!ENTITY wwlbar.tip.other "to enter WWL and help translate the web!">

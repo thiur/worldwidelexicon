@@ -1,0 +1,355 @@
+<?xml version="1.0"?>
+
+<!DOCTYPE bindings [
+<!ENTITY % browserDTD SYSTEM "chrome://browser/locale/browser.dtd" >
+%browserDTD;
+]>
+
+<bindings id="WWLToolbarBindings"
+          xmlns="http://www.mozilla.org/xbl"
+          xmlns:xbl="http://www.mozilla.org/xbl"
+          xmlns:html="http://www.w3.org/1999/xhtml"
+          xmlns:xul="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul">
+
+  <binding id="wwl-bar" extends="chrome://global/content/bindings/toolbar.xml#toolbar">
+    <resources>
+      <stylesheet src="chrome://wwlbar/skin/overlay.css"/>
+    </resources>
+
+    <content>
+		<xul:hbox flex="1" _ttbox="_ttbox">
+			<children/>
+
+			<xul:hbox mousethrough="always" flex="1" pack="end" collapsed="true">
+				<xul:toolbarbutton type="menu" class="chevron" mousethrough="never">
+					<xul:menupopup/>
+				</xul:toolbarbutton>
+			</xul:hbox>
+
+			<xul:hbox tooltips="tooltips"/>
+		</xul:hbox>
+	</content>
+
+    <handlers>
+      <handler event="DOMAttrModified">
+        <![CDATA[
+          var attrName = event.attrName.toLowerCase();
+          var oldValue = event.prevValue.toLowerCase();
+          var newValue = event.newValue.toLowerCase();
+
+          if(newValue == oldValue)
+            return;
+          
+          switch(attrName)
+		  {
+            case "width":
+              if(event.target.localName != "textbox")
+				break;
+
+            case "image":
+            case "label":
+            case "disabled":
+            case "style":
+            case "currentset":
+              this._setChevronTimer("Delay");
+              break;
+
+            default:
+              break;
+          }
+        ]]>
+      </handler>
+    </handlers>
+
+    <implementation>
+
+      <constructor><![CDATA[
+        this._init();
+      ]]></constructor>
+
+      <destructor><![CDATA[
+        if (this._updateTimerReal) {
+          this._updateTimerReal.cancel();
+          this._updateTimerReal = null;
+        }
+        if (this._updateTimerDelay) {
+          this._updateTimerDelay.cancel();
+          this._updateTimerDelay = null;
+        }
+      ]]></destructor>
+
+      <field name="_boxObject">document.getAnonymousElementByAttribute(this, "_ttbox", "_ttbox").boxObject</field>
+
+      <field name="_chevron">document.getAnonymousElementByAttribute(this, "class", "chevron")</field>
+
+      <field name="_chevronBox">this._chevron.parentNode</field>
+
+      <field name="_tooltips">document.getAnonymousElementByAttribute(this, "tooltips", "tooltips")</field>
+
+      <field name="_popup">this._chevron.firstChild</field>
+
+      <method name="_getElementByPID">
+        <parameter name="PID"/>
+        <body><![CDATA[
+          var res = this.getElementsByAttribute("id", PID)[0] || null;
+          return res;
+        ]]></body>
+      </method>
+
+      <method name="_init">
+        <body><![CDATA[
+          this._popup.setAttribute("onpopupshowing", "this.popupShowingCallback()");
+          this._popup.setAttribute("onpopuphidden",  "this.popupHiddenCallback()");
+
+          var me = this;
+
+          this._popup.popupShowingCallback = function() {me.chevronPopupShowing();};
+          this._popup.popupHiddenCallback  = function() {me.chevronPopupHidden();};
+
+          window.addEventListener("resize", function f(e){me.updateChevron(e);}, false);
+        ]]></body>
+      </method>
+
+      <method name="_rebuild">
+        <body><![CDATA[
+          var popup = this._popup,
+              tooltips = this._tooltips;
+
+          while (popup.firstChild)
+            popup.removeChild(popup.firstChild);
+
+          while (tooltips.firstChild)
+            tooltips.removeChild(tooltips.firstChild);
+
+		  popup.setAttribute("ignorekeys", "true");
+
+          const XULNS = "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul";
+
+          for (var i = 0, len = this.childNodes.length; i < len; ++i)
+		  {
+            var el = null, label = "", item = this.childNodes[i];
+
+            if(item.localName == "toolbaritem")
+			{
+				item = item.firstChild;
+
+				do
+				{
+					if((item.id == "wwlbar-headline") || (item.id == "wwlbar-target-language-label") || (item.id == "wwlbar-websearch-label"))
+						continue;
+
+					label = item.getAttribute("value");
+					if(!label.length)
+						label = item.getAttribute("label");
+					if(!label.length)
+						label = item.getAttribute("title");
+
+					switch(item.localName)
+					{
+						case "toolbarspring":
+						case "toolbarspacer":
+						case "toolbarseparator":
+							popup.appendChild(document.createElementNS(XULNS, "menuseparator"));
+							break;
+
+						case "toolbarspring":
+						case "toolbarspacer":
+							el = document.createElementNS(XULNS, "menuseparator");
+							el.setAttribute("style", "display:none !important");
+							popup.appendChild(el);
+							continue;
+
+						case "toolbaritem":
+							var tbb = item.getElementsByTagName("toolbarbutton")[0];
+							if(tbb && tbb.parentNode == item)
+								item = tbb;
+					}
+
+					var mPopup = item.getElementsByTagName("menupopup")[0];
+					if(mPopup && mPopup.childNodes.length)
+					{
+						el = document.createElementNS(XULNS, "menu");
+						el.appendChild(mPopup.cloneNode(true));
+						el.setAttribute("class", "menu-iconic");
+					}
+					else if(item.localName == "textbox")
+					{
+						el = document.createElementNS(XULNS, "textbox");
+
+						if(item.hasAttribute("onkeypress"))
+							el.setAttribute("onkeypress", item.getAttribute("onkeypress"));
+					}
+					else
+					{
+						el = document.createElementNS(XULNS, "menuitem");
+						el.setAttribute("class", "menuitem-iconic");
+					}
+
+					el.setAttribute("label", label);
+
+					if(item.hasAttribute("oncommand"))
+						el.setAttribute("oncommand", item.getAttribute("oncommand"));
+
+					if(item.hasAttribute("tooltip"))
+						el.setAttribute("tooltip", item.getAttribute("tooltip"));
+
+					if(item.hasAttribute("tooltiptext"))
+						el.setAttribute("tooltiptext", item.getAttribute("tooltiptext"));
+
+					if(item.hasAttribute("id"))
+						el.setAttribute("id", item.getAttribute("id") + "-chevron-clone");
+
+					if(item.disabled)
+						el.setAttribute("disabled", item.disabled);
+
+					var s = document.defaultView.getComputedStyle(item, "");
+					el.style.MozImageRegion = s["MozImageRegion"];
+
+					el.parentTbarElement = item;
+					popup.appendChild(el);
+				}
+				while(item = item.nextSibling);
+			}
+			else if(item.localName == "toolbarseparator")
+			{
+				popup.appendChild(document.createElementNS(XULNS, "menuseparator"));
+			}
+          }
+        ]]></body>
+      </method>
+
+      <method name="chevronPopupHidden">
+        <body><![CDATA[
+          var popup = this._popup;
+          if (!popup.parentNode.open)
+            popup._chevronWorkDone = false;
+        ]]></body>
+      </method>
+
+      <method name="chevronPopupShowing">
+        <body><![CDATA[
+          var popup = this._popup;
+          
+          if(popup._chevronWorkDone)
+            return;
+
+          this._rebuild();
+
+          for(var i = 0; i < popup.childNodes.length; i++)
+		  {
+			if(popup.childNodes[i].parentTbarElement)
+				popup.childNodes[i].hidden = !popup.childNodes[i].parentTbarElement.parentNode.collapsed;
+          }
+          popup._chevronWorkDone = true;
+        ]]></body>
+      </method>
+
+      <method name="getElementWidth">
+        <parameter name="element"/>
+        <body><![CDATA[
+          if (element.nodeName == "toolbarspring")
+            return 0;
+          
+          var style = document.defaultView.getComputedStyle(element, "");
+          
+          var leftMargin = style.getPropertyValue("margin-left");
+          leftMargin = leftMargin ? Math.round(parseFloat(leftMargin)) : 0;
+          
+          var rightMargin = style.getPropertyValue("margin-right");
+          rightMargin = rightMargin ? Math.round(parseFloat(rightMargin)) : 0;
+          
+          return element.boxObject.width + leftMargin + rightMargin;
+        ]]></body>
+      </method>
+
+      <method name="_setChevronTimer">
+        <parameter name="aTimerType"/>
+        <body><![CDATA[
+          var tType = "_updateTimer" + aTimerType;
+          
+          if (this[tType])
+            this[tType].cancel();
+          else
+            this[tType] = Components.classes["@mozilla.org/timer;1"].createInstance(Components.interfaces.nsITimer);
+          
+          var me = this;
+          if (aTimerType == "Delay")
+		  {
+            this[tType].initWithCallback(
+              {notify:function(){me.updateChevronReal();}},
+              150, Components.interfaces.nsITimer.TYPE_ONE_SHOT
+            )
+          }
+		  else
+		  {
+            this[tType].initWithCallback(
+              {notify:function(){me._updateTimerReal = null;}},
+              400, Components.interfaces.nsITimer.TYPE_ONE_SHOT
+            )
+          }
+        ]]></body>
+      </method>
+
+      <method name="updateChevronReal">
+        <body><![CDATA[
+          if (this.firstChild && this.firstChild.localName == "toolbarpaletteitem")
+		  {
+			this._chevronBox.collapsed = true;
+			return;
+          }
+
+          this._chevronBox.collapsed = false;
+
+          var chevronWidth = this._chevron.boxObject.width;
+          var totalWidth = this.boxObject.width;
+
+          var overflowed = false;
+          var z = 0;
+
+          for(var i = 0; i < this.childNodes.length; i++)
+		  {
+            var child = this.childNodes[i];
+
+            child.collapsed = false;
+            totalWidth -= this.getElementWidth(child);
+            var spaceNeeded = (i == this.childNodes.length - 1) ? 0 : chevronWidth;
+
+            if(totalWidth < spaceNeeded)
+			{
+              overflowed = true;
+              child.collapsed = true;
+            }
+			else
+			{
+              z = i;
+            }
+          }
+
+          this._chevronBox.collapsed = !overflowed;
+
+          if(z > 0 && (this.boxObject.width + 3) < (this._chevron.boxObject.x + this._chevron.boxObject.width))
+			this.childNodes[z].collapsed = true;
+        ]]></body>
+      </method>
+
+      <property name="updateChevron">
+        <getter><![CDATA[
+          this.updateChevron();
+        ]]></getter>
+      </property>
+
+      <method name="updateChevron">
+        <parameter name="event"/>
+        <body><![CDATA[
+          if (event && this._updateTimerReal)
+            return;
+
+          this._setChevronTimer("Real");
+
+          this.updateChevronReal();
+        ]]></body>
+      </method>
+
+	</implementation>
+  </binding>
+</bindings> 

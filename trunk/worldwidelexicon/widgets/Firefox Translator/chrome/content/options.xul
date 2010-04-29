@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  - THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+  - WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+  - MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+  - ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+  - WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+  - ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+  - OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+  - -->
+
+<?xml-stylesheet href="chrome://global/skin/" type="text/css"?>
+<?xml-stylesheet href="chrome://wwlbar/skin/overlay.css" type="text/css"?>
+
+<!DOCTYPE overlay SYSTEM "chrome://wwlbar/locale/wwlbar.dtd">
+
+<prefwindow title="&wwlbar.options.title;"
+			buttons="accept,cancel"
+			xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
+			onload="wwlbar.options.initialize()"
+			ondialogaccept="wwlbar.options.finish()">
+
+	<script src="options.js" />
+
+	<popupset>
+		<popup id="wwlbar_servers_menu" onpopupshowing="wwlbar.options.servers_check(event)">
+			<menuitem id="wwlbar_servers_menu_item1" label="&wwlbar.options.add;"    oncommand="wwlbar.options.servers_menu_add(event)" />
+			<menuitem id="wwlbar_servers_menu_item2" label="&wwlbar.options.edit;"   oncommand="wwlbar.options.servers_menu_edit(event)" />
+			<menuitem id="wwlbar_servers_menu_item3" label="&wwlbar.options.delete;" oncommand="wwlbar.options.servers_menu_delete(event)" />
+		</popup>
+	</popupset>
+
+	<prefpane>
+
+		<preferences>
+			<preference id="wwl-bilingual"   name="extensions.wwlbar.bilingual"   type="bool" />
+			<preference id="wwl-colorize"    name="extensions.wwlbar.colorize"    type="bool" />
+			<preference id="wwl-overflow"    name="extensions.wwlbar.overflow"    type="bool" />
+			<preference id="wwl-machine"     name="extensions.wwlbar.machine"     type="bool" />
+			<preference id="wwl-anonymous"   name="extensions.wwlbar.anonymous"   type="bool" />
+			<preference id="wwl-unscored"    name="extensions.wwlbar.unscored"    type="bool" />
+			<preference id="wwl-score"       name="extensions.wwlbar.score"       type="int"  />
+			<preference id="wwl-autosidebar" name="extensions.wwlbar.autosidebar" type="bool" />
+			<preference id="wwl-translateui" name="extensions.wwlbar.translateui" type="bool" />
+			<preference id="wwl-resetlogin"  name="extensions.wwlbar.resetlogin"  type="bool" />
+		</preferences>
+
+		<tabbox>
+			<tabs>
+				<tab label="&wwlbar.options.general;"/>
+				<tab label="&wwlbar.options.servers;"/>
+			</tabs>
+
+			<tabpanels>
+				<tabpanel>
+					<vbox>
+						<checkbox id="wwl-bilingual-check" label="&wwlbar.bilingual;" preference="wwl-bilingual" />
+						<checkbox id="wwl-colorize-check" label="&wwlbar.colorize;" preference="wwl-colorize" />
+						<checkbox id="wwl-overflow-check" label="&wwlbar.overflow;" preference="wwl-overflow" />
+						<checkbox id="wwl-machine-check" label="&wwlbar.machine;" preference="wwl-machine" />
+						<checkbox id="wwl-anonymous-check" label="&wwlbar.anonymous;" preference="wwl-anonymous" />
+						<checkbox id="wwl-unscored-check" label="&wwlbar.unscored;" preference="wwl-unscored" />
+
+						<separator />
+
+						<label id="wwl-min-score-label" control="wwl-min-score" value="&wwlbar.score;:"></label>
+						<radiogroup id="wwl-min-score" class="indent" orient="horizontal" preference="wwl-score">
+							<radio value="0" label="0" />
+							<radio value="1" label="1" />
+							<radio value="2" label="2" />
+							<radio value="3" label="3" />
+							<radio value="4" label="4" />
+							<radio value="5" label="5" />
+						</radiogroup>
+
+						<separator />
+
+        				<checkbox id="wwl-sidebar-check" label="&wwlbar.sidebar.check;" preference="wwl-autosidebar" />
+        				<checkbox id="wwl-ui-check" label="&wwlbar.ui.check;" preference="wwl-translateui" />
+        				<checkbox id="wwl-login-check" label="&wwlbar.login.check;" preference="wwl-resetlogin" />
+					</vbox>
+				</tabpanel>
+
+				<tabpanel>
+					<vbox>
+						<label id="wwl-server-tip" value="&wwlbar.options.servertip;:" />
+						<listbox id="wwl_servers" style="width:300px;height:350px" context="wwlbar_servers_menu">
+							<listcols>
+								<listcol flex="1" /><listcol flex="1" />
+							</listcols>
+						</listbox>
+					</vbox>
+				</tabpanel>
+			</tabpanels>
+		</tabbox>
+	</prefpane>
+</prefwindow>

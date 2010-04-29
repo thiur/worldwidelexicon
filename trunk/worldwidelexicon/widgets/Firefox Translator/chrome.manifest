@@ -1,0 +1,4 @@
+content	wwlbar	chrome/content/
+locale	wwlbar	en-US	chrome/locale/en-US/
+skin	wwlbar	classic/1.0	chrome/skin/
+overlay	chrome://browser/content/browser.xul	chrome://wwlbar/content/overlay.xul
