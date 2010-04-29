@@ -1,0 +1,13 @@
+pref("extensions.wwlbar.enabled",     true);
+pref("extensions.wwlbar.bilingual",   false);
+pref("extensions.wwlbar.colorize",    true);
+pref("extensions.wwlbar.overflow",    false);
+pref("extensions.wwlbar.sl",          "en");
+pref("extensions.wwlbar.tl",          "en");
+pref("extensions.wwlbar.machine",     true);
+pref("extensions.wwlbar.anonymous",   true);
+pref("extensions.wwlbar.unscored",    true);
+pref("extensions.wwlbar.score",       0);
+pref("extensions.wwlbar.autosidebar", true);
+pref("extensions.wwlbar.translateui", true);
+pref("extensions.wwlbar.resetlogin",  false);

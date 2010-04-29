@@ -1,0 +1,167 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+
+<?xml-stylesheet href="chrome://global/skin/" type="text/css"?>
+<!DOCTYPE overlay SYSTEM "chrome://wwlbar/locale/wwlbar.dtd">
+
+<dialog title="&wwlbar.host.title;"
+		id="wwl_host"
+		windowtype="global:wwlbar"
+		buttons="accept, cancel"
+		buttonlabelaccept="&wwlbar.userdetails.accept;"
+		xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
+		onload="wwlbar.host.load()"
+		ondialogaccept="wwlbar.host.save()">
+
+	<script src="host.js" />
+
+	<vbox>	
+		<label id="wwl-label-header" value="&wwlbar.host.service;:" />
+		<textbox id="wwl-host-service" size="50" value="" />
+
+		<spacer style="height:10px;" />
+
+		<label id="wwl-label-for" value="&wwlbar.host.for;:" />
+		<radiogroup id="wwl-type" orient="horizontal">
+			<radio id="wwl-radio-url"  label="&wwlbar.host.url;" selected="true" oncommand="wwlbar.host.radio()" />
+			<radio id="wwl-radio-pair" label="&wwlbar.host.pair;" oncommand="wwlbar.host.radio()" />
+		</radiogroup>
+
+		<spacer style="height:10px;" />
+
+		<label id="wwl-label-url" value="&wwlbar.host.url;:" />
+		<textbox id="wwl-host-url" value="" />
+
+		<spacer style="height:10px;" />
+
+		<label id="wwl-label-pair" value="&wwlbar.host.pair;:" />
+		<hbox>
+			<menulist id="wwlbar-host-source-language" type="menu">
+				<menupopup>
+					<menuitem label="Afrikaans" value="af" />
+					<menuitem label="العربية" value="ar" />
+					<menuitem label="български език" value="bg" />
+					<menuitem label="Català" value="ca" />
+					<menuitem label="česky" value="cs" />
+					<menuitem label="Cymraeg" value="cy" />
+					<menuitem label="Dansk" value="da" />
+					<menuitem label="Deutsch" value="de" />
+					<menuitem label="Ελληνικά" value="el" />
+					<menuitem label="English" value="en" />
+					<menuitem label="Español" value="es" />
+					<menuitem label="Eesti keel" value="et" />
+					<menuitem label="Euskara" value="eu" />
+					<menuitem label="فارسی " value="fa" />
+					<menuitem label="suomen kieli" value="fi" />
+					<menuitem label="Français" value="fr" />
+					<menuitem label="Gaeilge" value="ga" />
+					<menuitem label="Galego" value="gl" />
+					<menuitem label="ગુજરાતી" value="gu" />
+					<menuitem label="עברית " value="he" />
+					<menuitem label="हिन्दी " value="hi" />
+					<menuitem label="Hrvatski" value="hr" />
+					<menuitem label="Kreyòl ayisyen" value="ht" />
+					<menuitem label="Magyar" value="hu" />
+					<menuitem label="Indonesian" value="id" />
+					<menuitem label="Íslenska" value="is" />
+					<menuitem label="Italiano" value="it" />
+					<menuitem label="日本語" value="ja" />
+					<menuitem label="basa Jawa" value="jv" />
+					<menuitem label="한국어" value="ko" />
+					<menuitem label="كوردی" value="ku" />
+					<menuitem label="lingua latina" value="la" />
+					<menuitem label="lietuvių" value="lt" />
+					<menuitem label="latviešu" value="lv" />
+					<menuitem label="Монгол " value="mn" />
+					<menuitem label="بهاس ملايو" value="ms" />
+					<menuitem label="Burmese" value="my" />
+					<menuitem label="नेपाली " value="ne" />
+					<menuitem label="Nederlands" value="nl" />
+					<menuitem label="Norsk" value="no" />
+					<menuitem label="Occitan" value="oc" />
+					<menuitem label="ਪੰਜਾਬੀ " value="pa" />
+					<menuitem label="polski" value="po" />
+					<menuitem label="پښتو" value="ps" />
+					<menuitem label="Português" value="pt" />
+					<menuitem label="română" value="ro" />
+					<menuitem label="Русский" value="ru" />
+					<menuitem label="slovenčina" value="sk" />
+					<menuitem label="српски језик" value="sr" />
+					<menuitem label="svenska" value="sv" />
+					<menuitem label="Kiswahili" value="sw" />
+					<menuitem label="ไทย " value="th" />
+					<menuitem label="Tagalog" value="tl" />
+					<menuitem label="Türkçe" value="tr" />
+					<menuitem label="Українська" value="uk" />
+					<menuitem label="Tiếng Việt" value="vi" />
+					<menuitem label="ייִדיש" value="yi" />
+					<menuitem label="中文" value="zh" />
+				</menupopup>
+			</menulist>
+
+			<label id="wwlbar-host-arrow" value="->" />
+
+			<menulist id="wwlbar-host-target-language" type="menu">
+				<menupopup>
+					<menuitem label="Afrikaans" value="af" />
+					<menuitem label="العربية" value="ar" />
+					<menuitem label="български език" value="bg" />
+					<menuitem label="Català" value="ca" />
+					<menuitem label="česky" value="cs" />
+					<menuitem label="Cymraeg" value="cy" />
+					<menuitem label="Deutsch" value="de" />
+					<menuitem label="Ελληνικά" value="el" />
+					<menuitem label="English" value="en" />
+					<menuitem label="Español" value="es" />
+					<menuitem label="Eesti keel" value="et" />
+					<menuitem label="Euskara" value="eu" />
+					<menuitem label="فارسی " value="fa" />
+					<menuitem label="suomen kieli" value="fi" />
+					<menuitem label="Français" value="fr" />
+					<menuitem label="Gaeilge" value="ga" />
+					<menuitem label="Galego" value="gl" />
+					<menuitem label="ગુજરાતી" value="gu" />
+					<menuitem label="עברית " value="he" />
+					<menuitem label="हिन्दी " value="hi" />
+					<menuitem label="Hrvatski" value="hr" />
+					<menuitem label="Kreyòl ayisyen" value="ht" />
+					<menuitem label="Magyar" value="hu" />
+					<menuitem label="Indonesian" value="id" />
+					<menuitem label="Íslenska" value="is" />
+					<menuitem label="Italiano" value="it" />
+					<menuitem label="日本語" value="ja" />
+					<menuitem label="basa Jawa" value="jv" />
+					<menuitem label="한국어" value="ko" />
+					<menuitem label="كوردی" value="ku" />
+					<menuitem label="lingua latina" value="la" />
+					<menuitem label="lietuvių" value="lt" />
+					<menuitem label="latviešu" value="lv" />
+					<menuitem label="Монгол " value="mn" />
+					<menuitem label="بهاس ملايو" value="ms" />
+					<menuitem label="Burmese" value="my" />
+					<menuitem label="नेपाली " value="ne" />
+					<menuitem label="Nederlands" value="nl" />
+					<menuitem label="Norsk" value="no" />
+					<menuitem label="Occitan" value="oc" />
+					<menuitem label="ਪੰਜਾਬੀ " value="pa" />
+					<menuitem label="polski" value="po" />
+					<menuitem label="پښتو" value="ps" />
+					<menuitem label="Português" value="pt" />
+					<menuitem label="română" value="ro" />
+					<menuitem label="Русский" value="ru" />
+					<menuitem label="slovenčina" value="sk" />
+					<menuitem label="српски језик" value="sr" />
+					<menuitem label="svenska" value="sv" />
+					<menuitem label="Kiswahili" value="sw" />
+					<menuitem label="ไทย " value="th" />
+					<menuitem label="Tagalog" value="tl" />
+					<menuitem label="Türkçe" value="tr" />
+					<menuitem label="Українська" value="uk" />
+					<menuitem label="Tiếng Việt" value="vi" />
+					<menuitem label="ייִדיש" value="yi" />
+					<menuitem label="中文" value="zh" />
+				</menupopup>
+			</menulist>
+		</hbox>
+	</vbox>
+
+</dialog>

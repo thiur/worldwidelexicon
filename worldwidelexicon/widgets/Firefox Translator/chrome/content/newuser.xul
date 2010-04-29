@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!--
+/* Worldwide Lexicon translation memory developed by Brian S McConnell.
+ * Firefox add-on developed by Dmitriy Khudorozhkov.
+ *
+ * (c) 2009 Worldwide Lexicon Inc. All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without modification,
+ * are permitted provided that the following conditions are met:
+ *
+ *   * Redistributions of source code must retain the above copyright notice,
+ *     this list of conditions and the following disclaimer.
+ *   * Redistributions in binary form must reproduce the above copyright notice,
+ *     this list of conditions and the following disclaimer in the documentation
+ *     and/or other materials provided with the distribution.
+ *   * Neither the name of eZ Systems A.S. nor the names of its contributors may be
+ *     used to endorse or promote products derived from this software without
+ *      specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
+ * THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE
+ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+ * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+ * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+ * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+-->
+
+<?xml-stylesheet href="chrome://global/skin/" type="text/css"?>
+<?xml-stylesheet href="chrome://wwlbar/skin/overlay.css" type="text/css"?>
+<!DOCTYPE overlay SYSTEM "chrome://wwlbar/locale/wwlbar.dtd">
+
+<dialog id="wwl-newuser-dialog"
+		title="&wwlbar.newuser.title;"
+		windowtype="global:wwlbar"
+		buttons="extra1,cancel"
+		buttonlabelextra1="&wwlbar.newuser.button;"
+		xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
+		onload="wwlbar.newuser.onload();"
+		ondialogextra1="wwlbar.newuser.accept();"
+		ondialogcancel="wwlbar.newuser.cancel();">
+
+	<script src="newuser.js" />
+
+	<vbox>
+		<label id="new-header" value="&wwlbar.newuser.header;" />
+
+		<spacer style="height:10px;" />
+
+		<grid>
+			<columns><column /><column /></columns>
+			<rows>
+				<row align="center">
+					<label id="new-username" value="&wwlbar.login.username;:" />
+					<textbox id="wwl-user-name" value="" />
+				</row>
+				<row align="center">
+					<label id="new-password" value="&wwlbar.login.pass;:" />
+					<textbox id="wwl-pass" value="" type="password" />
+				</row>
+				<row align="center">
+					<label id="new-email" value="&wwlbar.newuser.email;:" />
+					<textbox id="wwl-email" value="" />
+				</row>
+			</rows>
+		</grid>
+		<checkbox id="wwl-detail" label="&wwlbar.newuser.detail;" checked="true" />
+	</vbox>
+</dialog>

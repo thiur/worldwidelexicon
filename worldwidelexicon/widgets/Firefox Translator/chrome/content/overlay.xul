@@ -1,0 +1,286 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+
+<!--
+/* Worldwide Lexicon translation memory developed by Brian S McConnell.
+ * Firefox add-on developed by Dmitriy Khudorozhkov.
+ *
+ * (c) 2009 Worldwide Lexicon Inc. All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without modification,
+ * are permitted provided that the following conditions are met:
+ *
+ *   * Redistributions of source code must retain the above copyright notice,
+ *     this list of conditions and the following disclaimer.
+ *   * Redistributions in binary form must reproduce the above copyright notice,
+ *     this list of conditions and the following disclaimer in the documentation
+ *     and/or other materials provided with the distribution.
+ *   * Neither the name of eZ Systems A.S. nor the names of its contributors may be
+ *     used to endorse or promote products derived from this software without
+ *      specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
+ * THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE
+ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+ * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+ * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+ * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+-->
+
+<?xml-stylesheet href="chrome://wwlbar/skin/overlay.css" type="text/css"?>
+<!DOCTYPE overlay SYSTEM "chrome://wwlbar/locale/wwlbar.dtd">
+<overlay id="wwlbar-overlay" xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul">
+
+	<script src="overlay.js" />
+
+	<stringbundleset id="stringbundleset">
+		<stringbundle id="wwlbar-strings" src="chrome://wwlbar/locale/wwlbar.properties"/>
+	</stringbundleset>
+
+	<popupset>
+		<tooltip id="wwltip" orient="vertical" style="background-color: #33DD00;" noautohide="true" onpopupshowing="if(wwlbar.session.length) return false;">
+			<hbox>
+				<description id="wwltip-1" value="&wwlbar.tip.click;" />
+				<description id="wwltip-2" value="&wwlbar.login;" style="color:red; font-weight:bold; margin-left:0px; margin-right:0px;" />
+				<description id="wwltip-3" value="&wwlbar.tip.other;"/>
+			</hbox>
+		</tooltip>
+	</popupset>
+
+	<toolbarpalette id="BrowserToolbarPalette">
+
+		<toolbaritem id="wwlbar-translate" title="&wwlbar.translate;">
+			<checkbox id="wwlbar-translate-check" oncommand="wwlbar.switchToolbar(this);" label="&wwlbar.translate;" />
+		</toolbaritem>
+
+		<toolbaritem id="wwlbar-source-language" title="&wwlbar.sl;" label="&wwlbar.sl;">
+			<menulist id="wwlbar-source-language-menu" type="menu" tooltiptext="&wwlbar.sl.tip;">
+				<menupopup>
+					<menuitem label="multi-language" value="mlt" id="wwlbar-multilanguage" onclick="wwlbar.setSourceLanguage(this)" />
+					<menuitem label="Afrikaans" value="af" onclick="wwlbar.setSourceLanguage(this)" />
+					<menuitem label="العربية" value="ar" onclick="wwlbar.setSourceLanguage(this)" />
+					<menuitem label="български език" value="bg" onclick="wwlbar.setSourceLanguage(this)" />
+					<menuitem label="Català" value="ca" onclick="wwlbar.setSourceLanguage(this)" />
+					<menuitem label="česky" value="cs" onclick="wwlbar.setSourceLanguage(this)" />
+					<menuitem label="Cymraeg" value="cy" onclick="wwlbar.setSourceLanguage(this)" />
+					<menuitem label="Dansk" value="da" onclick="wwlbar.setSourceLanguage(this)" />
+					<menuitem label="Deutsch" value="de" onclick="wwlbar.setSourceLanguage(this)" />
+					<menuitem label="Ελληνικά" value="el" onclick="wwlbar.setSourceLanguage(this)" />
+					<menuitem label="English" value="en" onclick="wwlbar.setSourceLanguage(this)" />
+					<menuitem label="Español" value="es" onclick="wwlbar.setSourceLanguage(this)" />
+					<menuitem label="Eesti keel" value="et" onclick="wwlbar.setSourceLanguage(this)" />
+					<menuitem label="Euskara" value="eu" onclick="wwlbar.setSourceLanguage(this)" />
+					<menuitem label="فارسی " value="fa" onclick="wwlbar.setSourceLanguage(this)" />
+					<menuitem label="suomen kieli" value="fi" onclick="wwlbar.setSourceLanguage(this)" />
+					<menuitem label="Français" value="fr" onclick="wwlbar.setSourceLanguage(this)" />
+					<menuitem label="Gaeilge" value="ga" onclick="wwlbar.setSourceLanguage(this)" />
+					<menuitem label="Galego" value="gl" onclick="wwlbar.setSourceLanguage(this)" />
+					<menuitem label="ગુજરાતી" value="gu" onclick="wwlbar.setSourceLanguage(this)" />
+					<menuitem label="עברית " value="he" onclick="wwlbar.setSourceLanguage(this)" />
+					<menuitem label="हिन्दी " value="hi" onclick="wwlbar.setSourceLanguage(this)" />
+					<menuitem label="Hrvatski" value="hr" onclick="wwlbar.setSourceLanguage(this)" />
+					<menuitem label="Kreyòl ayisyen" value="ht" onclick="wwlbar.setSourceLanguage(this)" />
+					<menuitem label="Magyar" value="hu" onclick="wwlbar.setSourceLanguage(this)" />
+					<menuitem label="Indonesian" value="id" onclick="wwlbar.setSourceLanguage(this)" />
+					<menuitem label="Íslenska" value="is" onclick="wwlbar.setSourceLanguage(this)" />
+					<menuitem label="Italiano" value="it" onclick="wwlbar.setSourceLanguage(this)" />
+					<menuitem label="日本語" value="ja" onclick="wwlbar.setSourceLanguage(this)" />
+					<menuitem label="basa Jawa" value="jv" onclick="wwlbar.setSourceLanguage(this)" />
+					<menuitem label="한국어" value="ko" onclick="wwlbar.setSourceLanguage(this)" />
+					<menuitem label="كوردی" value="ku" onclick="wwlbar.setSourceLanguage(this)" />
+					<menuitem label="lingua latina" value="la" onclick="wwlbar.setSourceLanguage(this)" />
+					<menuitem label="lietuvių" value="lt" onclick="wwlbar.setSourceLanguage(this)" />
+					<menuitem label="latviešu" value="lv" onclick="wwlbar.setSourceLanguage(this)" />
+					<menuitem label="Монгол " value="mn" onclick="wwlbar.setSourceLanguage(this)" />
+					<menuitem label="بهاس ملايو" value="ms" onclick="wwlbar.setSourceLanguage(this)" />
+					<menuitem label="Burmese" value="my" onclick="wwlbar.setSourceLanguage(this)" />
+					<menuitem label="नेपाली " value="ne" onclick="wwlbar.setSourceLanguage(this)" />
+					<menuitem label="Nederlands" value="nl" onclick="wwlbar.setSourceLanguage(this)" />
+					<menuitem label="Norsk" value="no" onclick="wwlbar.setSourceLanguage(this)" />
+					<menuitem label="Occitan" value="oc" onclick="wwlbar.setSourceLanguage(this)" />
+					<menuitem label="ਪੰਜਾਬੀ " value="pa" onclick="wwlbar.setSourceLanguage(this)" />
+					<menuitem label="polski" value="po" onclick="wwlbar.setSourceLanguage(this)" />
+					<menuitem label="پښتو" value="ps" onclick="wwlbar.setSourceLanguage(this)" />
+					<menuitem label="Português" value="pt" onclick="wwlbar.setSourceLanguage(this)" />
+					<menuitem label="română" value="ro" onclick="wwlbar.setSourceLanguage(this)" />
+					<menuitem label="Русский" value="ru" onclick="wwlbar.setSourceLanguage(this)" />
+					<menuitem label="slovenčina" value="sk" onclick="wwlbar.setSourceLanguage(this)" />
+					<menuitem label="српски језик" value="sr" onclick="wwlbar.setSourceLanguage(this)" />
+					<menuitem label="svenska" value="sv" onclick="wwlbar.setSourceLanguage(this)" />
+					<menuitem label="Kiswahili" value="sw" onclick="wwlbar.setSourceLanguage(this)" />
+					<menuitem label="ไทย " value="th" onclick="wwlbar.setSourceLanguage(this)" />
+					<menuitem label="Tagalog" value="tl" onclick="wwlbar.setSourceLanguage(this)" />
+					<menuitem label="Türkçe" value="tr" onclick="wwlbar.setSourceLanguage(this)" />
+					<menuitem label="Українська" value="uk" onclick="wwlbar.setSourceLanguage(this)" />
+					<menuitem label="Tiếng Việt" value="vi" onclick="wwlbar.setSourceLanguage(this)" />
+					<menuitem label="ייִדיש" value="yi" onclick="wwlbar.setSourceLanguage(this)" />
+					<menuitem label="中文" value="zh" onclick="wwlbar.setSourceLanguage(this)" />
+				</menupopup>
+			</menulist>
+		</toolbaritem>
+
+		<toolbaritem id="wwlbar-target-language" title="&wwlbar.tl;" label="&wwlbar.tl;">
+			<label id="wwlbar-target-language-label" value="&wwlbar.arrow;" />
+			<menulist id="wwlbar-target-language-menu" type="menu" tooltiptext="&wwlbar.tl.tip;">
+				<menupopup>
+					<menuitem label="Afrikaans" value="af" onclick="wwlbar.setTargetLanguage(this)" />
+					<menuitem label="العربية" value="ar" onclick="wwlbar.setTargetLanguage(this)" />
+					<menuitem label="български език" value="bg" onclick="wwlbar.setTargetLanguage(this)" />
+					<menuitem label="Català" value="ca" onclick="wwlbar.setTargetLanguage(this)" />
+					<menuitem label="česky" value="cs" onclick="wwlbar.setTargetLanguage(this)" />
+					<menuitem label="Cymraeg" value="cy" onclick="wwlbar.setTargetLanguage(this)" />
+					<menuitem label="Dansk" value="da" onclick="wwlbar.setTargetLanguage(this)" />
+					<menuitem label="Deutsch" value="de" onclick="wwlbar.setTargetLanguage(this)" />
+					<menuitem label="Ελληνικά" value="el" onclick="wwlbar.setTargetLanguage(this)" />
+					<menuitem label="English" value="en" onclick="wwlbar.setTargetLanguage(this)" />
+					<menuitem label="Español" value="es" onclick="wwlbar.setTargetLanguage(this)" />
+					<menuitem label="Eesti keel" value="et" onclick="wwlbar.setTargetLanguage(this)" />
+					<menuitem label="Euskara" value="eu" onclick="wwlbar.setTargetLanguage(this)" />
+					<menuitem label="فارسی " value="fa" onclick="wwlbar.setTargetLanguage(this)" />
+					<menuitem label="suomen kieli" value="fi" onclick="wwlbar.setTargetLanguage(this)" />
+					<menuitem label="Français" value="fr" onclick="wwlbar.setTargetLanguage(this)" />
+					<menuitem label="Gaeilge" value="ga" onclick="wwlbar.setTargetLanguage(this)" />
+					<menuitem label="Galego" value="gl" onclick="wwlbar.setTargetLanguage(this)" />
+					<menuitem label="ગુજરાતી" value="gu" onclick="wwlbar.setTargetLanguage(this)" />
+					<menuitem label="עברית " value="he" onclick="wwlbar.setTargetLanguage(this)" />
+					<menuitem label="हिन्दी " value="hi" onclick="wwlbar.setTargetLanguage(this)" />
+					<menuitem label="Hrvatski" value="hr" onclick="wwlbar.setTargetLanguage(this)" />
+					<menuitem label="Kreyòl ayisyen" value="ht" onclick="wwlbar.setTargetLanguage(this)" />
+					<menuitem label="Magyar" value="hu" onclick="wwlbar.setTargetLanguage(this)" />
+					<menuitem label="Indonesian" value="id" onclick="wwlbar.setTargetLanguage(this)" />
+					<menuitem label="Íslenska" value="is" onclick="wwlbar.setTargetLanguage(this)" />
+					<menuitem label="Italiano" value="it" onclick="wwlbar.setTargetLanguage(this)" />
+					<menuitem label="日本語" value="ja" onclick="wwlbar.setTargetLanguage(this)" />
+					<menuitem label="basa Jawa" value="jv" onclick="wwlbar.setTargetLanguage(this)" />
+					<menuitem label="한국어" value="ko" onclick="wwlbar.setTargetLanguage(this)" />
+					<menuitem label="كوردی" value="ku" onclick="wwlbar.setTargetLanguage(this)" />
+					<menuitem label="lingua latina" value="la" onclick="wwlbar.setTargetLanguage(this)" />
+					<menuitem label="lietuvių" value="lt" onclick="wwlbar.setTargetLanguage(this)" />
+					<menuitem label="latviešu" value="lv" onclick="wwlbar.setTargetLanguage(this)" />
+					<menuitem label="Монгол " value="mn" onclick="wwlbar.setTargetLanguage(this)" />
+					<menuitem label="بهاس ملايو" value="ms" onclick="wwlbar.setTargetLanguage(this)" />
+					<menuitem label="Burmese" value="my" onclick="wwlbar.setTargetLanguage(this)" />
+					<menuitem label="नेपाली " value="ne" onclick="wwlbar.setTargetLanguage(this)" />
+					<menuitem label="Nederlands" value="nl" onclick="wwlbar.setTargetLanguage(this)" />
+					<menuitem label="Norsk" value="no" onclick="wwlbar.setTargetLanguage(this)" />
+					<menuitem label="Occitan" value="oc" onclick="wwlbar.setTargetLanguage(this)" />
+					<menuitem label="ਪੰਜਾਬੀ " value="pa" onclick="wwlbar.setTargetLanguage(this)" />
+					<menuitem label="polski" value="po" onclick="wwlbar.setTargetLanguage(this)" />
+					<menuitem label="پښتو" value="ps" onclick="wwlbar.setTargetLanguage(this)" />
+					<menuitem label="Português" value="pt" onclick="wwlbar.setTargetLanguage(this)" />
+					<menuitem label="română" value="ro" onclick="wwlbar.setTargetLanguage(this)" />
+					<menuitem label="Русский" value="ru" onclick="wwlbar.setTargetLanguage(this)" />
+					<menuitem label="slovenčina" value="sk" onclick="wwlbar.setTargetLanguage(this)" />
+					<menuitem label="српски језик" value="sr" onclick="wwlbar.setTargetLanguage(this)" />
+					<menuitem label="svenska" value="sv" onclick="wwlbar.setTargetLanguage(this)" />
+					<menuitem label="Kiswahili" value="sw" onclick="wwlbar.setTargetLanguage(this)" />
+					<menuitem label="ไทย " value="th" onclick="wwlbar.setTargetLanguage(this)" />
+					<menuitem label="Tagalog" value="tl" onclick="wwlbar.setTargetLanguage(this)" />
+					<menuitem label="Türkçe" value="tr" onclick="wwlbar.setTargetLanguage(this)" />
+					<menuitem label="Українська" value="uk" onclick="wwlbar.setTargetLanguage(this)" />
+					<menuitem label="Tiếng Việt" value="vi" onclick="wwlbar.setTargetLanguage(this)" />
+					<menuitem label="ייִדיש" value="yi" onclick="wwlbar.setTargetLanguage(this)" />
+					<menuitem label="中文" value="zh" onclick="wwlbar.setTargetLanguage(this)" />
+				</menupopup>
+			</menulist>
+		</toolbaritem>
+
+		<toolbaritem type="menu" id="wwlbar-sidebar" title="&wwlbar.sidebar.title;" label="&wwlbar.sidebar.link;">
+			<toolbarbutton type="button" label="&wwlbar.sidebar.link;" id="wwlbar-sidebar-label" oncommand="if(event.target == this) { this.blur(); wwlbar.toggleSidebar(document.getElementById('sidebar-box').hidden, true); return false; }" />
+		</toolbaritem>
+
+		<toolbaritem id="wwlbar-websearch" title="&wwlbar.websearch;">
+			<label id="wwlbar-websearch-label" value="&wwlbar.websearch.link;" />
+			<textbox id="wwlbar-websearch-field" onkeypress="if(event.keyCode == 13) wwlbar.openWebSearch(this.value);" value="" tooltiptext="&wwlbar.websearch.tip;" />
+		</toolbaritem>
+
+		<toolbaritem id="wwlbar-ticker" title="&wwlbar.ticker;">
+			<label class="text-link" id="wwlbar-headline" value="" style="opacity:0" flex="1" onclick="this.blur(); if(!wwlbar.enabled) return; var win = Components.classes['@mozilla.org/appshell/window-mediator;1'].getService(Components.interfaces.nsIWindowMediator).getMostRecentWindow('navigator:browser').openUILinkIn(this.href, 'tab'); return false;" />
+		</toolbaritem>
+
+		<toolbaritem id="wwlbar-login" title="&wwlbar.login;">
+			<label id="wwlbar-login-label" class="text-link" onclick="this.blur(); if(!wwlbar.enabled) return; wwlbar.login(); return false;" value="&wwlbar.login;" tooltip="wwltip" />
+		</toolbaritem>
+
+		<toolbaritem id="wwlbar-help" title="&wwlbar.help;">
+			<label id="wwlbar-help-label" class="text-link" onclick="this.blur(); wwlbar.help(); return false;" value="&wwlbar.help;" />
+		</toolbaritem>
+
+		<toolbaritem id="wwlbar-profile" title="&wwlbar.profile;">
+			<label id="wwlbar-profile-label" class="text-link" onclick="this.blur(); if(!wwlbar.enabled) return; wwlbar.openProfile(); return false;" value="&wwlbar.community;" />
+		</toolbaritem>
+
+		<toolbaritem type="menu" id="wwlbar-options" title="&wwlbar.options;" label="&wwlbar.options;">
+			<toolbarbutton type="menu-button" label="&wwlbar.options;" id="wwlbar-options-button" oncommand="if(event.target == this) wwlbar.openOptions();">
+				<menupopup>
+					<vbox>
+						<checkbox id="wwlbar-bilingual-check" oncommand="wwlbar.switchBilingual(this);" label="&wwlbar.bilingual;" />
+						<checkbox id="wwlbar-colorize-check" oncommand="wwlbar.switchColorize(this);" label="&wwlbar.colorize;" />
+						<checkbox id="wwlbar-overflow-check" oncommand="wwlbar.switchOverflow(this);" label="&wwlbar.overflow;" />
+
+						<menuseparator />
+
+						<checkbox id="wwlbar-machine-check" oncommand="wwlbar.switchMachine(this);" label="&wwlbar.machine;" />
+						<checkbox id="wwlbar-anonymous-check" oncommand="wwlbar.switchAnonymous(this);" label="&wwlbar.anonymous;" />
+						<checkbox id="wwlbar-unscored-check" oncommand="wwlbar.switchUnscored(this);" label="&wwlbar.unscored;" />
+						<label id="wwlbar-score-label" value="&wwlbar.score;:" tooltiptext="&wwlbar.score.tip;" />
+						<radiogroup id="wwlbar-score-menu" orient="horizontal">
+							<radio label="0" onclick="wwlbar.setMinimumScore(0)" selected="true" />
+							<radio label="1" onclick="wwlbar.setMinimumScore(1)" />
+							<radio label="2" onclick="wwlbar.setMinimumScore(2)" />
+							<radio label="3" onclick="wwlbar.setMinimumScore(3)" />
+							<radio label="4" onclick="wwlbar.setMinimumScore(4)" />
+							<radio label="5" onclick="wwlbar.setMinimumScore(5)" />
+						</radiogroup>
+
+						<menuseparator />
+
+						<checkbox id="wwlbar-sidebar-check" oncommand="wwlbar.switchAutoSidebar(this);" label="&wwlbar.sidebar.check;" />
+						<checkbox id="wwlbar-ui-check" oncommand="wwlbar.switchTranslateUI(this);" label="&wwlbar.ui.check;" />
+						<checkbox id="wwlbar-login-check" oncommand="wwlbar.switchResetLogin(this);" label="&wwlbar.login.check;" />
+					</vbox>
+				</menupopup>
+			</toolbarbutton>
+		</toolbaritem>
+
+	</toolbarpalette>
+
+	<toolbox id="navigator-toolbox" crop="end">
+		<toolbar id="wwlbar-toolbar" toolbarname="&wwlbar.toolbar.name;"
+				 class="chromeclass-toolbar-additional" context="toolbar-context-menu" hidden="false" persist="hidden" crop="end" mode="full"
+				 customizable="true" defaultset="wwlbar-translate,separator,wwlbar-source-language,wwlbar-target-language,separator,wwlbar-sidebar,separator,wwlbar-websearch,separator,wwlbar-ticker,spring,wwlbar-login,wwlbar-help,wwlbar-profile,separator,wwlbar-options" />
+	</toolbox>
+
+	<!-- Sidebar -->
+
+	<menupopup id="viewSidebarMenu">
+		<menuitem key="key_openWWLSidebar" observes="viewWWLSidebar"  />
+	</menupopup>
+
+	<keyset id="mainKeyset">
+		<key id="key_openWWLSidebar" command="viewWWLSidebar" key="" modifiers="" />
+	</keyset>
+
+	<broadcasterset  id="mainBroadcasterSet"> 
+		<broadcaster id="viewWWLSidebar" 
+					 label="&wwlbar.sidebar.title;"
+					 autoCheck="false"
+					 type="checkbox"
+					 group="sidebar"
+					 sidebarurl="chrome://wwlbar/content/sidebar.xul"
+					 sidebartitle="&wwlbar.sidebar.title;"
+					 oncommand="toggleSidebar('viewWWLSidebar');" />
+	</broadcasterset>
+
+	<!-- Status bar -->
+
+	<statusbar id="status-bar">
+		<statusbarpanel id="wwlbar-status">
+			<toolbarbutton id="wwlbar-status-menu" tooltiptext="World Wide Lexicon" type="toolbarbutton-1" oncommand="wwlbar.cycleStatus();" />
+		</statusbarpanel>
+	</statusbar>
+</overlay>

@@ -1,0 +1,75 @@
+#wwlbar-toolbar
+{
+	-moz-binding: url("chrome://wwlbar/content/chevron.xml#wwl-bar") !important;
+}
+
+.chevron checkbox, .chevron #wwlbar-options-button-chevron-clone menupopup label, #wwlbar-server-list label
+{
+	color: black !important;
+}
+
+#wwlbar-websearch-label
+{
+	padding-top: 5px;
+}
+
+#wwlbar-source-language-label, #wwlbar-target-language-label, #wwlbar-server-label, #wwlbar-server-name, #wwlbar-translate-label, #wwlbar-bilingual-label, #wwlbar-score-label, #wwlbar-multi-label
+{
+	padding-top: 4px;
+}
+
+#wwlbar-login-label, #wwlbar-profile-label, #wwlbar-settings-label, #wwlbar-sidebar-label, #wwlbar-headline, #wwlbar-help-label
+{
+	padding-top: 3px;
+}
+
+#wwlbar-multi-label .toolbarbutton-text, #wwlbar-options-button .toolbarbutton-text, #wwlbar-sidebar-label .toolbarbutton-text
+{
+	display: block !important;
+}
+
+#wwl-user-name, #wwl-pass
+{
+	width: 170px;
+}
+
+#wwlbar-score-label
+{
+	padding-left: 2px;
+}
+
+#wwlbar-multi-label
+{
+	border-bottom: 1px dashed;
+	color: -moz-nativehyperlinktext;
+	cursor: pointer;
+
+	margin-bottom: 5px;
+	padding-bottom: 0px;
+}
+
+#wwlbar-multi-label[disabled=true]
+{
+	color: gray;
+	cursor: default;
+}
+
+toolbarbutton#wwlbar-status-menu
+{
+	list-style-image: url("chrome://wwlbar/skin/logo-small.png");
+}
+
+toolbarbutton#wwlbar-status-menu[status="sleeping"]
+{
+	list-style-image: url("chrome://wwlbar/skin/logo-small-sleeping.png");
+}
+
+toolbarbutton#wwlbar-status-menu[status="disabled"]
+{
+	list-style-image: url("chrome://wwlbar/skin/logo-small-disabled.png");
+}
+
+#wwlbar-multilanguage
+{
+	font-style: italic;
+}
