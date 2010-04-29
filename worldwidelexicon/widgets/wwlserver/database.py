@@ -2070,27 +2070,6 @@ class Translation(db.Model):
             else:
                 return ''
         elif len(lsp) > 0:
-            lurl = Config.lspurl(lsp)
-            if len(lurl) > 0:
-                f = dict()
-                f['sl']=sl
-                f['tl']=tl
-                f['st']=st
-                f['domain']=domain
-                f['url']=url
-                f['username']=lspusername
-                f['pw']=lsppw
-                m = md5.new()
-                m.update(sl)
-                m.update(tl)
-                m.update(st)
-                f['guid'] = str(m.hexdigest())
-                form_data = urllib.urlencode(f)
-                p = dict()
-                p['url'] = lurl
-                p['form_data'] = form_data
-                p['lsp'] = lsp
-                taskqueue.add(url = '/queue/send', params=p)
             return ''
         else:
             return ''
