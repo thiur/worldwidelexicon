@@ -70,27 +70,17 @@ from geo import geo
 from akismet import Akismet
 from transcoder import transcoder
 from database import Comment
-from database import Queue
 from database import Search
 from database import Translation
 from database import languages
 from database import Users
 from database import Settings
+from lsp import LSP
 from ip import ip
 import feedparser
 
 def clean(text):
     return transcoder.clean(text)
-    # skip this for now
-    try:
-        utext = text.encode('utf-8')
-    except:
-        try:
-            utext = text.encode('iso-8859-1')
-        except:
-            utext = text
-    text = utext.decode('utf-8')
-    return text
 
 def smart_str(s, encoding='utf-8', errors='ignore', from_encoding='utf-8'):
     if type(s) in (int, long, float, types.NoneType):
@@ -111,275 +101,6 @@ def smart_str(s, encoding='utf-8', errors='ignore', from_encoding='utf-8'):
     
 class tx():
     sl = ''
-    
-class AddQueue(webapp.RequestHandler):
-    """
-    /queue/add
-    
-    This request handler is used to add a text to the translation queue. This API is typically used to queue
-    translations for processing by an external language service provider, volunteer community, etc, where
-    texts are translated outside of the source website (for example in the Extraordinaries mobile translation app)
-    """
-    def get(self):
-        self.requesthandler()
-    def post(self):
-        self.requesthandler()
-    def requesthandler(self):
-        sl = self.request.get('sl')
-        tl = self.request.get('tl')
-        st = clean(self.request.get('st'))
-        domain = self.request.get('domain')
-        url = self.request.get('url')
-        lsp = self.request.get('lsp')
-        if len(sl) > 0 and len(tl) > 0 and len(st) > 0:
-            Queue.add(sl, tl, st, domain=domain, url=url, lsp=lsp)
-            self.response.headers['Content-Type']='text/plain'
-            self.response.out.write('ok')
-        else:
-            www.serve(self, self.__doc__)
-            self.response.out.write('<form action=/queue/add method=get>')
-            self.response.out.write('<table>')
-            self.response.out.write('<tr><td>Source Language (sl)</td><td><input type=text name=sl></td></tr>')
-            self.response.out.write('<tr><td>Target Language (tl)</td><td><input type=text name=tl></td></tr>')
-            self.response.out.write('<tr><td>Source Text (st)</td><td><input type=text name=st></td></tr>')
-            self.response.out.write('<tr><td>Domain (domain)</td><td><input type=text name=domain></td></tr>')
-            self.response.out.write('<tr><td>URL (url)</td><td><input type=text name=url></td></tr>')
-            self.response.out.write('<tr><td>Language Service Provider (lsp)</td><td><input type=text name=lsp></td></tr>')
-            self.response.out.write('<tr><td colspan=2><input type=submit value="OK"></td></tr>')
-            self.response.out.write('</table></form>')
-    
-class SearchQueue(webapp.RequestHandler):
-    """
-    SearchQueue()
-    /queue/search
-    
-    This request handler is used to search for pending translation jobs that
-    have been scheduled for dispatch to services like The Extraordinaries. The
-    API expects the following parameters:
-    
-    sl : source language code
-    tl : target language code
-    domain : source domain (to limit scope of search to source texts from domain www.xyz.com)
-    lsp : language service provider (limit scope of search to jobs for a specific agency)
-    output : output format (xml, rss, json)
-    limit : optional limit on max number of jobs
-    """
-    def get(self):
-        self.requesthandler()
-    def post(self):
-        self.requesthandler()
-    def requesthandler(self):
-        sl = self.request.get('sl')
-        tl = self.request.get('tl')
-        domain = self.request.get('domain')
-        lsp = self.request.get('lsp')
-        output = self.request.get('output')
-        if len(output) < 1:
-            output = 'json'
-        if output == 'xml' or output == 'rss':
-            self.response.headers['Content-Type']='text/xml'
-        elif output == 'json':
-            self.response.headers['Content-Type']='application/json'
-        else:
-            self.response.headers['Content-Type']='text/html'
-        if len(sl) > 0 and len(tl) > 0:
-            jobs = Queue.query(sl, tl, domain=domain, lsp=lsp)
-            d = DeepPickle()
-            self.response.out.write(d.pickleTable(jobs,output))
-        else:
-            www.serve(self, self.__doc__)
-            self.response.out.write('<form action=/queue/search method=get>')
-            self.response.out.write('<table>')
-            self.response.out.write('<tr><td>Source Language (sl)</td><td><input type=text name=sl></td></tr>')
-            self.response.out.write('<tr><td>Target Language (tl)</td><td><input type=text name=tl></td></tr>')
-            self.response.out.write('<tr><td>Domain</td><td><input type=text name=domain></td></tr>')
-            self.response.out.write('<tr><td>Language Service Provide (lsp)</td><td><input type=text name=lsp></td></tr>')
-            self.response.out.write('<tr><td>Output Format (output)</td><td><input type=text name=output value=xml></td></tr>')
-            self.response.out.write('<tr><td colspan=2><input type=submit value="OK"></td></tr>')
-            self.response.out.write('</form></table>')
-        
-class QueueSubmit(webapp.RequestHandler):
-    """
-    /queue/submit
-    
-    This web API is used to submit translations that have been processed via an external translation service or
-    volunteer community. It expects the following parameters:
-    
-    guid : record locator for the translation job
-    tt : translated text (utf 8)
-    username : username to attribute translation to
-    pw : password (for WWL user, send an API key if submitting on behalf of an LSP)
-    st (optional) : if submitting an inline translation directly, rather than picking a source text from the queue
-    domain (optional) : if submitting an inline translation directly, rather than via the translator user interface
-    url (optional) : if submitting an inline translation directly, rather than via the translator user interface
-    
-    """
-    def get(self):
-        self.requesthandler()
-    def post(self):
-        self.requesthandler()
-    def requesthandler(self):
-        guid = self.request.get('guid')
-        st = clean(self.request.get('st'))
-        tt = clean(self.request.get('tt'))
-        domain = self.request.get('domain')
-        url = self.request.get('url')
-        username = self.request.get('username')
-        pw = self.request.get('pw')
-        remote_addr = self.request.remote_addr
-        # check if this IP address is rate limited (> one submit per second)
-        # if yes, return 500 error code
-        if not ip.allow(remote_addr, action='submit'):
-            self.response.clear()
-            self.response.set_status(500)
-            self.response.out.write('Rate limit exceeded')
-            return
-        # IP address not rate limited, so proceed normally
-        data = dict()
-        data['user_ip']=remote_addr
-        if len(username) > 0:
-            data['comment_author']=username
-        if len(url) > 0:
-            data['permalink']=url
-        comment = tt
-        # call Akismet to check that it is not a spam comment / translation
-        # if yes, say OK but discard the translation
-        # if no, say OK and accept the translation
-        pass
-        # lookup user and see if the user is valid and has a scoring history
-        # if user has > N scores and an average score > X, accept the submission
-        # automatically
-        pass
-        # otherwise, add it to the translation queue for scoring
-        akismetapi = Settings.get('akismet')
-        if akismetapi is not None:
-            if len(akismetapi) > 0:
-                a = Akismet()
-                a.setAPIKey(akismetapi)
-                try:
-                    a.verify_key()
-                    data = dict()
-                    data['user_ip']= remote_addr
-                    try:
-                        data['user_agent'] = self.request.headers['User-Agent']
-                    except:
-                        pass
-                    if a.comment_check(tt, data):
-                        spam = True
-                    else:
-                        spam = False
-                except:
-                    spam = False
-            else:
-                spam = False
-        else:
-            spam = False
-        if not spam:
-            result = Queue.submit(guid, tt, username, pw, remote_addr)
-        if len(guid) > 0 or len(st) > 0:
-            self.response.headers['Content-Type']='text/plain'
-            if result:
-                self.response.out.write('ok')
-            else:
-                self.response.out.write('error')
-        else:
-            www.serve(self, self.__doc__)
-            self.response.out.write('<form action=/queue/submit method=get>')
-            self.response.out.write('<table>')
-            self.response.out.write('<tr><td>guid (guid)</td><td><input type=text name=guid></td></tr>')
-            self.response.out.write('<tr><td>Translated Text (tt)</td><td><input type=text name=tt></td></tr>')
-            self.response.out.write('<tr><td>Username (username)</td><td><input type=text name=username></td></tr>')
-            self.response.out.write('<tr><td>Password or LSP API key</td><td><input type=password name=pw></td></tr>')
-            self.response.out.write('<tr><td colspan=2><input type=submit value="OK"></td></tr>')
-            self.response.out.write('</table></form>')
-
-class QueueScore(webapp.RequestHandler):
-    """
-    /queue/score
-
-    Submit a score for a translation that has been submitted by another user.
-
-    Expects:
-
-    guid : guid of the translation
-    username : WWL username (if blank, uses IP)
-    pw : WWL password
-    score : score from 0-5
-
-    Returns:
-
-    ok or error
-    """
-    def get(self):
-        self.requesthandler()
-    def post(self):
-        self.requesthandler()
-    def requesthandler(self):
-        remote_addr = self.request.remote_addr
-        allow = ip.allow(remote_addr)
-        if not allow:
-            self.response.clear()
-            self.response.set_status(500)
-            self.response.out.write('Rate limited exceeeded.')
-        else:
-            www.serve(self, self.__doc__)
-
-class QueueView(webapp.RequestHandler):
-    """
-    /queue/view
-
-    Loads an HTML interface to view, translate and score items in the
-    community translation queue. This view is initiated by linking to the
-    URL:
-
-    www.worldwidelexicon.org/queue/view?sl=lang1&tl=lang2&domain=optionaldomain&tag=optionaltag
-
-    It will display a list of jobs that are awaiting translation from the source to the
-    target language, and it will display a list of jobs that are waiting to be scored. The user
-    interface is pretty basic, and does not use Flash, AJAX or other technologies so that it will
-    work on a wide range of browsers, including mobile devices.
-
-    If it senses the user is connecting from something other than Firefox, Safari, Chrome or
-    Internet Explorer, it will assume the user is connecting via a mobile browser and will display
-    fewer results and simplify the interface. It should work on any browser, including old text
-    mode browsers for mobile phones. 
-    """
-    def get(self):
-        self.requesthandler()
-    def post(self):
-        self.requesthandler()
-    def requesthandler(self):
-        sl = self.request.get('sl')
-        tl = self.request.get('tl')
-        domain = self.request.get('domain')
-        tag = self.request.get('tag')
-        if len(sl) > 0 and len(tl) > 0:
-            qdb = db.Query(Queue)
-            qdb.filter('sl = ', sl)
-            qdb.filter('tl = ', tl)
-            if len(domain) > 0:
-                qdb.filter('domain = ', domain)
-            qdb.filter('translated = ', False)
-            qdb.order('createdon')
-            results = qdb.fetch(limit=100)
-            self.response.out.write('<h2><img src=/logo align=left>Worldwide Lexicon Translation Queue</h2><br><hr>')
-            self.response.out.write('<table><tr><td><b>Original Text</b></td><td><b>Translation</b></td><td></td></tr>')
-            for r in results:
-                self.response.out.write('<tr valign=top><td>' + r.st + '</td>')
-                self.response.out.write('<form action=/queue/submit method=get><td><textarea name=tt>' + r.tt + '</textarea></td>')
-                self.response.out.write('<td><input type=submit value="Save"></td></tr></form>')
-            self.response.out.write('</table>')
-        else:
-            self.response.out.write('<h2><img src=/logo align=left>Worldwide Lexicon Translations</h2>')
-            self.response.out.write('<br><hr>')
-            self.response.out.write('<form action=/queue/view method=get><table>')
-            self.response.out.write('<tr><td>Source Language Code</td><td><input type=text name=sl maxlength=3></td></tr>')
-            self.response.out.write('<tr><td>Target Language Code</td><td><input type=text name=tl maxlength=3></td></tr>')
-            self.response.out.write('<tr><td>Optional Domain</td><td><input type=text name=domain></td></tr>')
-            self.response.out.write('<tr><td>Optional Tag / Keyword</td><td><input type=text name=tag></td></tr>')
-            self.response.out.write('<tr><td colspan=2><input type=submit value="Go To Translation Queue"></td></tr>')
-            self.response.out.write('</table></form>')
-            self.response.out.write('<hr>')
 
 class GetTranslations(webapp.RequestHandler):
     """
@@ -860,7 +581,11 @@ class SimpleTranslation(webapp.RequestHandler):
             self.response.out.write(text)
             return
         if len(tl) > 0 and len(st) > 0:
-            tt = Translation.lucky(sl=sl, tl=tl, st=st, allow_anonymous=allow_anonymous, allow_machine=allow_machine, min_score=min_score, output=output, lsp=lsp, lspusername=lspusername, lsppw = lsppw, mtengine=mtengine, queue=queue, ip=ip, userip=userip, hostname=hostname)
+            tt = ''
+            if len(lsp) > 0 and lsp != 'speaklike':
+                tt = LSP.get(sl, tl, st, domain=domain, url=url, lsp=lsp, lspusername=lspusername, lsppw=lsppw)
+            if len(tt) < 1:
+                tt = Translation.lucky(sl=sl, tl=tl, st=st, allow_anonymous=allow_anonymous, allow_machine=allow_machine, min_score=min_score, output=output, lsp=lsp, lspusername=lspusername, lsppw = lsppw, mtengine=mtengine, queue=queue, ip=ip, userip=userip, hostname=hostname)
             if output == 'text':
                 self.response.headers['Content-Type']='text/plain'
                 self.response.out.write(tt)
@@ -1057,12 +782,6 @@ class BatchTranslation(webapp.RequestHandler):
 application = webapp.WSGIApplication([('/q', GetTranslations),
                                       ('/batch', BatchTranslation),
                                       ('/log', LogQueries),
-                                      ('/queue/add', AddQueue),
-                                      ('/queue/send', SendLSP),
-                                      ('/queue/search', SearchQueue),
-                                      ('/queue/score', QueueScore),
-                                      ('/queue/view', QueueView),
-                                      ('/queue/submit', QueueSubmit),
                                       (r'/t/(.*)/(.*)/(.*)', SimpleTranslation),
                                       (r'/t/(.*)/(.*)', SimpleTranslation),
                                       ('/t', SimpleTranslation),

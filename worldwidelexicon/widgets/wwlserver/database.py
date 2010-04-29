@@ -2372,7 +2372,7 @@ class Translation(db.Model):
             # add to WWL directory if hostname is provided
             if len(hostname) > 0:
                 Directory.hostname(hostname, sl, tl, remote_addr=userip)
-            # look for professional translation
+            # look for professional translation via old LSP API
             tdb = db.Query(Translation)
             tdb.filter('sl = ', sl)
             tdb.filter('tl = ', tl)
@@ -2383,7 +2383,7 @@ class Translation(db.Model):
             if item is not None:
                 tt = clean(item.tt)
             else:
-                if len(lsp) > 0:
+                if len(lsp) > 0 and lsp == 'speaklike':
                     response=Translation.lsp(sl, tl, st, domain=domain, url=url, lsp=lsp, lspusername=lspusername, lsppw=lsppw)
             # next look for user translations
             if len(tt) < 1:
