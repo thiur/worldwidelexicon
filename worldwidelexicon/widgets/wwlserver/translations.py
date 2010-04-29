@@ -547,6 +547,8 @@ class SimpleTranslation(webapp.RequestHandler):
             tl = self.request.get('tl')
         if len(st) < 1:
             st = self.request.get('st')
+        domain = self.request.get('domain')
+        url = self.request.get('url')
         userip = self.request.remote_addr
         lsp = self.request.get('lsp')
         lspusername = self.request.get('lspusername')
@@ -585,7 +587,41 @@ class SimpleTranslation(webapp.RequestHandler):
             if len(lsp) > 0 and lsp != 'speaklike':
                 tt = LSP.get(sl, tl, st, domain=domain, url=url, lsp=lsp, lspusername=lspusername, lsppw=lsppw)
             if len(tt) < 1:
-                tt = Translation.lucky(sl=sl, tl=tl, st=st, allow_anonymous=allow_anonymous, allow_machine=allow_machine, min_score=min_score, output=output, lsp=lsp, lspusername=lspusername, lsppw = lsppw, mtengine=mtengine, queue=queue, ip=ip, userip=userip, hostname=hostname)
+                tdb = db.Query(Translation)
+                tdb.filter('sl = ', sl)
+                tdb.filter('tl = ', tl)
+                tdb.filter('md5hash = ', md5hash)
+                tdb.filter('professional = ', True)
+                tdb.order('-date')
+                item = tdb.get()
+                if item is not None:
+                    tt = clean(item.tt)
+            if len(tt) < 1:
+                tdb = db.Query(Translation)
+                tdb.filter('sl = ', sl)
+                tdb.filter('tl = ', tl)
+                tdb.filter('md5hash = ', md5hash)
+                tdb.order('-date')
+                results = tdb.fetch(limit=20)
+                if len(min_score) > 0:
+                    try:
+                        min_score = float(min_score)
+                    except:
+                        min_score = None
+                else:
+                    min_score = None
+                for r in results:
+                    if len(tt) < 1:
+                        if min_score is not None:
+                            if r.avgscore >= min_score:
+                                tt = clean(r.tt)
+                        elif allow_anonymous == 'n':
+                            if r.anonymous == False:
+                                tt = clean(r.tt)
+                        else:
+                            tt = clean(r.tt)
+            #if len(tt) < 1:
+            #    tt = Translation.lucky(sl=sl, tl=tl, st=st, allow_anonymous=allow_anonymous, allow_machine=allow_machine, min_score=min_score, output=output, lsp=lsp, lspusername=lspusername, lsppw = lsppw, mtengine=mtengine, queue=queue, ip=ip, userip=userip, hostname=hostname)
             if output == 'text':
                 self.response.headers['Content-Type']='text/plain'
                 self.response.out.write(tt)

@@ -136,10 +136,6 @@ handlers:
   
 - url: /q
   script: translations.py
-  
-- url: /queue/(.*)
-  script: translations.py
-  secure: optional
 
 - url: /ratelimit
   script: ip.py
