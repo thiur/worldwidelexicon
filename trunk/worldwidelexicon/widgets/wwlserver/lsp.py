@@ -53,6 +53,7 @@ import string
 import md5
 import codecs
 from database import APIKeys
+from database import Translation
 from transcoder import transcoder
 from www import www
 
