@@ -1,0 +1,269 @@
+<?php
+// $Id: wwlex.install
+require (dirname(__FILE__)."/wwl.libs/services_json.class.php");
+require (dirname(__FILE__)."/wwl.libs/filecache.class.php");
+require (dirname(__FILE__)."/wwl.libs/drupalcache.class.php");
+require (dirname(__FILE__)."/wwl.libs/base_translator.class.php");
+require (dirname(__FILE__)."/wwl.libs/wwl_api.class.php");
+require (dirname(__FILE__)."/wwl.libs/wwl_translator.class.php");
+require (dirname(__FILE__)."/wwl.libs/google_translator.class.php");
+require (dirname(__FILE__)."/wwl.libs/wwl_controller.class.php");
+require (dirname(__FILE__)."/drupal_wwl.class.php");
+
+$wwlex = null; 
+
+function wwlex_init() {
+	global $wwlex;
+	$wwlex = new DrupalWWLController(dirname(__FILE__));
+	// TODO: Let user decide which translation and cache providers to use
+	$wwlex->addCacheProvider(new DrupalCache());
+	//$wwlex->addCacheProvider(new FileCache(dirname(__FILE__)."/wwlex-cache/"));
+	$wwlex->addTranslationProvider(new WWLTranslator());
+	$wwlex->addTranslationProvider(new GoogleTranslator());
+	
+	if ($cacheTimeout = variable_get('wwl_cache_timeout', 86400)) {
+		$wwlex->setCacheTTL($cacheTimeout);
+	}
+	if ($timeout = variable_get('wwl_translation_timeout', 10)) {
+		$wwlex->timeout = $timeout;
+	}
+	drupal_add_js(drupal_get_path('module', 'wwlex') . '/wwlex.js');
+	drupal_add_css(drupal_get_path('module', 'wwlex') . '/wwl.libs/wwlex.css');
+}
+
+function wwlex_footer() {
+	global $wwlex;
+	$out = '<script type="text/javascript">';
+	$out .= "\n".'wwl.chunks = '.$wwlex->chunksJSON().';';
+	$out .= "\n".'wwl.sourceLanguageName = "'.$wwlex->sourceLanguageName().'";';
+	$out .= "\n".'wwl.targetLanguageName = "'.$wwlex->targetLanguageName().'";';
+	$out .= "\n".'wwl.targetLanguage = "'.$wwlex->targetLanguage.'";';
+	$out .= "\n".'</script>';
+	$out .= "\n".'<div id="wwl-inline-editor" class="wwl-hide" dir="'.($wwlex->isTargetRtl() ? 'rtl':'ltr').'" lang="'.$wwlex->targetLanguage.'">';
+	$out .= "\n".'	<div id="wwl-inline-editor-title">'.t('Edit translation').'</div>';
+	$out .= "\n".'	<div id="wwl-inline-editor-original"></div>';
+	$out .= "\n".'	<textarea id="wwl-inline-editor-translated"></textarea>';
+	$out .= "\n".'	<input id="wwl-inline-editor-update" type="button" value="'.t('Update translation').'" onclick="return wwl.submitTranslation();"/>';
+	$out .= "\n".'	or <a href="#" onclick="return wwl.hideTranslatorWindow();">'.t('Cancel').'</a>';
+	$out .= "\n".'</div>';
+	return $out;
+}
+
+function wwlex_perm() {
+	global $wwlex;
+  
+	$out = array('administer wwlex', 'translate to any language');
+  
+	$list = locale_language_list('language');
+	// Build permissions list
+	foreach ($list as $lang){
+		$out[] = "translate to ".$lang;
+	}
+  
+	return $out;
+}
+
+function wwlex_admin() {
+	global $wwlex;
+  	$form = array();
+  	$options = $wwlex->languages;
+	$list = locale_language_list('language');
+  
+	$form['wwl_language'] = array(
+	    '#type' => 'select',
+	    '#title' => t('Site primary language'),
+	    '#default_value' => variable_get('wwl_language', 'en'),
+	    '#options' => $options,
+	    '#description' => t("The default language for this website."),
+	    '#required' => TRUE,
+	);
+	foreach ($list as $lang){
+		$form['wwl_enable_target_'.$lang] = array(
+		    '#type' => 'checkboxes',
+		    '#title' => $wwlex->languageName($lang),
+		    '#default_value' => variable_get('wwl_enable_target_'.$lang, array()),
+		    '#options' => array(
+				'mt' => t($wwlex->tOptions['mt']),
+				'vol' => t($wwlex->tOptions['vol']),
+				'pro' => t($wwlex->tOptions['pro'])
+			),
+		    '#description' => '',
+		    '#required' => FALSE,
+		);
+	}
+	$form['wwl_translation_timeout'] = array(
+	   	'#type' => 'textfield',
+	    '#title' => t('Translation timeout (seconds)'),
+		'#size' => 10,
+		'#maxlength' => 10,
+	    '#default_value' => variable_get('wwl_translation_timeout', 10),
+	    '#description' => t("The maximum time to spend performing translation for each request."),
+	    '#required' => FALSE,
+	);
+	
+	$form['wwl_cache_timeout'] = array(
+	   	'#type' => 'textfield',
+	    '#title' => t('Cache timeout (seconds)'),
+		'#size' => 10,
+		'#maxlength' => 10,
+	    '#default_value' => variable_get('wwl_cache_timeout', 86400),
+	    '#description' => t("The maximum interval to store locally cached translations."),
+	    '#required' => FALSE,
+		'#suffix' => '<input type="button" value="'.t("Clear cache").'" onclick="wwl.API.clearCache();"/>'
+	);
+	
+	$form['wwl_hide_decorations'] = array(
+	   	'#type' => 'checkbox',
+	    '#title' => t('Hide content decorations'),
+	    '#default_value' => variable_get('wwl_hide_decorations', false),
+	    '#description' => t("Disables inline display of translation information and translation / original switch. This option doesn't apply if the user has translator rights."),
+	    '#required' => FALSE,
+	);	
+	
+	$form['speaklike_user'] = array(
+	    '#type' => 'textfield',
+	    '#title' => t('SpeakLike username'),
+		'#size' => 30,
+	    '#default_value' => variable_get('speaklike_user', ''),
+	    '#description' => t("The username of your SpeakLike account."),
+	    '#required' => FALSE,
+	);	
+	
+	$form['speaklike_pass'] = array(
+	    '#type' => 'password',
+	    '#title' => t('SpeakLike password'),
+		'#size' => 30,
+	    '#default_value' => variable_get('speaklike_pass', ''),
+	    '#description' => t("Your SpeakLike password."),
+	    '#required' => FALSE,
+	);
+	
+	return system_settings_form($form);
+}
+
+function wwlex_menu() {
+
+	$items = array();
+
+	$items['admin/settings/wwlex'] = array(
+		'title' => t('Worldwide Lexicon settings'),
+		'description' => t('Configure the translation module settings'),
+		'page callback' => 'drupal_get_form',
+		'page arguments' => array('wwlex_admin'),
+		'access arguments' => array('access administration pages'),
+		'type' => MENU_NORMAL_ITEM,
+	);
+	
+	$items['wwlex/post'] = array(
+    	'page callback' => 'wwlex_update_translation',
+    	'type' => MENU_CALLBACK,
+    	'access arguments' => array('access content'),
+  	);
+  	
+ 	$items['wwlex/clearcache'] = array(
+    	'page callback' => 'wwlex_clear_cache',
+    	'type' => MENU_CALLBACK,
+    	'access arguments' => array('access administration pages'),
+  	); 	
+
+	return $items;
+}
+function wwlex_update_translation() {
+	global $wwlex;
+	$out = array();
+	$wwlex->setTargetLanguage($_POST["tl"]);
+	$wwlex->config["url"] = $_POST["url"];
+	if (!$wwlex->canTranslate()){
+		die("{'error':'Access denied'}");
+	}
+	$out["chunkId"] = $_POST["chunkId"]; // echo back
+	$out["result"] = $wwlex->updateTranslation($_POST["source"], $_POST["text"]);
+	$out["translated"] = $wwlex->moveTags($_POST["sourceWithTags"], $_POST["text"]);
+	//print_r($out);
+	//drupal_json(array('status' => 0, 'data' => $image));
+	die(str_replace("\\\\", "\\", $wwlex->jsonEncode($out)));
+}
+
+function wwlex_clear_cache() {
+	global $wwlex;
+	$wwlex->clearCache();
+	die("ok");
+}
+
+function wwlex_current_nid(){
+  if (arg(0) == 'node' && is_numeric(arg(1))) { 
+    $nid = arg(1);
+    return $nid;
+  }
+  else {
+    return 0;
+  }
+}
+function wwlex_nodeapi(&$node, $op, $a3 = NULL, $a4 = NULL) {
+	
+	// TODO: Use node's language if set instead of the global setting 
+	global $wwlex;
+	$sl = isset($node->language) && ($node->language != '') ? $node->language : $wwlex->getSourceLanguage(); 
+	
+	$wwlex->setSourceLanguage($sl);
+	
+	if (!$wwlex->needTranslation) {
+		return;
+	}
+  	switch ($op) {
+    	case 'view':
+    		//echo "<pre>";
+			//print_r($node);
+			//echo "</pre>";
+    		$nid = wwlex_current_nid();
+    		$oTitle = html_entity_decode($node->title, ENT_COMPAT, "UTF-8");
+    		$tTitle = $wwlex->translateSentence($oTitle, true);
+    		$tTitleClean = $wwlex->translateSentence($oTitle);
+    		
+			if ($node->nid == $nid) {
+				drupal_set_title(filter_xss($tTitleClean));
+			} else {
+				$node->title = $tTitleClean;
+			}
+			
+			// Build and clue in title metadata
+			$decorated = "";
+			if ($wwlex->decorateOutput || $wwlex->canTranslate()) {
+				$idt = "wwl-title-".$node->nid;
+				$decorated.= '<span id="wrap-'.$idt.'" class="wwl-hide">';
+				$decorated.= '<span id="'.$idt.'" dir="'.($wwlex->isTargetRtl() ? 'rtl':'ltr').'" lang="'.$wwlex->targetLanguage.'">'.$tTitle.'</span>';
+				$decorated.= '<span id="'.$idt.'_tr" class="wwl-hide">'.$oTitle.'</span>';
+				$decorated.= '</span>';
+			}
+			$node->content["body"]["#value"] = $decorated.wwl_translate_content($node->content["body"]["#value"], $node->nid);
+      		break;
+  	}
+}
+
+function wwl_translate_content($str, $id = "") {
+	global $wwlex;
+	$str = html_entity_decode($str, ENT_COMPAT, "UTF-8");
+	if ($wwlex->decorateOutput || $wwlex->canTranslate()) {
+		$idt = "wwl-title-".$id;
+		$idw = "wwl-content-".$id;
+		$out = "<span id=\"".$idw."\"><blockquote class=\"wwl-decorations\">(".$wwlex->sourceLanguageName()." &rarr; ".$wwlex->targetLanguageName().") ";
+		$out.= "<a href\"#\" onclick=\"wwl.showOriginal('".$id."'); return false;\">".t('View original')."</a>";
+		if ($wwlex->canTranslate()) {
+			$out.= ' [<a href="#" onclick="return wwl.edit(\''.$id.'\');">'.t('Edit translation').'</a>]';
+		}
+		$out.= "</blockquote>";
+		$out.= '<span dir="'.($wwlex->isTargetRtl() ? 'rtl':'ltr').'" lang="'.$wwlex->targetLanguage.'">';
+		$out.= $wwlex->translateContent($str, true);
+		$out.= "</span>";
+		$out.= "</span>";
+		$out.= "<span id=\"".$idw."_tr\" class=\"wwl-decorations wwl-hide\">";
+		$out.= "<blockquote>".t('(original)')." ";
+		$out.= "<a href\"#\" onclick=\"wwl.showTranslated('".$id."'); return false;\">".$wwlex->targetLanguageName()." ".t('translation')."</a></blockquote>";
+		$out.= $str."</span>";
+	} else {
+		$out = '<span dir="'.($wwlex->isTargetRtl() ? 'rtl':'ltr').'" lang="'.$wwlex->targetLanguage.'">';
+		$out.= $wwlex->translateContent($str);
+		$out.= "</span>";
+	}
+	return $out;
+}

@@ -1,0 +1,46 @@
+.wwl-hide {
+	display: none;
+}
+.wwl-show {
+	display: inline;
+}
+.wwl-editing {
+	background: #FFFF9E;
+	cursor: pointer;
+	padding-right: 0.3em;
+	padding-left: 0.3em;
+	border-right: 0.3em solid green;
+	border-left: 0.3em solid red;
+}
+#wwl-inline-editor {
+	right: 0;
+	bottom: 0;
+	position:fixed;;
+	z-index: 10001;
+	width: 60%;
+	margin: 0 auto;
+	border: 3px gray solid;
+	padding: 5px;
+	background: white;
+	text-align: left;
+	-moz-border-radius: 5px;
+	-webkit-border-radius: 5px;
+}
+#wwl-inline-editor textarea {
+	display: block;
+	width: 99%;
+	font-size: 12px;
+	margin: 15px 0;
+	border: 1px black solid;
+}
+#wwl-inline-editor div {
+	background: #eeeeee;
+	padding: 5px;
+	font-size: 12px;
+	text-align: left;
+}
+#wwl-inline-editor-title {
+	font-size: 14px !important;
+	font-weight: bold;
+	background: none !important;
+}
