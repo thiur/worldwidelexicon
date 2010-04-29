@@ -6,8 +6,11 @@ Brian S McConnell <brian@worldwidelexicon.org>
 
 This module implements gateway services to send translation requests to
 participating language service providers. This module automates the process
-of sending requests out to LSPs, and is used to capture results from external
-translation memories. 
+of sending requests out to LSPs.
+
+LSPs can easily join the WWL network by requesting an API key (used to validate
+submissions), and then implement a very simple web API on their end to process
+requests for translations. 
 
 Copyright (c) 1998-2009, Worldwide Lexicon Inc.
 All rights reserved.
@@ -55,8 +58,86 @@ from deeppickle import DeepPickle
 from transcoder import transcoder
 from www import www
 
+# Define constants
+
+lsps = dict()
+lsps['speaklike']='https://api.speaklike.com/t'
+lsps['proz']='https://www.proz.com/t'
+lsps['test']='http://worldwidelexicon.appspot.com/t'
+
 def clean(text):
     return transcoder.clean(text)
+
+class LSP(db.Model):
+    @staticmethod
+    def get(sl, tl, st, domain='', url='', lsp='', lspusername='', lsppw='', ttl = 3600):
+        """
+        This function is checks memcached for a cached translation from the desired LSP and text,
+        and if one is cached locally returns it. If the cache has expired or does not exist, it
+        makes an HTTP/S call to the language service provider to request the translation. The LSP
+        will return either a blank text, a completed translation or an HTTP error. 
+        """
+        if len(lsp) > 0 and len(sl) > 0 and len(tl) > 0 and len(st) > 0:
+            url = lsps.get(lsp, '')
+            if len(url) > 0:
+                st = clean(st)
+                m = md5.new()
+                m.update(sl)
+                m.update(tl)
+                m.update(st)
+                guid = str(m.hexdigest())
+                text = memcache.get('/lsp/' + lsp + '/' + guid)
+                if text is not None:
+                    return text
+                else:
+                    parms = dict()
+                    parms['sl']=sl
+                    parms['tl']=tl
+                    parms['st']=st
+                    parms['domain']=domain
+                    parms['url']=url
+                    parms['lspusername']=lspusername
+                    parms['lsppw']=lsppw
+                    form_data = urllib.urlencode(parms)
+                    try:
+                        result = urlfetch.fetch(url=url,
+                        payload = form_data,
+                        method = urlfetch.POST,
+                        headers = {'Content-Type' : 'application/x-www-form-urlencoded','Accept-Charset' : 'utf-8'})
+                        if result.response_code == 200:
+                            tt = result.content
+                        else:
+                            tt = ''
+                    except:
+                        tt=''
+                    if len(tt) > 0:                        
+                        memcache.set('/lsp/' + lsp + '/' + guid, tt, ttl)
+                    return clean(tt)
+                else:
+                    return ''
+        else:
+            return ''
+
+class TestTranslation(webapp.RequestHandler):
+    """
+    /lsp/test
+
+    This is a test form you can use to submit translation requests to LSPs via WWL, to verify that
+    your API is processing queries correctly. 
+    """
+    def get(self):
+        sl = self.request.get('sl')
+        tl = self.request.get('tl')
+        st = clean(self.request.get('st'))
+        domain = self.request.get('domain')
+        url = self.request.get('url')
+        lsp = self.request.get('lsp')
+        lspusername = self.request.get('lspusername')
+        lsppw = self.request.get('lsppw')
+        if len(sl) > 0 and len(tl) > 0 and len(st) > 0:
+            pass
+        else:
+            www.serve(self, self.__doc__)
 
 class SubmitTranslation(webapp.RequestHandler):
     """
@@ -102,7 +183,8 @@ class SubmitTranslation(webapp.RequestHandler):
             self.response.out.write('<tr><td colspan=2><input type=submit value="Submit"></td></tr>')
             self.response.out.write('</table></form>')
 
-application = webapp.WSGIApplication([('/lsp/submit', SubmitTranslation)],
+application = webapp.WSGIApplication([('/lsp/submit', SubmitTranslation),
+                                      ('/lsp/test', TestTranslation)],
                                      debug=True)
 
 def main():
