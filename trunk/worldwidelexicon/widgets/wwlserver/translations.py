@@ -620,8 +620,11 @@ class SimpleTranslation(webapp.RequestHandler):
                                 tt = clean(r.tt)
                         else:
                             tt = clean(r.tt)
-            #if len(tt) < 1:
+            # phasing out call to Translation.lucky() due to issues with properly finding user generated translations
+            #
+            # if len(tt) < 1:
             #    tt = Translation.lucky(sl=sl, tl=tl, st=st, allow_anonymous=allow_anonymous, allow_machine=allow_machine, min_score=min_score, output=output, lsp=lsp, lspusername=lspusername, lsppw = lsppw, mtengine=mtengine, queue=queue, ip=ip, userip=userip, hostname=hostname)
+            #
             if output == 'text':
                 self.response.headers['Content-Type']='text/plain'
                 self.response.out.write(tt)
@@ -685,34 +688,6 @@ class LogQueries(webapp.RequestHandler):
                 Search.log(url, sl=sl, tl=tl, action=action, remote_addr = remote_addr, city=city, state=state, country=country, latitude=latitude,longitude=longitude)
             except:
                 pass
-        self.response.out.write('ok')
-        
-class SendLSP(webapp.RequestHandler):
-    def get(self):
-        self.requesthandler()
-    def post(self):
-        self.requesthandler()
-    def requesthandler(self):
-        url = self.request.get('url')
-        form_data = self.request.get('form_data')
-        lsp = self.request.get('lsp')
-        m = md5.new()
-        m.update(url)
-        m.update(form_data)
-        guid = str(m.hexdigest())
-        qdb = db.Query(Queue)
-        qdb.filter('guid = ', guid)
-        item = qdb.get()
-        if item is None:
-            result = urlfetch.fetch(url=url,
-                            payload=form_data,
-                            method=urlfetch.POST,
-                            headers={'Content-Type': 'application/x-www-form-urlencoded'})
-            results = result.content
-            item = Queue()
-            item.guid = guid
-            item.lsp = lsp
-            item.put()
         self.response.out.write('ok')
         
 class BatchTranslation(webapp.RequestHandler):
