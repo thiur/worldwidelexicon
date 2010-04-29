@@ -115,7 +115,7 @@ class APIKeys(db.Model):
     lastlogin = db.DateTimeProperty()
     url = db.StringProperty(default='')
     @staticmethod
-    def add(username, description=''):
+    def add(username, description='', url=''):
         adb = db.Query(APIKeys)
         adb.filter('username = ', username)
         item = adb.get()
@@ -123,6 +123,7 @@ class APIKeys(db.Model):
             item = APIKeys()
             item.username = username
             item.description = description
+            item.url = url
             m = md5.new()
             m.update(username)
             m.update(str(datetime.datetime.now()))
@@ -156,6 +157,18 @@ class APIKeys(db.Model):
             item = adb.get()
             if item is not None:
                 return item.username
+            else:
+                return ''
+        else:
+            return ''
+    @staticmethod
+    def geturl(guid):
+        if len(guid) > 8:
+            adb = db.Query(APIKeys)
+            adb.filter('guid = ', guid)
+            item = adb.get()
+            if item is not None:
+                return item.url
             else:
                 return ''
         else:

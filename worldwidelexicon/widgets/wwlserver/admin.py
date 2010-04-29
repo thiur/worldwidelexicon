@@ -163,12 +163,13 @@ class ViewAPIKeys(webapp.RequestHandler):
             self.response.out.write('Use this interface to manage Language Service providers and their API keys.')
             self.response.out.write('<form action=/admin/makekey method=get><table>')
             self.response.out.write('<tr><td>Username or Nickname</td><td><input type=text name=username></td></tr>')
-            self.response.out.write('<tr><td>Short Description</td><td><input type=text name=description></td></tr>')
+            self.response.out.write('<tr><td>Web Service URL</td><td><input type=text name=url></td></tr>')
             self.response.out.write('<tr><td colspan=2><input type=submit value="Make Key"></td></tr></table></form>')
             self.response.out.write('<hr><table border=1>')
-            self.response.out.write('<tr><td>Username</td><td>Hashkey</td><td></td></tr>')
+            self.response.out.write('<tr><td>Username</td><td>Hashkey</td><td>Web Service URL</td><td></td></tr>')
             for r in results:
                 self.response.out.write('<tr><td>' + r.username + '</td><td>' + r.guid + '</td>')
+                self.response.out.write('<td>' + r.url + '</td>')
                 self.response.out.write('<td><a href=/admin/deletekey?guid=' + r.guid + '>Delete Key</a></td></tr>')
             self.response.out.write('</table></div>')
             self.response.out.write(footer())
@@ -191,9 +192,9 @@ class MakeAPIKey(webapp.RequestHandler):
         user = users.get_current_user()
         if user and users.is_current_user_admin():
             username = self.request.get('username')
-            description = self.request.get('description')
+            url = self.request.get('url')
             if len(username) > 0:
-                result = APIKeys.add(username, description=description)
+                result = APIKeys.add(username, url=url)
             self.redirect('/admin/keys')
         else:
             self.redirect('/admin')
