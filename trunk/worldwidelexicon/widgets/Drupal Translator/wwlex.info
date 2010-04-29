@@ -1,0 +1,5 @@
+; $Id$
+name = Worldwide Lexicon Translator
+description = Add community-powered, professional or automatic translations to your Drupal website.
+dependencies[] = locale
+core = 6.x
