@@ -53,8 +53,6 @@ import string
 import md5
 import codecs
 from database import APIKeys
-from database import LSPQueue
-from deeppickle import DeepPickle
 from transcoder import transcoder
 from www import www
 
@@ -100,20 +98,17 @@ class LSP(db.Model):
                     parms['lsppw']=lsppw
                     form_data = urllib.urlencode(parms)
                     try:
-                        result = urlfetch.fetch(url=url,
-                        payload = form_data,
-                        method = urlfetch.POST,
-                        headers = {'Content-Type' : 'application/x-www-form-urlencoded','Accept-Charset' : 'utf-8'})
+                        result = urlfetch.fetch(url=url, payload = form_data, method = urlfetch.POST, headers = {'Content-Type' : 'application/x-www-form-urlencoded' , 'Accept-Charset' : 'utf-8'})
                         if result.response_code == 200:
-                            tt = result.content
+                            tt = clean(result.content)
                         else:
                             tt = ''
                     except:
                         tt=''
                     if len(tt) > 0:                        
                         memcache.set('/lsp/' + lsp + '/' + guid, tt, ttl)
-                    return clean(tt)
-                else:
+                    return tt
+            else:
                     return ''
         else:
             return ''
@@ -138,6 +133,17 @@ class TestTranslation(webapp.RequestHandler):
             pass
         else:
             www.serve(self, self.__doc__)
+            self.response.out.write('<table><form action=/lsp/test method=get>')
+            self.response.out.write('<tr><td>Source Language Code</td><td><input type=text name=sl></td></tr>')
+            self.response.out.write('<tr><td>Target Language Code</td><td><input type=text name=tl></td></tr>')
+            self.response.out.write('<tr><td>Source Text</td><td><input type=text name=st></td></tr>')
+            self.response.out.write('<tr><td>Domain</td><td><input type=text name=domain></td></tr>')
+            self.response.out.write('<tr><td>URL</td><td><input type=text name=url></td></tr>')
+            self.response.out.write('<tr><td>LSP</td><td><input type=text name=lsp></td></tr>')
+            self.response.out.write('<tr><td>LSP Username</td><td><input type=text name=lspusername></td></tr>')
+            self.response.out.write('<tr><td>LSP PW/Key</td><td><input type=text name=lsppw></td></tr>')
+            self.response.out.write('<tr><td colspan=2><input type=submit value=OK></td></tr>')
+            self.response.out.write('</form></table>')
 
 class SubmitTranslation(webapp.RequestHandler):
     """
