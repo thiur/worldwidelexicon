@@ -66,7 +66,7 @@ lsps['test']='http://worldwidelexicon.appspot.com/t'
 def clean(text):
     return transcoder.clean(text)
 
-class LSP(db.Model):
+class LSP():
     @staticmethod
     def get(sl, tl, st, domain='', url='', lsp='', lspusername='', lsppw='', ttl = 3600):
         """
@@ -99,7 +99,7 @@ class LSP(db.Model):
                     form_data = urllib.urlencode(parms)
                     try:
                         result = urlfetch.fetch(url=url, payload = form_data, method = urlfetch.POST, headers = {'Content-Type' : 'application/x-www-form-urlencoded' , 'Accept-Charset' : 'utf-8'})
-                        if result.response_code == 200:
+                        if result.status_code == 200:
                             tt = clean(result.content)
                         else:
                             tt = ''
@@ -130,7 +130,9 @@ class TestTranslation(webapp.RequestHandler):
         lspusername = self.request.get('lspusername')
         lsppw = self.request.get('lsppw')
         if len(sl) > 0 and len(tl) > 0 and len(st) > 0:
-            pass
+            tt = LSP.get(sl, tl, st, domain=domain, url=url, lsp=lsp, lspusername=lspusername, lsppw=lsppw)
+            tt = clean(tt)
+            self.response.out.write(tt)
         else:
             www.serve(self, self.__doc__)
             self.response.out.write('<table><form action=/lsp/test method=get>')
@@ -157,11 +159,18 @@ class SubmitTranslation(webapp.RequestHandler):
     It expects the following parameters:
 
     apikey = LSP api key
+    sl = source language code
+    tl = target language code
+    st = source text (utf8)
+    tt = translated text (utf8)
+    domain = optional domain text is from (e.g. foo.com)
+    url = optional source url text is from
     guid = unique ID of the translation job
-    tt = translated text (UTF-8 encoding only)
-    score = 0..5 (if submitting a score for a translation)
 
     It returns ok or an error message
+
+    The web service will store the translation in the permanent translation memory, and will also update the
+    real-time cache associated with LSP queries. 
 
     """
     def get(self):
@@ -170,11 +179,21 @@ class SubmitTranslation(webapp.RequestHandler):
         self.requesthandler()
     def requesthandler(self):
         apikey = self.request.get('apikey')
+        lsp = self.request.get('lsp')
+        sl = self.request.get('sl')
+        tl = self.request.get('tl')
+        st = clean(self.request.get('st'))
         tt = clean(self.request.get('tt'))
-        score = self.request.get('score')        
-        if len(apikey) > 0 and len(guid) > 0:
-            result = LSPQueue.submit(apikey, guid, tt=tt, score=score)
-            if result:
+        domain = self.request.get('domain')
+        url = self.request.get('url')
+        if len(apikey) > 0:
+            if len(sl) > 0 and len(tl) > 0 and len(tt) > 0:
+                m = md5.new()
+                m.update(sl)
+                m.update(tl)
+                m.update(st)
+                guid = str(m.hexdigest())
+                memcache.set('/lsp/' + lsp + '/' + guid, tt, 3600)
                 self.response.out.write('ok')
             else:
                 self.response.out.write('error')
@@ -182,10 +201,14 @@ class SubmitTranslation(webapp.RequestHandler):
             www.serve(self, self.__doc__)
             self.response.out.write('<table>')
             self.response.out.write('<form action=/lsp/submit method=post>')
+            self.response.out.write('<tr><td>LSP Name (lsp)</td><td><input type=text name=lsp></td></tr>')
             self.response.out.write('<tr><td>LSP API Key (apikey)</td><td><input type=text name=apikey></td></tr>')
-            self.response.out.write('<tr><td>Job ID (guid)</td><td><input type=text name=guid></td></tr>')
+            self.response.out.write('<tr><td>Source Language Code (sl)</td><td><input type=text name=sl></td></tr>')
+            self.response.out.write('<tr><td>Target Language Code (tl)</td><td><input type=text name=tl></td></tr>')
+            self.response.out.write('<tr><td>Source Text (st)</td><td><input type=text name=st></td></tr>')
             self.response.out.write('<tr><td>Translated Text (tt)</td><td><input type=text name=tt></td></tr>')
-            self.response.out.write('<tr><td>Score (score=0..5)</td><td><input type=text name=score></td></tr>')
+            self.response.out.write('<tr><td>Domain (domain)</td><td><input type=text name=domain></td></tr>')
+            self.response.out.write('<tr><td>URL (url)</td><td><input type=text name=url></td></tr>')
             self.response.out.write('<tr><td colspan=2><input type=submit value="Submit"></td></tr>')
             self.response.out.write('</table></form>')
 
