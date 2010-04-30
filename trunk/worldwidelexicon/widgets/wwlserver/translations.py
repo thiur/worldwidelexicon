@@ -42,7 +42,9 @@ HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABI
 TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 """
+#
 # import Google App Engine modules
+#
 import wsgiref.handlers
 from google.appengine.ext import webapp
 from google.appengine.ext.webapp.util import run_wsgi_app
@@ -50,8 +52,9 @@ from google.appengine.ext import db
 from google.appengine.api import urlfetch
 from google.appengine.api import memcache
 from google.appengine.api.labs import taskqueue
+#
 # import standard Python modules
-import sys
+#
 import demjson
 import urllib
 import string
@@ -61,7 +64,9 @@ import time
 import pydoc
 import codecs
 import types
+#
 # import WWL and third party modules
+#
 from deeppickle import DeepPickle
 from mt import MTWrapper
 from webappcookie import Cookies
@@ -77,28 +82,10 @@ from database import Users
 from database import Settings
 from lsp import LSP
 from ip import ip
-import feedparser
 
 def clean(text):
     return transcoder.clean(text)
 
-def smart_str(s, encoding='utf-8', errors='ignore', from_encoding='utf-8'):
-    if type(s) in (int, long, float, types.NoneType):
-        return str(s)
-    elif type(s) is str:
-        if encoding != from_encoding:
-            return s.decode(from_encoding, errors).encode(encoding, errors)
-        else:
-            return s
-    elif type(s) is unicode:
-        return s.encode(encoding, errors)
-    elif hasattr(s, '__str__'):
-        return smart_str(str(s), encoding, errors, from_encoding)
-    elif hasattr(s, '__unicode__'):
-        return smart_str(unicode(s), encoding, errors, from_encoding)
-    else:
-        return smart_str(str(s), encoding, errors, from_encoding)
-    
 class tx():
     sl = ''
 
@@ -504,7 +491,7 @@ class SimpleTranslation(webapp.RequestHandler):
     
     with the parameters
     
-    st = source text (UTF-8 encoded)
+    st = source text (UTF-8 or ASCII only, no other encodings supported)
     allow_anonymous = y/n (allow anonymous translations, default = y)
     allow_machine = y/n (allow machine translations, default = y)
     min_score = minimum average quality score (0 to 5, default 0)
@@ -531,9 +518,7 @@ class SimpleTranslation(webapp.RequestHandler):
     gettext() style interface for fetching a translation for a string.
 
     NOTE: we _strongly_ recommend that you use the POST method to submit texts for translation.
-    You can use HTTP GET for ASCII texts, but it will frequently break if you are submitting
-    UTF-8 (Unicode) texts. This happens because of the way characters are escape encoded in URLs.
-    We also recommend using POST because of the URL length limits that apply to GET queries. 
+    You can use HTTP GET for requests, but you need to be very careful to correctly encoded texts. 
     """
     def get(self, sl='', tl='', st=''):
         self.requesthandler(sl, tl, st)
@@ -740,6 +725,9 @@ class BatchTranslation(webapp.RequestHandler):
     def post(self):
         self.requesthandler()
     def requesthandler(self):
+        #
+        # capture form fields
+        #
         sl = self.request.get('sl')
         tl = self.request.get('tl')
         allow_machine = self.request.get('allow_machine')
@@ -753,11 +741,17 @@ class BatchTranslation(webapp.RequestHandler):
         if len(guid) > 8 and query != 'y':
             ctr = 0
             while ctr < 200:
+                #
+                # check memcache for list of recently cached translations
+                #
                 text = memcache.get('/batch/' + guid + '/' +output + '/' + str(ctr))
                 if text is not None:
                     self.response.out.write(text)
                 ctr = ctr + 1
         else:
+            #
+            # capture list of translation requests from form
+            #
             if len(sl) > 1 and query != 'y':
                 st = self.request.get('st')
                 m = md5.new()
@@ -772,6 +766,9 @@ class BatchTranslation(webapp.RequestHandler):
                     st[ctr]=urllib.unquote_plus(self.request.get('st' + str(ctr)))
                     ctr = ctr + 1
                 ctr = 0
+                #
+                # generate response header, based on desired output format
+                #
                 if output == 'xml' or output == 'rss':
                     self.response.headers['Content-Type']='text/xml'
                     self.response.out.write('<?xml version=\"1.0\" encoding="utf-8"?>')
@@ -785,8 +782,12 @@ class BatchTranslation(webapp.RequestHandler):
                 else:
                     self.response.headers['Content-Type']='text/plain'
                 while ctr < 200:
+                    #
+                    # generate list of translations from batch request
+                    #
                     stext = st.get(ctr)
                     if len(stext) > 1:
+                        # make call to Translation.lucky() method (this is being deprecated and will be replaced soon)
                         tt = Translation.lucky(sl=sl, tl=tl, st=stext, output=output)
                         if output == 'rss':
                             tt = '<item><title>' + stext + '</title><description>' + tt + '</description></item>'
@@ -800,6 +801,9 @@ class BatchTranslation(webapp.RequestHandler):
                     else:
                         self.response.out.write('</translations>')
             else:
+                #
+                # form fields were empty, so generate a blank form instead
+                #
                 www.serve(self,self.__doc__, title='/batch')
                 self.response.out.write('<table><form action=/batch method=get>')
                 self.response.out.write('<tr><td>Async Query</td><td><input type=text name=async value=n></td></tr>')
@@ -813,7 +817,11 @@ class BatchTranslation(webapp.RequestHandler):
                     ctr = ctr + 1
                 self.response.out.write('<tr><td colspan=2><input type=submit value="OK"></td></tr>')
                 self.response.out.write('</form></table>')
-                
+
+#
+# Main request handler, decides which request handler to call based on the URL pattern
+#
+
 application = webapp.WSGIApplication([('/q', GetTranslations),
                                       ('/batch', BatchTranslation),
                                       ('/log', LogQueries),
