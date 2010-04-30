@@ -518,8 +518,7 @@ class SimpleTranslation(webapp.RequestHandler):
     ip = dotted IP address or prefix (e.g. ip=206.1.2) to limit results to translations submitted from
                 a specific IP address or range (so you can ignore submissions that were not posted from
                 a trusted gateway you control)
-    output = text|html|json (default is html response, json will return translation in the same
-                             format used by Google Translate)
+    output = text|html|xml|rss|json|google (google will mimic Google Translate API and response format)
     
     The request handler will return the best available translation in simple HTML by
     default. If you need a full revision history, you should use the /q interface.
@@ -561,8 +560,18 @@ class SimpleTranslation(webapp.RequestHandler):
         queue = self.request.get('queue')
         ip = self.request.get('ip')
         hostname = self.request.get('hostname')
-        st = urllib.unquote(st)
         st = transcoder.clean(st)
+        st = string.replace(st, '+', ' ')
+        if output == 'google':
+            q = self.request.get('q')
+            langpair = self.request.get('langpair')
+            if len(q) > 0:
+                st = q
+            if len(langpair) > 0:
+                langs = string.split(langpair, '|')
+                if len(langs) == 2:
+                    sl = langs[0]
+                    tl = langs[1]
         m = md5.new()
         m.update(sl)
         m.update(tl)
@@ -636,6 +645,12 @@ class SimpleTranslation(webapp.RequestHandler):
                 self.response.headers['Content-Type']='text/plain'
                 self.response.out.write(tt)
                 text = tt
+            elif output == 'google':
+                self.response.headers['Content-Type']='text/javascript'
+                response='{"responseData": {"translatedText":"[translation]"},"responseDetails": null, "responseStatus": 200}'
+                tt = string.replace(tt,'\"', '\'')
+                text = string.replace(response,'[translation]', tt)
+                self.response.out.write(text)
             else:
                 d = DeepPickle()
                 p = dict()
