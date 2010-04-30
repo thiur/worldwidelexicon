@@ -596,6 +596,9 @@ class SimpleTranslation(webapp.RequestHandler):
                 if item is not None:
                     tt = item.tt
             if len(tt) < 1:
+                m = md5.new()
+                m.update(st)
+                md5hash = str(m.hexdigest())
                 tdb = db.Query(Translation)
                 tdb.filter('sl = ', sl)
                 tdb.filter('tl = ', tl)
@@ -619,6 +622,9 @@ class SimpleTranslation(webapp.RequestHandler):
                                 tt = r.tt
                         else:
                             tt = r.tt
+            if len(tt) < 1 and allow_machine != 'n':
+                mt = MTWrapper()
+                tt = mt.getTranslation(sl, tl, st)
             # phasing out call to Translation.lucky() due to issues with properly finding user generated translations
             #
             # if len(tt) < 1:
