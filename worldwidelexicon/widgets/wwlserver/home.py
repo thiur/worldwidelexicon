@@ -113,6 +113,9 @@ The code that defines the translation memory is sub-divided into a small number 
       proxy servers, this is currently a dummy library and will be updated as we deploy the translation
       proxy service (which will be available both as a hosted service from WWL, and as part of the open
       source toolset)
+    * lsp.py : this module implements services to send requests out to professional translation service
+      providers, and to process translations submitted by them, and also includes some test interfaces
+      for developers.
     * mt.py : machine translation proxy service, provides a simple interface to call multiple
       machine translation services (Google, Apertium, Systran and others)
     * scores.py : defines API calls for fetching and saving scores about translations
@@ -128,7 +131,7 @@ public release of the WWL software, or go to your translation server's home page
 welcome page, current system status and links to web API and source code documentation. You can
 password protect this page by setting password protection options in the main.py module.
 
-Copyright (c) 1998-2009, Worldwide Lexicon Inc.
+Copyright (c) 1998-2010, Brian S McConnell, Worldwide Lexicon Inc.
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification,
@@ -374,9 +377,9 @@ class MainPage(webapp.RequestHandler):
     self.response.out.write('<li>feedparser.py : General purpose RSS feed parser (<a href=http://www.feedparser.org>www.feedparser.org</a>)</li>')
     self.response.out.write('<li>hosts.py : Implements host controller for translation proxy servers (<a href=/doc?module=hosts>doc</a>)</li>')
     self.response.out.write('<li>language.py : Language utilities and language detection <a href=/doc?module=language>(doc)</a>')
+    self.response.out.write('<li>lsp.py : Language service provider module <a href=/doc?module=lsp>(doc)</a></li>')
     self.response.out.write('<li>mt.py : Machine translation proxy server <a href=/doc?module=mt>(doc)</a></li>')
     self.response.out.write('<li>scores.py : Save and retrieve scores for translations <a href=/doc?module=scores>(doc)</a></li>')
-    self.response.out.write('<li>search.py : Translation search engine and community platform <a href=/doc?module=search>(doc)</a></li>')
     self.response.out.write('<li>translations.py : Save translations, retrieve human and/or machine translations <a href=/doc?module=translations>(doc)</a></li>')
     self.response.out.write('<li>users.py : User related classes and methods <a href=/doc?module=users>(doc)</a></li>')
     self.response.out.write('<li>www.py : Embedded documentation server <a href=/doc?module=www>(doc)</a></li>')
@@ -386,16 +389,13 @@ class MainPage(webapp.RequestHandler):
     self.response.out.write('<li><a href=/comments/get>/comments/get</a> (fetch comments about a translation)</li>')
     self.response.out.write('<li><a href=/comments/submit>/comments/submit</a> (submit comment about a translation)</li>')
     self.response.out.write('<li><a href=/language>/language</a> (language utilities, and language detection)</li>')
+    self.response.out.write('<li><a href=/lsp/submit>/lsp/submit</a> (language service provider API to submit a translation)</li>')
+    self.response.out.write('<li><a href=/lsp/test>/lsp/test</a> (language service provider, test form)</li>')
     self.response.out.write('<li><a href=/mt>/mt</a> (machine translation proxy server)</li>')
     self.response.out.write('<li><a href=/q>/q</a> (search for translations</li>')
-    self.response.out.write('<li><a href=/queue/add>/queue/add</a> (add text to translation queue)</li>')
-    self.response.out.write('<li><a href=/queue/score>/queue/score</a> (submit a score for a community translation</li>')
-    self.response.out.write('<li><a href=/queue/search>/queue/search</a> (search translation queue)</li>')
-    self.response.out.write('<li><a href=/queue/submit>/queue/submit</a> (submit translation, remove item from queue)</li>')
-    self.response.out.write('<li><a href=/request>/request</a> (request human translation for a URL, or view list of recommended URLs)</li>')
     self.response.out.write('<li><a href=/scores/get>/scores/get</a> (fetch raw score history)</li>')
     self.response.out.write('<li><a href=/scores/vote>/scores/vote</a> (submit score for a translation)</li>')
-    self.response.out.write('<li><a href=/submit>/submit</a> (submit a translation)</li>')
+    self.response.out.write('<li><a href=/submit>/submit</a> (submit a user/community translation)</li>')
     self.response.out.write('<li><a href=/t>/t</a> (simple translation request API)</li>')
     self.response.out.write('<li><a href=/users/auth?doc=y>/users/auth</a> (authenticate user)</li>')
     self.response.out.write('<li><a href=/users/check>/users/check</a> (check username available)</li>')

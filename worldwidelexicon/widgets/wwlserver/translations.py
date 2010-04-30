@@ -592,10 +592,9 @@ class SimpleTranslation(webapp.RequestHandler):
                 tdb.filter('tl = ', tl)
                 tdb.filter('md5hash = ', md5hash)
                 tdb.filter('professional = ', True)
-                tdb.order('-date')
                 item = tdb.get()
                 if item is not None:
-                    tt = clean(item.tt)
+                    tt = item.tt
             if len(tt) < 1:
                 tdb = db.Query(Translation)
                 tdb.filter('sl = ', sl)
@@ -614,12 +613,12 @@ class SimpleTranslation(webapp.RequestHandler):
                     if len(tt) < 1:
                         if min_score is not None:
                             if r.avgscore >= min_score:
-                                tt = clean(r.tt)
+                                tt = r.tt
                         elif allow_anonymous == 'n':
                             if r.anonymous == False:
-                                tt = clean(r.tt)
+                                tt = r.tt
                         else:
-                            tt = clean(r.tt)
+                            tt = r.tt
             # phasing out call to Translation.lucky() due to issues with properly finding user generated translations
             #
             # if len(tt) < 1:
@@ -657,6 +656,8 @@ class SimpleTranslation(webapp.RequestHandler):
             self.response.out.write('<tr><td>LSP Username</td><td><input type=text name=lspusername></td></tr>')
             self.response.out.write('<tr><td>LSP Password</td><td><input type=text name=lsppw></td></tr>')
             self.response.out.write('<tr><td>Limit Results By IP Address or Pattern</td><td><input type=text name=ip></td></tr>')
+            self.response.out.write('<tr><td>Allow Machine Translation (y/n)</td><td><input type=text name=allow_machine value=y></td></tr>')
+            self.response.out.write('<tr><td>Allow Anonymous Translation (y/n)</td><td><input type=text name=allow_anonymous value=y></td></tr>')
             self.response.out.write('<tr><td>Output Format</td><td><input type=text name=output value=text></td></tr>')
             self.response.out.write('<tr><td colspan=2><input type=submit value=GO></td></tr>')
             self.response.out.write('</form></table>')
