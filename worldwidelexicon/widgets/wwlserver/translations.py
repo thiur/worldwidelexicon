@@ -567,6 +567,8 @@ class SimpleTranslation(webapp.RequestHandler):
         m.update(sl)
         m.update(tl)
         m.update(st)
+        m.update(allow_anonymous)
+        m.update(allow_machine)
         m.update(lsp)
         md5hash = str(m.hexdigest())
         if len(output) < 2:
