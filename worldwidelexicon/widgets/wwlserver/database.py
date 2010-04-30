@@ -162,10 +162,18 @@ class APIKeys(db.Model):
         else:
             return ''
     @staticmethod
-    def geturl(guid):
+    def geturl(guid='', lsp=''):
         if len(guid) > 8:
             adb = db.Query(APIKeys)
             adb.filter('guid = ', guid)
+            item = adb.get()
+            if item is not None:
+                return item.url
+            else:
+                return ''
+        elif len(lsp) > 0:
+            adb = db.Query(APIKeys)
+            adb.filter('username = ', lsp)
             item = adb.get()
             if item is not None:
                 return item.url
