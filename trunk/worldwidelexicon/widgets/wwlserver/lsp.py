@@ -52,16 +52,12 @@ import urllib
 import string
 import md5
 import codecs
+from database import APIKeys
+from database import Translation
 from transcoder import transcoder
 from www import www
 
-
 # Define constants
-
-lsps = dict()
-lsps['speaklike']='https://api.speaklike.com/t'
-lsps['proz']='https://www.proz.com/t'
-lsps['test']='http://worldwidelexicon.appspot.com/t'
 
 def clean(text):
     return transcoder.clean(text)
@@ -76,7 +72,11 @@ class LSP():
         will return either a blank text, a completed translation or an HTTP error. 
         """
         if len(lsp) > 0 and len(sl) > 0 and len(tl) > 0 and len(st) > 0:
-            url = lsps.get(lsp, '')
+            url = memcache.get('/lsp/url/' + lsp)
+            if url is None:
+                url = APIKeys.geturl(lsp=lsp)
+                if len(url) > 0:
+                    memcache.set('/lsp/url/' + lsp, url, 1800)
             if len(url) > 0:
                 st = clean(st)
                 m = md5.new()
@@ -118,7 +118,19 @@ class TestTranslation(webapp.RequestHandler):
     /lsp/test
 
     This is a test form you can use to submit translation requests to LSPs via WWL, to verify that
-    your API is processing queries correctly. 
+    your API is processing queries correctly.
+
+    The form handler will submit the query to your server as defined in the guidelines for language
+    service providers (see blog.worldwidelexicon.org for details). You should return one of the following:
+
+    * a UTF-8 encoded text with the translation for the source text
+    * a blank text, if no translation has been created yet (we will assume it is in queue)
+    * a HTTP error message, if the request is incomplete or the user credentials are invalid
+
+    WWL will cache the translation for 1 to 2 hours, after which it will resend the request to you. If the
+    translation has changed since then, you can return the newest translation. (You should be sure to
+    design your script so that it first checks to see if a text has already been translated, so you do not
+    resubmit an already translated text to translators again. 
     """
     def get(self):
         sl = self.request.get('sl')
@@ -187,13 +199,39 @@ class SubmitTranslation(webapp.RequestHandler):
         domain = self.request.get('domain')
         url = self.request.get('url')
         if len(apikey) > 0:
-            if len(sl) > 0 and len(tl) > 0 and len(tt) > 0:
+            username = APIKeys.getusername(apikey)
+            if len(sl) > 0 and len(tl) > 0 and len(tt) > 0 and len(username) > 0:
                 m = md5.new()
                 m.update(sl)
                 m.update(tl)
                 m.update(st)
+                md5hash = str(m.hexdigest())
+                memcache.set('/lsp/' + lsp + '/' + md5hash, tt, 3600)
+                m = md5.new()
+                m.update(sl)
+                m.update(tl)
+                m.update(st)
+                m.update(tt)
                 guid = str(m.hexdigest())
-                memcache.set('/lsp/' + lsp + '/' + guid, tt, 3600)
+                tdb = db.Query(Translation)
+                tdb.filter('sl = ', sl)
+                tdb.filter('tl = ', tl)
+                tdb.filter('guid = ', guid)
+                item = tdb.get()
+                if item is None:
+                    item = Translation()
+                    item.guid = guid
+                    item.md5hash = md5hash
+                    item.sl = sl
+                    item.tl = tl
+                    item.st = st
+                    item.tt = tt
+                    item.domain = domain
+                    item.url = url
+                    item.username = username
+                    item.professional = True
+                    item.anonymous = False
+                    item.put()
                 self.response.out.write('ok')
             else:
                 self.response.out.write('error')
