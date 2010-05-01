@@ -5,14 +5,17 @@ Firefox Translator Support Utilities (firefox.py
 by Brian S McConnell <brian@worldwidelexicon.org>
 
 This module implements some web services that are utilized by the Firefox Translator
-such as to generate sidebars with translator statistics. 
+such as to generate sidebars with translator statistics. This module will be phased
+out with the next redesign of the WWL site, to improve look and feel, and to process
+these queries more efficiently. We may eliminate the sidebar altogether. This module
+is a bit of a hack, and does need to be redone. 
 
 NOTE: this documentation is generated automatically, and directly from the current
 version of the WWL source code, via the PyDoc service. Because of the way App
 Engine works, the hyperlinks in these files will not work, so your best option
 is to print the documentation for offline review.
 
-Copyright (c) 1998-2009, Worldwide Lexicon Inc.
+Copyright (c) 1998-2010, Brian S McConnell, Worldwide Lexicon Inc.
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification,
