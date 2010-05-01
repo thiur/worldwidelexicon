@@ -5,7 +5,8 @@ Encoding Sanitizer (transcoder.py)
 Brian S McConnell <brian@worldwidelexicon.org>
 
 This module implements routines to sniff and sanitize incoming text and convert
-it where possible to UTF-8.
+it where possible to UTF-8. It seems to be working well now, so if it is not broken,
+don't fix it.
 
 Copyright (c) 1998-2009, Worldwide Lexicon Inc, Brian S McConnell. 
 All rights reserved.
