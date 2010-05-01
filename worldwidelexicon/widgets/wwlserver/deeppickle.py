@@ -20,7 +20,20 @@ print d.pickleItem(d, output_format)
 # pickle a row/column recordset (list object consisting of dict or instance objects)
 print d.pickleTable(d, output_format)
 
-Copyright (c) 1998-2009, Worldwide Lexicon Inc.
+OUTSTANDING ISSUES / TO-DO LIST
+
+* Replace hand coded generator with template based generator to enable rapid prototyping for
+  new output formats
+* Improve escape encoding for XML based output formats (most issues have been resolved but there
+  are occasional cases of malformed output)
+* Improve JSON output to eliminate blank objects
+* Implement efficient text based, easy to parse output format (derived from text files) for use
+  by client applications doing bulk search/replace operations, and need to do so efficiently
+  with minimal parsing overhead, with easy option to locally cache in memory or disk.
+* Generally comb through the library to clean things up, add documentation and take a second look
+  now that it has been in use for a while. 
+
+Copyright (c) 1998-2010, Brian S McConnell, Worldwide Lexicon Inc.
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification,
