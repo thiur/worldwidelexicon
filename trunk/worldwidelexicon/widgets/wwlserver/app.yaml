@@ -124,6 +124,12 @@ handlers:
 - url: /lsp/(.*)
   script: lsp.py
 
+- url: /mt/(.*)/(.*)/(.*)
+  script: mt.py
+
+- url: /mt/(.*)/(.*)
+  script: mt.py
+
 - url: /mt
   script: mt.py
   
