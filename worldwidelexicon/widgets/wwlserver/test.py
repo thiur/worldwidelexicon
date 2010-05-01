@@ -41,6 +41,7 @@ import wsgiref.handlers
 from google.appengine.ext import webapp
 from google.appengine.ext.webapp.util import run_wsgi_app
 from google.appengine.api import memcache
+from google.appengine.ext import db
 # import WWL modules
 from database import Directory
 from www import www
@@ -50,30 +51,17 @@ class Test(webapp.RequestHandler):
     This web service is used to test Unicode/UTF-8 transcoding.   
     """
     def get(self):
-        self.request.charset = 'utf8'
-        sl = self.request.get('sl')
-        tl = self.request.get('tl')
-        st = self.request.get('st')
-        if len(sl) < 1 and len(tl) < 1:
-            www.serve(self,self.__doc__)
-            self.response.out.write('<table><form action=/test method=get>')
-            self.response.out.write('<tr><td>Source Language</td><td><input type=text name=sl></td></tr>')
-            self.response.out.write('<tr><td>Target Language</td><td><input type=text name=tl></td></tr>')
-            self.response.out.write('<tr><td>Source Text</td><td><input type=text name=st></td></tr>')
-            self.response.out.write('<tr><td colspan=2><input type=submit value="Submit"></td></tr>')
-            self.response.out.write('</table></form>')
-        else:
-            sdb = db.Query(Directory)
-            sdb.order('-date')
-            results = sdb.fetch(limit=200)
-            sites = list()
-            for r in results:
-                if r.domain not in sites:
-                    sites.append(r.domain)
-            self.response.out.write('<ul>')
-            for s in sites:
-                self.response.out.write('<li><a href=http://' + s + '>' + s + '</a></li>')
-            self.response.out.write('</ul>')
+        sdb = db.Query(Directory)
+        sdb.order('-lastupdated')
+        results = sdb.fetch(limit=200)
+        sites = list()
+        for r in results:
+            if r.domain not in sites:
+                sites.append(r.domain)
+        self.response.out.write('<ul>')
+        for s in sites:
+            self.response.out.write('<li><a href=http://' + s + '>' + s + '</a></li>')
+        self.response.out.write('</ul>')
 
 application = webapp.WSGIApplication([(r'/test', Test)],
                                      debug=True)
