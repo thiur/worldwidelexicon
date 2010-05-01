@@ -2,6 +2,11 @@
 Copyright (c) 1998-2009, Worldwide Lexicon Inc.
 All rights reserved.
 
+Documentation Server (www.py)
+Brian S McConnell
+
+This module generates documentation for modules and classes/methods within them.
+
 Redistribution and use in source and binary forms, with or without modification,
 are permitted provided that the following conditions are met:
 
