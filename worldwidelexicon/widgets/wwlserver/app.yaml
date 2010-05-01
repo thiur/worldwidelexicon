@@ -139,9 +139,6 @@ handlers:
 
 - url: /ratelimit
   script: ip.py
-  
-- url: /request
-  script: search.py
 
 - url: /scores/(.*)
   script: scores.py
