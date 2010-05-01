@@ -146,6 +146,10 @@ lp['nb-nn']='apertium'
 lp['no-nb']='apertium'
 lp['nb-no']='apertium'
 
+baseurls=dict()
+baseurls['google']='http://ajax.googleapis.com/ajax/services/language/translate'
+baseurls['apertium']='http://api.apertium.org/json/translate'
+
 class MT(db.Model):
     langpair = db.StringProperty(default='')
     mtengine = db.StringProperty(default='')
@@ -226,6 +230,15 @@ class MT(db.Model):
                         memcache.set('/mtengines/default-default', 'google', 900)
                         return 'google'
     @staticmethod
+    def geturl(sl,tl):
+        mtengine=MT.pickengine(sl,tl)
+        url = baseurls.get(mtengine,'')
+        if len(mtengine) > 0:
+            t = 'mtengine=' + mtengine + '\nurl=' + url + '\nformat=google'
+        else:
+            t = ''
+        return t
+    @staticmethod
     def remove(langpair):
         if len(langpair) > 2:
             mdb = db.Query(MT)
@@ -295,7 +308,8 @@ class MTWrapper():
         """
         engine = MT.pickengine(sl,tl)
         return engine
-    
+    def geturl(self, sl, tl):
+        return MT.geturl(sl,tl)
     def getTranslation(self,sl='en',tl='es',st='',mtengine='',domain='',url='', mode='text', userip=''):
       """
       Fetches machine translation, if mtengine is specified then override automatic MT engine selection
@@ -450,6 +464,7 @@ class ApertiumProxy():
       form_fields = {
         "format" : "html",
         "langpair" : sl + '|' + tl,
+        "ie" : "UTF8",
         "q" : st
       }
       form_data = urllib.urlencode(form_fields)
@@ -622,15 +637,36 @@ class MTServer(webapp.RequestHandler):
         """Combined request handler for both GET and POST calls"""
         sl = self.request.get('sl')
         tl = self.request.get('tl')
-        st = self.request.get('st')
+        st = clean(self.request.get('st'))
         mtengine = self.request.get('mtengine')
+        output = self.request.get('output')
+        q = clean(self.request.get('q'))
+        langpair = self.request.get('langpair')
+        if len(q) > 0 and len(langpair) > 0:
+            st = q
+            langs = string.split(langpair, '|')
+            if len(langs) == 2:
+                sl = langs[0]
+                tl = langs[1]
+                output = 'google'
+            else:
+                sl = ''
+                tl = ''
         userip = self.request.remote_addr
         if len(sl) > 0 and len(tl) > 0 and len(st) > 0:
             m = MTWrapper()
             tt = m.getTranslation(sl, tl, st, mtengine=mtengine,userip=userip)
-            self.response.headers['Content-Type']='text/plain'
-            self.response.headers['Accept-Encoding']='utf-8'
-            self.response.out.write(tt)
+            tt = string.replace(tt, '\n', '')
+            if output != 'google':                
+                self.response.headers['Content-Type']='text/plain'
+                self.response.headers['Accept-Encoding']='utf-8'
+                self.response.out.write(tt)
+            else:
+                self.response.headers['Content-Type']='text/javascript'
+                self.response.headers['Accept-Encoding']='utf-8'
+                response='{"responseData": {"translatedText":"[translation]"},"responseDetails": null, "responseStatus": 200}'
+                response=string.replace(response,'[translation]', string.replace(tt, '\"', '\''))
+                self.response.out.write(response)
         else:
             www.serve(self, self.__doc__)
             self.response.out.write('<h3>Test Form</h3>')
@@ -638,11 +674,19 @@ class MTServer(webapp.RequestHandler):
             self.response.out.write('<tr><td>Source Language Code</td><td><input type=text name=sl></td></tr>')
             self.response.out.write('<tr><td>Target Language Code</td><td><input type=text name=tl></td></tr>')
             self.response.out.write('<tr><td>Machine Translation Engine</td><td><input type=text name=mtengine></td></tr>')
+            self.response.out.write('<tr><td>Output Format (text|google)</td><td><input type=text name=output></td></tr>')
             self.response.out.write('<tr><td colspan=2><textarea name=st rows=4 cols=60>Hello World</textarea></td></tr>')
             self.response.out.write('<tr><td colspan=2><input type=submit value=Translate></td></tr>')
             self.response.out.write('</table></form>')
 
-application = webapp.WSGIApplication([('/mt', MTServer)],
+class MTGetUrl(webapp.RequestHandler):
+    def get(self, sl, tl):
+        self.response.headers['Content-Type']='text/plain'
+        if len(sl) > 0 and len(tl) > 0:
+            self.response.out.write(MT.geturl(sl,tl))
+
+application = webapp.WSGIApplication([('/mt', MTServer),
+                                      (r'/mt/(.*)/(.*)',MTGetUrl)],
                                      debug=True)
 
 def main():
