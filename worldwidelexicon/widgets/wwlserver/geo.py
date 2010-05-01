@@ -7,6 +7,11 @@ This module encapsulates calls to geolocation services and maintains
 a local cache of geolocated IP addresses, as well as an optional log
 to record actions by location. The module calls the Maxmind
 geolocation service.
+
+OUTSTANDING ISSUES / TO DO LIST
+
+* Restore transactional logging (currently disabled)
+
 """
 
 # import Google App Engine modules
@@ -24,19 +29,18 @@ import string
 import datetime
 # import WWL libraries
 from database import Settings
+from transcoder import transcoder
 
 def clean(text):
-    try:
-        utext = text.encode('utf-8')
-    except:
-        try:
-            utext = text.encode('iso-8859-1')
-        except:
-            utext = text
-    text = utext.decode('utf-8')
-    return text
+    return transcoder.clean(text)
 
 class GeoDB(db.Model):
+    """
+    This is the main data store where we memorize IP addresses and location information
+    associated with them. The system currently uses Maxmind as its primary geolocation
+    service, but this may be updated when new options become available for IP to lat/long
+    geolocation. 
+    """
     remote_addr = db.StringProperty(default = '')
     website = db.StringProperty(default = '')
     country = db.StringProperty(default = '')
@@ -47,6 +51,12 @@ class GeoDB(db.Model):
     lastupdated = db.DateTimeProperty(auto_now_add = True)
 
 class GeoLog(db.Model):
+    """
+    This data store contains a time based log of requests to the system and their location.
+    The system retains these logs for approximately 90 days, and uses this information
+    to determine what countries people are visiting from, likely language preferences, etc.
+    We also use Google Analytics for website traffic reports and other services. 
+    """
     date = db.DateTimeProperty(auto_now_add = True)
     remote_addr = db.StringProperty(default = '')
     website = db.StringProperty(default = '')
@@ -61,8 +71,15 @@ class GeoLog(db.Model):
     tl = db.StringProperty(default = '')
 
 class geo():
+    """
+    This class encapsulates methods to provide a variety of location services, to call out to
+    geolocation service providers, read or write to the geolocation data stores, and so on. 
+    """
     @staticmethod
     def log(remote_addr, city, state, country, latitude, longitude, action='', username='', sl ='', tl = '', website=''):
+        """
+        Transactional logging is currently disabled, but will be restored soon.
+        """
         return True
     @staticmethod
     def countries():
@@ -70,6 +87,10 @@ class geo():
         return clist
     @staticmethod
     def purge(name=''):
+        """
+        Purges GeoLog entries that are older than 60 days from the data store.
+        This is called via a cron job every hour or so.
+        """
         now = datetime.datetime.now()
         td = datetime.timedelta(days = -60)
         lastdate = now + td
@@ -93,6 +114,10 @@ class geo():
                 return False
     @staticmethod
     def query(remote_addr, website=''):
+        """
+        Queries the Maxmind geolocation service to obtain a location fix
+        for an IP address.
+        """
         license_key=Settings.get('maxmind')
         location = dict()
         geolist=list()
@@ -132,6 +157,13 @@ class geo():
         return location
     @staticmethod
     def get(remote_addr, action='', username='', sl = '', tl = '', website = ''):
+        """
+        This is the main method called by other parts of the system to fetch a location
+        for an IP address. It first looks in memcache for a recent result, then the
+        persistent data store, and then calls out to the Maxmind geolocation service.
+        Transactional logging is currently disabled, but will be restored in an update
+        fairly soon.
+        """
         username = clean(username)
         website = clean(website)
         location = memcache.get('geo|' + remote_addr)
