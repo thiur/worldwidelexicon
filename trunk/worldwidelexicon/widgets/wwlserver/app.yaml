@@ -172,6 +172,9 @@ handlers:
 - url: /submit
   script: translations.py
   secure: optional
+
+- url: /test
+  script: test.py
   
 - url: /t/(.*)/(.*)/(.*)
   script: translations.py
