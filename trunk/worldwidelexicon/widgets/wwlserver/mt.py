@@ -458,10 +458,14 @@ class ApertiumProxy():
                               payload=form_data,
                               method=urlfetch.POST,
                               headers={'Content-Type' : 'application/x-www-form-urlencoded','Accept-Charset' : 'utf-8'})
-          tt = result.content
+          results = demjson.decode(result.content)
+          try:
+              tt = results['responseData']['translatedText']
+          except:
+              tt = ''
+          return clean(tt)
       except:
-          tt=''
-      return clean(tt)
+          return ''
 
 #
 # Some addition stubs for other machine translation systems (not yet implemented)
