@@ -45,7 +45,7 @@ HTTP POST (recommended for translating longer texts). It returns its response
 as a simple text/plain response with Unicode UTF-8 encoding unless you explicitly
 force it to use a different character set or encoding.
 
-Copyright (c) 1998-2009, Worldwide Lexicon Inc.
+Copyright (c) 1998-2010, Brian S McConnell, Worldwide Lexicon Inc.
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification,
@@ -84,7 +84,6 @@ import demjson
 import urllib
 import string
 import md5
-import codecs
 from deeppickle import DeepPickle
 from www import www
 from transcoder import transcoder
@@ -447,12 +446,11 @@ class ApertiumProxy():
     Thanks to Fran Tyers for help debugging the CGI interface to Apertium.
     """
     def getTranslation(self,sl='en',tl='ca',st='',userip=''):
-      url="http://xixona.dlsi.ua.es/webservice/ws.php"
+      url="http://api.apertium.org/json/translate"
       form_fields = {
-        "mark" : "0",
         "format" : "html",
-        "mode" : sl + '-' + tl,
-        "text" : st
+        "langpair" : sl + '|' + tl,
+        "q" : st
       }
       form_data = urllib.urlencode(form_fields)
       try:
