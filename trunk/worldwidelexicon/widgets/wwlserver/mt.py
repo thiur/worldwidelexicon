@@ -627,17 +627,26 @@ class MTServer(webapp.RequestHandler):
     compatibility with the version 1 web API.
     
     """
-    def get(self):
+    def get(self, sl='', tl='', st=''):
         """Handles HTTP GET calls"""
-        self.requesthandler()
-    def post(self):
+        self.requesthandler(sl, tl, st)
+    def post(self, sl='', tl='', st=''):
         """Handles HTTP POST calls"""
-        self.requesthandler()
-    def requesthandler(self):
+        self.requesthandler(sl, tl, st)
+    def requesthandler(self, sl, tl, st):
         """Combined request handler for both GET and POST calls"""
-        sl = self.request.get('sl')
-        tl = self.request.get('tl')
-        st = clean(self.request.get('st'))
+        mode = 'form'
+        if len(sl) < 1:
+            sl = self.request.get('sl')
+            mode = 'rest'
+        if len(tl) < 1:
+            tl = self.request.get('tl')
+            mode = 'rest'
+        if len(st) > 0:
+            st = transcoder.clean(st)
+            st = string.replace(st, '+', ' ')
+        if len(st) < 1:
+            st = clean(self.request.get('st'))
         mtengine = self.request.get('mtengine')
         output = self.request.get('output')
         q = clean(self.request.get('q'))
@@ -657,7 +666,7 @@ class MTServer(webapp.RequestHandler):
             m = MTWrapper()
             tt = m.getTranslation(sl, tl, st, mtengine=mtengine,userip=userip)
             tt = string.replace(tt, '\n', '')
-            if output != 'google':                
+            if mode == 'rest' or output != 'google':
                 self.response.headers['Content-Type']='text/plain'
                 self.response.headers['Accept-Encoding']='utf-8'
                 self.response.out.write(tt)
@@ -686,6 +695,7 @@ class MTGetUrl(webapp.RequestHandler):
             self.response.out.write(MT.geturl(sl,tl))
 
 application = webapp.WSGIApplication([('/mt', MTServer),
+                                      (r'/mt/(.*)/(.*)/(.*)', MTServer),
                                       (r'/mt/(.*)/(.*)',MTGetUrl)],
                                      debug=True)
 
