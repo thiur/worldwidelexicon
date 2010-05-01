@@ -61,6 +61,7 @@ import pydoc
 from webappcookie import Cookies
 from www import www
 from geo import geo
+from transcoder import transcoder
 from database import Users
 
 #
@@ -70,18 +71,7 @@ validate_success_url = '/'
 validate_failure_url = '/'
 
 def clean(text):
-    if text is not None:
-        try:
-            utext = text.encode('utf-8')
-        except:
-            try:
-                utext = text.encode('iso-8859-1')
-            except:
-                utext = text
-        text = utext.decode('utf-8')
-        return text
-    else:
-        return ''
+    return transcoder.clean(text)
 
 #
 # Define Simple User Access Rights
