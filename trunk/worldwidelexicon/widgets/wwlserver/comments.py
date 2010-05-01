@@ -18,13 +18,23 @@ data store is done via abstract methods, so it should be straightforward to
 port the system to use a different data store, or to read/write comments from
 an external system such as an existing web bulletin board.
 
-NEW FEATURES AND UPDATES (March 25, 2010)
+NEW FEATURES AND UPDATES (April 30, 2010)
 
 * All read/write operations are done via the Comment() class
 * Added Akismet spam detection and filtering (spam comments are saved but
   not displayed)
 * Most queries are memcached with a 5 minute time to live
 * Updated module and class level documentation
+* Updated to use improved UTF8 encoding converter and sanitizer
+
+OUTSTANDING ISSUES
+
+* Clean up SubmitComment() function for brevity and clearer documentation
+* Additional comments for documentation purposes
+* Integrate with system administration tools to allow admin to enable/disable
+  comments system
+* Add API call for users to vote up/down and flag individual comments
+* Build multilingual commenting system/widget around this system (low priority for now)
 
 Copyright (c) 1998-2010, Worldwide Lexicon Inc.
 All rights reserved.
@@ -62,12 +72,10 @@ from google.appengine.ext.webapp.util import run_wsgi_app
 from google.appengine.ext import db
 from google.appengine.api import memcache
 # import standard Python libraries
-import cgi
 import md5
 import urllib
 import string
 import datetime
-import codecs
 # import WWL and third party modules
 from deeppickle import DeepPickle
 from www import www
@@ -316,7 +324,6 @@ application = webapp.WSGIApplication([('/comments/get', GetComments),
 
 def main():
   run_wsgi_app(application)
-
 
 if __name__ == "__main__":
   main()
