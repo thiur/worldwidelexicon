@@ -66,12 +66,10 @@ from google.appengine.api import urlfetch
 from google.appengine.api import memcache
 from google.appengine.api.labs import taskqueue
 # import standard Python libraries
-import cgi
 import md5
 import urllib
 import string
 import datetime
-import codecs
 # import WWL and third party modules
 from deeppickle import DeepPickle
 from www import www
@@ -304,7 +302,8 @@ class ScoreSubmitWorker(webapp.RequestHandler):
     /scores/worker
 
     This request handler is called via the task queue, which serializes votes to minimize
-    issues with data store contention, record locking, etc.
+    issues with data store contention, record locking, etc. This task records and updates average
+    scores for a translation, and for the user who created that translation.
     """
     def get(self):
         self.requesthandler()
@@ -327,15 +326,15 @@ class ScoreSubmitWorker(webapp.RequestHandler):
                 try:
                     author = Translation.author(guid)
                 except:
-                    pass
+                    author = ''
                 try:
                     result = Score.save(guid, votetype=votetype, score=score, username=username, remote_addr=remote_addr, city=city, state=state, country=country, latitude=latitude, longitude=longitude)
                 except:
-                    pass
+                    result = False
                 try:
                     result = Users.savescore(author, votetype, remote_addr, score=score)
                 except:
-                    pass
+                    result = False
             else:
                 result = False
         else:
