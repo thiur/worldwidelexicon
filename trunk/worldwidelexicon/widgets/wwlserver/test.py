@@ -42,7 +42,7 @@ from google.appengine.ext import webapp
 from google.appengine.ext.webapp.util import run_wsgi_app
 from google.appengine.api import memcache
 # import WWL modules
-from mt import MTWrapper
+from database import Directory
 from www import www
 
 class Test(webapp.RequestHandler):
@@ -63,9 +63,17 @@ class Test(webapp.RequestHandler):
             self.response.out.write('<tr><td colspan=2><input type=submit value="Submit"></td></tr>')
             self.response.out.write('</table></form>')
         else:
-            mt = MTWrapper()
-            tt = mt.getTranslation(sl, tl, st)
-            self.response.out.write(tt + '<p><a href=/test>Try Another</a>')
+            sdb = db.Query(Directory)
+            sdb.order('-date')
+            results = sdb.fetch(limit=200)
+            sites = list()
+            for r in results:
+                if r.domain not in sites:
+                    sites.append(r.domain)
+            self.response.out.write('<ul>')
+            for s in sites:
+                self.response.out.write('<li><a href=http://' + s + '>' + s + '</a></li>')
+            self.response.out.write('</ul>')
 
 application = webapp.WSGIApplication([(r'/test', Test)],
                                      debug=True)
