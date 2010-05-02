@@ -5,16 +5,7 @@ Main Module and Source Code Documentation (main.py)
 by Brian S McConnell <brian@worldwidelexicon.org>
 
 The Worldwide Lexicon Translation Memory is a collection of open source tools that enable you to build
-and host your own collaborative translation applications and services. We will be publishing the full
-open source release in June 2009 as a ready-to-use package for Google's App Engine cloud computing
-environment. Advance copies of the source code documented here can be requested via email
-(brian@worldwidelexicon.org), and will also be available for public use via Google Code next month.
-
-This documentation is geared toward software developers, and is not for end users. If you are interested
-in developing translation server applications based on the WWL platform, you should be familiar with
-Python as well as Google's App Engine platform. Our goal is to make the documentation and source code
-comments complete and easy to read, so that you can create customized services based on this platform
-with relative ease.
+and host your own collaborative translation applications and services. 
 
 Modules
 
@@ -76,8 +67,6 @@ widget. Examples of these type of implementations include:
     * Adobe AIR applications designed for power translators and administrators (control panel applications).
     * Mobile applications, such as an iPhone app, that poll WWL to fetch small texts to be translated and sent back.
 
-See Alex Tolley's AJAX translation viewer/editor for some ideas about how to do this.
-
 CMS (Content Management System) Integration
 
 Another strategy is to integrate the WWL translation memory with a content management system, such as
@@ -99,6 +88,7 @@ Server Side (Python) Modules
 
 The code that defines the translation memory is sub-divided into a small number of Python modules by function:
 
+    * akismet.py : implements Akismet spam filtering service by WordPress
     * comments.py : this module implements classes and methods to save and retrieve comments about translations
     * database.py : defines data stores, provides abstract interface for data store queries
       (you should be able to modify these functions to replace App Engine's data store with other
@@ -219,8 +209,8 @@ header_welcome = 'Welcome to the Worldwide Lexicon open translation memory serve
 
 header_demo_applications = 'Demo Applications'
 
-footer_copyright = 'Worldwide Lexicon hosted translation memory (c) 2007-2009 <a href=http://www.worldwidelexicon.org>Worldwide Lexicon Inc.</a><br>\
-                Worldwide Lexicon concept and source code (c) 1998-2009 <a href=http://www.google.com/profiles/bsmcconnell>Brian S McConnell</a>,\
+footer_copyright = 'Worldwide Lexicon hosted translation memory (c) 2007-2010 <a href=http://www.worldwidelexicon.org>Worldwide Lexicon Inc.</a><br>\
+                Worldwide Lexicon concept and source code (c) 1998-2010 <a href=http://www.google.com/profiles/bsmcconnell>Brian S McConnell</a>,\
                 published for commercial and non-commercial use under the New BSD license.'
 
 javascript_header_init = '<script src="/translator/translator.nocache.js"></script>'
@@ -369,8 +359,9 @@ class MainPage(webapp.RequestHandler):
     self.response.out.write('<li><a href=http://www.worldwidelexicon.org/s/lsps.html>Language Service Providers API</a></li>')
     self.response.out.write('<li><a href=http://broadcast.oreilly.com/2009/10/adding-professional-translatio.html>(oreilly.com) Adding Professional Translation to Your Website</a></li>')
     self.response.out.write('</ul>')
-    self.response.out.write('<h3>Source Code & Documentation (Sept 2009 Release)</h3>')
+    self.response.out.write('<h3>Source Code & Documentation (April 2010 Release)</h3>')
     self.response.out.write('<ul>')
+    self.response.out.write('<li>akismet.py : Implements the Akismet spam filtering service <a href=/doc?module=akismet>(doc)</a></li>')
     self.response.out.write('<li>comments.py : Save and retrieve comments about translations <a href=/doc?module=comments>(doc)</a></li>')
     self.response.out.write('<li>config.py : Editable configuration file for system settings</li>')
     self.response.out.write('<li>deeppickle.py : General purpose data format conversion module <a href=/doc?module=deeppickle>(doc)</a></li>')
@@ -392,6 +383,7 @@ class MainPage(webapp.RequestHandler):
     self.response.out.write('<li><a href=/lsp/submit>/lsp/submit</a> (language service provider API to submit a translation)</li>')
     self.response.out.write('<li><a href=/lsp/test>/lsp/test</a> (language service provider, test form)</li>')
     self.response.out.write('<li><a href=/mt>/mt</a> (machine translation proxy server)</li>')
+    self.response.out.write('<li><a href=/mt/en/es>/mt/lang1/lang2</a> (machine translation discovery/directory service</li>')
     self.response.out.write('<li><a href=/q>/q</a> (search for translations</li>')
     self.response.out.write('<li><a href=/scores/get>/scores/get</a> (fetch raw score history)</li>')
     self.response.out.write('<li><a href=/scores/vote>/scores/vote</a> (submit score for a translation)</li>')
