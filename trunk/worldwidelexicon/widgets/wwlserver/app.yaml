@@ -77,6 +77,9 @@ handlers:
 - url: /cache/(.*)
   script: translations.py
 
+- url: /css
+  static_dir: css
+
 - url: /doc
   script: home.py
   

@@ -158,20 +158,37 @@ from google.appengine.api import memcache
 from google.appengine.api import urlfetch
 from www import www
 import feedparser
+import string
 from webappcookie import Cookies
 
-css_header='<link rel="stylesheet" href="/blueprint_overrides.css" type="text/css" media="screen, projection">\
-            <link rel="stylesheet" href="/blueprint/screen.css" type="text/css" media="screen, projection">\
-            <link rel="stylesheet" href="/blueprint/print.css" type="text/css" media="print">\
-            <link rel="stylesheet" href="/blueprint/plugins/fancy-type/screen.css" type="text/css" media="screen, projection">\
-            <link rel="stylesheet" href="/blueprint/plugins/link-icons/screen.css" type="text/css" media="screen, projection">\
-            <!--[if IE]><link rel="stylesheet" href="/blueprint-css/blueprint/ie.css" type="text/css" media="screen, projection"><![endif]-->'
+css_header='<link rel="stylesheet" href="/css/style.css">'
 
-css_container = '<div class="container"><hr class="space">'
+#css_header='<link rel="stylesheet" href="/blueprint_overrides.css" type="text/css" media="screen, projection">\
+#            <link rel="stylesheet" href="/blueprint/screen.css" type="text/css" media="screen, projection">\
+#            <link rel="stylesheet" href="/blueprint/print.css" type="text/css" media="print">\
+#            <link rel="stylesheet" href="/blueprint/plugins/fancy-type/screen.css" type="text/css" media="screen, projection">\
+#            <link rel="stylesheet" href="/blueprint/plugins/link-icons/screen.css" type="text/css" media="screen, projection">\
+#<!--[if IE]><link rel="stylesheet" href="/blueprint-css/blueprint/ie.css" type="text/css" media="screen, projection"><![endif]-->'
 
-css_wide = '<div class="span-15 prepend-1 colborder">'
+css_main= '<div id="wrap">'
+css_main_close = '</div>'
 
-css_sidebar = '<div class="span-7 last">'
+css_menu = '<div id="top">\
+<h2><a href=http://blog.worldwidelexicon.org>Worldwide Lexicon</a></h2>\
+<div id="menu">[list]\
+</div>\
+</div>'
+
+css_content = '<div id="content">'
+css_content_close = '</div>'
+
+css_wide = '<div id="left">'
+css_wide_close = '</div>'
+
+css_sidebar = '<div id="right"><div class="box">'
+css_sidebar_close = '</div></div>'
+
+css_footer = '<div id="clear"></div></div><div id="footer">(c) 2008-2010 Worldwide Lexicon Inc, (c) 1998-2010, Brian S McConnell</div></div>'
 
 sidebar_about = '<h3>About WWL</h3>\
                 The Worldwide Lexicon is an open source collaborative translation platform. It is similar to \
@@ -197,24 +214,6 @@ sidebar_credits = '<h3>Credits</h3>\
                 <li>Inline Javascript/AJAX Translation Viewer/Editor : Alex Tolley</li>\
                 <li>System and Source Code Documentation : <a href=http://www.google.com/profiles/bsmcconnell>Brian S McConnell</a></li>\
                 <ul>'
-
-rss_feed_url = 'http://wwl.unthinkingly.com/?feed=rss2'
-
-header_welcome = 'Welcome to the Worldwide Lexicon open translation memory server. This open web API enables you to add collaborative translation \
-                to almost any website or web application. You can find the server source code, documentation and API documentation here on this \
-                site. To learn about a specific web service, just click on the (doc) link adjacent to each service below. For more information \
-                about WWL, visit <a href=http://www.worldwidelexicon.org>www.worldwidelexicon.org</a>. If you would like to deploy and manage your \
-                own translation server, you can download the WWL source code (written in Python, runs on App Engine). Contact Brian McConnell \
-                at bsmcconnell at gmail for more information (we will be publishing the source and documentation on Google Code shortly).<p>'
-
-header_demo_applications = 'Demo Applications'
-
-footer_copyright = 'Worldwide Lexicon hosted translation memory (c) 2007-2010 <a href=http://www.worldwidelexicon.org>Worldwide Lexicon Inc.</a><br>\
-                Worldwide Lexicon concept and source code (c) 1998-2010 <a href=http://www.google.com/profiles/bsmcconnell>Brian S McConnell</a>,\
-                published for commercial and non-commercial use under the New BSD license.'
-
-javascript_header_init = '<script src="/translator/translator.nocache.js"></script>'
-javascript_global_div = '<div id="wwlapi" sl="en" dermundo="http://worldwidelexicon.appspot.com/" allow_machine="y" allow_anonymous="y" allow_unscored="y" minimum_score="0"></div>'
 
 class languages():
     """
@@ -318,41 +317,14 @@ class MainPage(webapp.RequestHandler):
   def get(self, url=''):
     """Generates the WWL translation server home page"""
     cookies = Cookies(self, max_age=72000)
-    try:
-      tl = cookies['tl']
-    except:
-      tl = ''
-    response = urlfetch.fetch(url=rss_feed_url)
-    if response.status_code == 200:
-        r = response.content
-    else:
-        r = None
     self.response.headers['Content-Type']='text/html'
     self.response.out.write('<head><title>Worldwide Lexicon : Version 2 Web API (Test)</title>')
     self.response.out.write('<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />')
     self.response.out.write(css_header)
-    self.response.out.write(javascript_header_init)
-    self.response.out.write(css_container)
-    self.response.out.write(javascript_global_div)
-    self.response.out.write('<h2>Worldwide Lexicon : Collaborative Translation Memory</h2>')
-    langlist = languages.getlist()
-    self.response.out.write('<form action=/users/setlanguage method=postt>')
-    self.response.out.write('<input type=hidden name=callback value=/api>')
-    self.response.out.write('<select name=tl>')
-    langkeys = langlist.keys()
-    langkeys.sort()
-    if len(tl) > 0:
-        try:
-            self.response.out.write('<option selected value="' + tl + '">' + langlist[tl] + '</option>')
-        except:
-            pass
-    for k in langkeys:
-        self.response.out.write('<option value="' + k + '">' + langlist[k] + '</option>')
-    self.response.out.write('</select>')
-    self.response.out.write('<input type=submit value=Go></form>')
-    self.response.out.write('<hr>')
+    self.response.out.write(css_main)
+    menus = '<ul><li><a href=http://blog.worldwidelexicon.org>Blog</a></li><li><a href=http://code.google.com/p/worldwidelexicon>Code</a></li></ul>'
+    self.response.out.write(string.replace(css_menu,'[list]',menus))
     self.response.out.write(css_wide)
-    self.response.out.write(header_welcome)
     self.response.out.write('<h3>Tutorials</h3>')
     self.response.out.write('<ul>')
     self.response.out.write('<li><a href=/s/api.html>Overview of WWL API</a></li>')
@@ -400,31 +372,12 @@ class MainPage(webapp.RequestHandler):
     self.response.out.write('<li><a href=/users/validate>/users/validate</a> (validate new user account)</li>')
     self.response.out.write('</ul>')
     self.response.out.write('</div>')
+    self.response.out.write(css_wide_close)
     self.response.out.write(css_sidebar)
-    if r is not None:
-      feed = feedparser.parse(r)
-      items = feed.entries
-      if len(items) > 0:
-        self.response.out.write('<h3>News</h3>')
-        ctr = 0
-        for i in items:
-          ctr = ctr + 1
-          if ctr < 5:
-            self.response.out.write('<h4><a href="' + i.link + '">' + i.title + '</a></h4>')
-            description = i.description
-            text = description[0:200]
-            self.response.out.write(text)
-            self.response.out.write('<br><br>')
-    self.response.out.write('<div wwlapi="tr">')
     self.response.out.write(sidebar_about)
-    self.response.out.write('</div>')
-    self.response.out.write('<div wwlapi="tr">')
     self.response.out.write(sidebar_credits)
-    self.response.out.write('</div>')
-    self.response.out.write('</div></div>')
-    self.response.out.write('<font size=-2><center>')
-    self.response.out.write(footer_copyright)
-    self.response.out.write('</font></center>')
+    self.response.out.write(css_sidebar_close)
+    self.response.out.write(css_footer)
 
 class DocServer(webapp.RequestHandler):
   """
