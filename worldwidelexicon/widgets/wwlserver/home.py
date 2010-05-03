@@ -157,6 +157,7 @@ from google.appengine.ext.webapp.util import run_wsgi_app
 from google.appengine.api import memcache
 from google.appengine.api import urlfetch
 from www import www
+from www import web
 import feedparser
 import string
 from webappcookie import Cookies
@@ -214,30 +215,6 @@ sidebar_credits = '<h3>Credits</h3>\
                 <li>Inline Javascript/AJAX Translation Viewer/Editor : Alex Tolley</li>\
                 <li>System and Source Code Documentation : <a href=http://www.google.com/profiles/bsmcconnell>Brian S McConnell</a></li>\
                 <ul>'
-
-class web():
-    text = dict()
-    def get(self, url):
-        text = memcache.get('/url/' + url)
-        if text is not None:
-            self.text[url] = text
-            return True
-        else:
-            result = urlfetch.fetch(url=url)
-            if result.status_code == 200:
-                memcache.set('/url/' + url, result.content, 300)
-                self.text[url]=result.content
-                return True
-            else:
-                return False
-    def replace(self, url, tag, text):
-        try:
-            self.text[url]=string.replace(self.text[url], tag, text)
-            return True
-        except:
-            return False
-    def out(self, url):
-        return self.text.get(url, '')
 
 class languages():
     """
@@ -347,6 +324,7 @@ class MainPage(webapp.RequestHandler):
     if valid:
         menus = '<ul><li><a href=http://blog.worldwidelexicon.org>Blog</a></li><li><a href=http://code.google.com/p/worldwidelexicon>Code</a></li></ul>'
         w.replace(u, '[menu]', menus)
+        w.replace(u, '[title]', 'Worldwide Lexicon')
         w.get('http://www.worldwidelexicon.org/static/api_main.html')
         left = w.out('http://www.worldwidelexicon.org/static/api_main.html')
         w.replace(u, '[left_column]', left)

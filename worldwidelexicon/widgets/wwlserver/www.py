@@ -60,8 +60,36 @@ sidebar_about = '<h3>About WWL</h3>\
                 from translating research journals, to creating translatable news portals for readers in \
                 countries around the world.<br><br>'
 
+u = 'http://www.worldwidelexicon.org/css/template.html'
+
+from google.appengine.api import memcache
+from google.appengine.api import urlfetch
 from pydoc import HTMLDoc
 import string
+
+class web():
+    text = dict()
+    def get(self, url):
+        text = memcache.get('/url/' + url)
+        if text is not None:
+            self.text[url] = text
+            return True
+        else:
+            result = urlfetch.fetch(url=url)
+            if result.status_code == 200:
+                memcache.set('/url/' + url, result.content, 300)
+                self.text[url]=result.content
+                return True
+            else:
+                return False
+    def replace(self, url, tag, text):
+        try:
+            self.text[url]=string.replace(self.text[url], tag, text)
+            return True
+        except:
+            return False
+    def out(self, url):
+        return self.text.get(url, '')
 
 class www():
     """
@@ -73,27 +101,22 @@ class www():
     @staticmethod
     def serve(rh,text, title='', mode='text/html', css='/css/main.css', cssbody='overall', cssheader="header"):
         rh.response.headers['Content-Type']=mode
-        if mode == 'text/html':
-            if len(title) > 0:
-                rh.response.out.write('<head><title>' + title + '</title>')
-            rh.response.out.write('<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />')
-            rh.response.out.write(css_header)
-            rh.response.out.write(css_container)
-            if len(title) > 0:
-                rh.response.out.write('<h1>' + title + '</h1>')
-            else:
-                rh.response.out.write('<h1 wwlapi="tr">Worldwide Lexicon System Documentation</h1>')
-            rh.response.out.write('<hr>')
-            rh.response.out.write(css_wide)
-            rh.response.out.write('<pre wwlapi="tr">' + text + '</pre>')
+        w = web()
+        w.get(u)
+        if len(title) > 0:
+            w.replace(u, '[title]', title)
         else:
-            rh.response.out.write(text)
+            w.replace(u, '[title]', 'Worldwide Lexicon')
+        w.replace(u, '[footer]', 'Copyright 1998-2010 Brian S McConnell, Copyright 2008-2010 Worldwide Lexicon Inc.')
+        w.replace(u,'[left_column]', '<code>' + text + '</code>')
+        w.replace(u,'[right_column]', '')
+        rh.response.out.write(w.out(u))
     @staticmethod
     def servedoc(rh, module, title = 'WWL Documentation Server', mode='text/html', css='/css/main.css', cssbody='overall', cssheader='header'):
         rh.response.headers['Content-Type']='text/html'
-        rh.response.out.write('<head><title> ' + title + '</title>')
-        rh.response.out.write('<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />')
-        rh.response.out.write('</head>')
+        w = web()
+        w.get(u)
+        w.replace(u, '[title]', title)
         try:
             m = __import__(module)
             t = HTMLDoc()
@@ -110,4 +133,5 @@ class www():
             else:
                 ttext = ttext + txt + '&nbsp;<br>'
             ctr = ctr + 1
-        rh.response.out.write(ttext)
+        w.replace(u, '[left_column]', ttext)
+        rh.response.out.write(w.out(u))
