@@ -99,7 +99,7 @@ class www():
     docstrings. Used for self-documentation for web API server.
     """
     @staticmethod
-    def serve(rh,text, title='', mode='text/html', css='/css/main.css', cssbody='overall', cssheader="header"):
+    def serve(rh,text, title='', sidebar='', mode='text/html', css='/css/main.css', cssbody='overall', cssheader="header"):
         rh.response.headers['Content-Type']=mode
         w = web()
         w.get(u)
@@ -108,8 +108,8 @@ class www():
         else:
             w.replace(u, '[title]', 'Worldwide Lexicon')
         w.replace(u, '[footer]', 'Copyright 1998-2010 Brian S McConnell, Copyright 2008-2010 Worldwide Lexicon Inc.')
-        w.replace(u,'[left_column]', '<code>' + text + '</code>')
-        w.replace(u,'[right_column]', '')
+        w.replace(u,'[left_column]',  text)
+        w.replace(u,'[right_column]', sidebar)
         rh.response.out.write(w.out(u))
     @staticmethod
     def servedoc(rh, module, title = 'WWL Documentation Server', mode='text/html', css='/css/main.css', cssbody='overall', cssheader='header'):

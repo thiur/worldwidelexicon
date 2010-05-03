@@ -92,33 +92,30 @@ class tx():
 class GetTranslations(webapp.RequestHandler):
     """
     
-    GetTranslations()
-    /q
+    <h3>/q (get translations)</h3>
     
     This API handler returns a list of translations that match your search
-    criteria. The request handler expects the following parameters:
+    criteria. The request handler expects the following parameters:<p>
     
-    sl : source language (ISO language code), required
-    tl : target language (ISO language code), required
-    st : source text (Unicode, UTF-8 encoding), either st or md5hash must be present
-    md5hash : MD5 hashkey generated from source text (more efficient when retrieving
-              archived translations for large texts, except auto-fallback to
-              machine translation will not work)
-    allow_anonymous : (y/n) include anonymous translations (enabled by default)
-    allow_machine : (y/n) include machine translations (enabled by default)
-    allow_unscored : (y/n) include unscored human translations (enabled by default)
-    minimum_score : minimum score (0 to 5 scale)
-    fuzzy : (y/n), if yes searches for the word or phrase within translations
+    <ul><li>sl : source language (ISO language code), required</li>
+    <li>tl : target language (ISO language code), required</li>
+    <li>st : source text (Unicode, UTF-8 encoding), either st or md5hash must be present</li>
+    <li>md5hash : MD5 hashkey generated from source text (more efficient when retrieving archived translations for large texts, except auto-fallback to machine translation will not work</li>
+    <li>allow_anonymous : (y/n) include anonymous translations (enabled by default)</li>
+    <li>allow_machine : (y/n) include machine translations (enabled by default)</li>
+    <li>allow_unscored : (y/n) include unscored human translations (enabled by default)</li>
+    <li>minimum_score : minimum score (0 to 5 scale)</li>
+    <li>fuzzy : (y/n), if yes searches for the word or phrase within translations
                     (e.g. fuzzy=y and st=hello world will find any translations whose
                     source text contains the phrase 'hello world'), currently limited
-                    to searching for short phrases of 1 to 4 words within larger texts.
-    lsp : language service provider (for on demand professional translation)
-    lspusername : LSP username
-    lsppw : LSP password
-    mtengine : optional machine translation engine to call out to for machine translations
+                    to searching for short phrases of 1 to 4 words within larger texts.</li>
+    <li>lsp : language service provider (for on demand professional translation)</li>
+    <li>lspusername : LSP username</li?
+    <li>lsppw : LSP password</li>
+    <li>mtengine : optional machine translation engine to call out to for machine translations
                     if no human translations are available (options are: google, apertium,
-                    moses, with more coming soon)
-    output : output format (xml, rss, json, po, xliff)
+                    moses, with more coming soon)</li>
+    <li>output : output format (xml, rss, json, po, xliff)</li></ul><p>
     
     The request handler returns the recordset in the desired format (xml if not specified)
      
@@ -261,62 +258,62 @@ class GetTranslations(webapp.RequestHandler):
             text = d.pickleTable(results, output)
             self.response.out.write(text)
         else:
-            www.serve(self,self.__doc__, title = '/q')
-            self.response.out.write('<h3>Test Form</h3>')
-            self.response.out.write('<table><form action=/q method=post accept-charset=utf-8>')
-            self.response.out.write('<tr><td>Source Language</td><td><input type=text name=sl></td></tr>')
-            self.response.out.write('<tr><td>Target Language</td><td><input type=text name=tl></td></tr>')
-            self.response.out.write('<tr><td>Source Text</td><td><textarea name=st rows=4 cols=40></textarea></td></tr>')
-            self.response.out.write('<tr><td>Source Text MD5 Hash</td><td><input type=text name=md5hash></td></tr>')
-            self.response.out.write('<tr><td>URL to request translations for</td><td><input type=text name=url></td></tr>')
-            self.response.out.write('<tr><td>Display Anonymous Texts (y/n)</td><td><input type=text name=allow_anonymous></td></tr>')
-            self.response.out.write('<tr><td>Display Machine Texts (y/n)</td><td><input type=text name=allow_machine></td></tr>')
-            self.response.out.write('<tr><td>Minimum Score (0 to 5)</td><td><input type=text name=minimum_score></td></tr>')
-            self.response.out.write('<tr><td>Fuzzy Search</td><td><input type=text name=fuzzy value=n></td></tr>')
-            self.response.out.write('<tr><td>Machine Translation Engine</td><td>')
-            self.response.out.write('<select name=mtengine><option selected value="">--Automatic--</option>')
-            self.response.out.write('<option value=google>Google</option>')
-            self.response.out.write('<option value=apertium>Apertium</option>')
-            self.response.out.write('<option value=moses>Moses</option>')
-            self.response.out.write('</select></td></tr>')
-            self.response.out.write('<tr><td>Language Servuce Provider (lsp)</td><td><input type=text name=lsp></td></tr>')
-            self.response.out.write('<tr><td>LSP Username</td><td><input type=text name=lspusername></td></tr>')
-            self.response.out.write('<tr><td>LSP Password</td><td><input type=text name=lsppw></td></tr>')
-            self.response.out.write('<tr><td>Output Format</td><td><input type=text name=output value=rss></td></tr>')
-            self.response.out.write('<tr><td colspan=2><input type=submit value=SEARCH></td></tr>')
-            self.response.out.write('</table></form>')
+            doc_text = self.__doc__
+            t = '<table><form action=/q method=post accept-charset=utf-8>'
+            t = t + '<tr><td>Source Language</td><td><input type=text name=sl></td></tr>'
+            t = t + '<tr><td>Target Language</td><td><input type=text name=tl></td></tr>'
+            t = t + '<tr><td>Source Text</td><td><textarea name=st rows=4 cols=40></textarea></td></tr>'
+            t = t + '<tr><td>Source Text MD5 Hash</td><td><input type=text name=md5hash></td></tr>'
+            t = t + '<tr><td>URL to request translations for</td><td><input type=text name=url></td></tr>'
+            t = t + '<tr><td>Display Anonymous Texts (y/n)</td><td><input type=text name=allow_anonymous></td></tr>'
+            t = t + '<tr><td>Display Machine Texts (y/n)</td><td><input type=text name=allow_machine></td></tr>'
+            t = t + '<tr><td>Minimum Score (0 to 5)</td><td><input type=text name=minimum_score></td></tr>'
+            t = t + '<tr><td>Fuzzy Search</td><td><input type=text name=fuzzy value=n></td></tr>'
+            t = t + '<tr><td>Machine Translation Engine</td><td>'
+            t = t + '<select name=mtengine><option selected value="">--Automatic--</option>'
+            t = t + '<option value=google>Google</option>'
+            t = t + '<option value=apertium>Apertium</option>'
+            t = t + '<option value=moses>Moses</option>'
+            t = t + '</select></td></tr>'
+            t = t + '<tr><td>Language Servuce Provider (lsp)</td><td><input type=text name=lsp></td></tr>'
+            t = t + '<tr><td>LSP Username</td><td><input type=text name=lspusername></td></tr>'
+            t = t + '<tr><td>LSP Password</td><td><input type=text name=lsppw></td></tr>'
+            t = t + '<tr><td>Output Format</td><td><input type=text name=output value=rss></td></tr>'
+            t = t + '<tr><td colspan=2><input type=submit value=SEARCH></td></tr>'
+            t = t + '</table></form>'
+            www.serve(self,t, sidebar=doc_text,title = '/q')
 
 class SubmitTranslation(webapp.RequestHandler):
     """
     
-    /submit
+    <h3>/submit : (submit a translation)</h3>
     
     This web service API call stores newly submitted translations to the datastore. 
-    It expects the following parameters:
+    It expects the following parameters:<p>
     
-    sl - source language (ISO language code), required
-    tl - target language (ISO language code), required
-    st - source text (UTF-8 encoded), required
-    tt - translated text (UTF-8 encoded), required
-    domain - site domain or API key, optional but recommended (submit in nnn.com format)
-    url - parent URL of source document, optional but recommended (submit full permalink)
-    username - WWL or remote username, optional (system allows anonymous translations)
-    pw - WWL or remote user password
-    proxy - if submission is being submitted via a proxy gateway, default = n if omitted
+    <ul><li>sl - source language (ISO language code), required</li>
+    <li>tl - target language (ISO language code), required</li>
+    <li>st - source text (UTF-8 encoded), required</li>
+    <li>tt - translated text (UTF-8 encoded), required</li>
+    <li>domain - site domain or API key, optional but recommended (submit in nnn.com format)</li>
+    <li>url - parent URL of source document, optional but recommended (submit full permalink)</li>
+    <li>username - WWL or remote username, optional (system allows anonymous translations)</li>
+    <li>pw - WWL or remote user password</li>
+    <li>proxy - if submission is being submitted via a proxy gateway, default = n if omitted
             (in proxy mode, we use you are filtering submissions upstream and will accept
-            whatever username you provide)
-    session - session key (cookie, stored whenever user logs into system)
-    apikey - API key (for trusted submitters and LSPs)
+            whatever username you provide)</li>
+    <li>session - session key (cookie, stored whenever user logs into system)</li>
+    <li>apikey - API key (for trusted submitters and LSPs)</li></ul>
     
-    The API call returns a text/plain object, with either an ok response or an error message.
+    The API call returns a text/plain object, with either an ok response or an error message.<p>
     
-    IMPORTANT: always use UTF-8 encoding when submitting data. If you are generating an HTML
+    <blockquote>IMPORTANT: always use UTF-8 encoding when submitting data. If you are generating an HTML
     form that points back to the WWL server, be sure to include accept-charset=utf-8 in the
     <form > tag. If you are submitting data from a separate application, be sure to set the
     accept-charset=utf-8 header in the HTTP call, and to encode characters using UTF-8. If
     you do not do this consistently, you will see character encoding errors or receive
     garbage characters in your translations. Use UTF-8 everywhere, and specifically do not
-    use language specific character sets. 
+    use language specific character sets. </blockquote>
     
     """
     def requesthandler(self):
@@ -453,23 +450,23 @@ class SubmitTranslation(webapp.RequestHandler):
             else:
                 pass
             if emptyform:
-                www.serve(self,self.__doc__, title = '/submit')
-                self.response.out.write('<h3>Test Form</h3>')
-                self.response.out.write('<table border=1>')
-                self.response.out.write('<form action=/submit method=post accept-charset=utf-8>')
-                self.response.out.write('<tr><td>Source Language</td><td><input type=text name=sl value=en></td></tr>')
-                self.response.out.write('<tr><td>Target Language</td><td><input type=text name=tl value=es></td></tr>')
-                self.response.out.write('<tr><td>Source Text</td><td><input type=text name=st value=\"' + st + '\"></td></tr>')
-                self.response.out.write('<tr><td>Translation</td><td><input type=text name=tt value=\"' + tt + '\"></td></tr>')
-                self.response.out.write('<tr><td>Domain</td><td><input type=text name=domain value=\"' + domain + '\"></td></tr>')
-                self.response.out.write('<tr><td>URL</td><td><input type=text name=url value=\"' + url + '\"></td></tr>')
-                self.response.out.write('<tr><td>WWL Username</td><td><input type=text name=username></td></tr>')
-                self.response.out.write('<tr><td>WWL Password</td><td><input type=password name=pw></td></tr>')
-                self.response.out.write('<tr><td>Proxy Mode (y/n)</td><td><input type=text name=proxy value=n></td></tr>')
-                self.response.out.write('<tr><td>API Key</td><td><input type=text name=apikey></td></tr>')
-                self.response.out.write('<tr><td>Output format</td><td><input type=text name=output value=text></td></tr>')
-                self.response.out.write('<tr><td colspan=2><input type=submit value=OK></td></tr>')
-                self.response.out.write('</table></form>')
+                doc_text = self.__doc__
+                t = '<table>'
+                t = t + '<form action=/submit method=post accept-charset=utf-8>'
+                t = t + '<tr><td>Source Language</td><td><input type=text name=sl value=en></td></tr>'
+                t = t + '<tr><td>Target Language</td><td><input type=text name=tl value=es></td></tr>'
+                t = t + '<tr><td>Source Text</td><td><input type=text name=st value=\"' + st + '\"></td></tr>'
+                t = t + '<tr><td>Translation</td><td><input type=text name=tt value=\"' + tt + '\"></td></tr>'
+                t = t + '<tr><td>Domain</td><td><input type=text name=domain value=\"' + domain + '\"></td></tr>'
+                t = t + '<tr><td>URL</td><td><input type=text name=url value=\"' + url + '\"></td></tr>'
+                t = t + '<tr><td>WWL Username</td><td><input type=text name=username></td></tr>'
+                t = t + '<tr><td>WWL Password</td><td><input type=password name=pw></td></tr>'
+                t = t + '<tr><td>Proxy Mode (y/n)</td><td><input type=text name=proxy value=n></td></tr>'
+                t = t + '<tr><td>API Key</td><td><input type=text name=apikey></td></tr>'
+                t = t + '<tr><td>Output format</td><td><input type=text name=output value=text></td></tr>'
+                t = t + '<tr><td colspan=2><input type=submit value=OK></td></tr>'
+                t = t + '</table></form>'
+                www.serve(self,t, sidebar=doc_text, title = '/submit')
     def post(self):
         """ Processes HTTP POST calls """
         self.requesthandler()
@@ -479,46 +476,45 @@ class SubmitTranslation(webapp.RequestHandler):
     
 class SimpleTranslation(webapp.RequestHandler):
     """
+    <h3>/t : Simple Translation Service</h3>
+
     This request handler implements the /t/*/*/* web service which provides a simple
     text-only interface for retrieving translations from WWL. The web service is called via
-    a RESTful interface as follows:
+    a RESTful interface as follows:<p>
     
-    /t/{source_language}/{target_language}/{escape encoded text}
+    <blockquote>/t/{source_language}/{target_language}/{escape encoded text}
     
-    or
+    /t/{source_language}/{target_language}</blockquote><p>
     
-    /t/{source_language}/{target_language}
+    with the parameters<p>
     
-    with the parameters
-    
-    st = source text (UTF-8 or ASCII only, no other encodings supported)
-    allow_anonymous = y/n (allow anonymous translations, default = y)
-    allow_machine = y/n (allow machine translations, default = y)
-    min_score = minimum average quality score (0 to 5, default 0)
-    lsp = name of professional translation service provider (will request a professional
-                            translation)
-    lspusername = username to submit to professional translation svc (overrides system default)
-    lsppw = password or API key to submit to professional translation svc (overrides system default)
-    queue = add translation to translation queue for third party service (e.g. beextra.org)
-    mtengine = request translation via a specific machine translation service, if not specified will
-                select MT engine automatically using defaults in mt.py
-    ip = dotted IP address or prefix (e.g. ip=206.1.2) to limit results to translations submitted from
+    <ul><li>st = source text (UTF-8 or ASCII only, no other encodings supported)</li>
+    <li>allow_anonymous = y/n (allow anonymous translations, default = y)</li>
+    <li>allow_machine = y/n (allow machine translations, default = y)</li>
+    <li>min_score = minimum average quality score (0 to 5, default 0)</li>
+    <li>lsp = name of professional translation service provider (will request a professional translation)</li>
+    <li>lspusername = username to submit to professional translation svc (overrides system default)</li>
+    <li>lsppw = password or API key to submit to professional translation svc (overrides system default)</li>
+    <li>queue = add translation to translation queue for third party service (e.g. beextra.org)</li>
+    <li>mtengine = request translation via a specific machine translation service, if not specified will
+                select MT engine automatically using defaults in mt.py</li>
+    <li>ip = dotted IP address or prefix (e.g. ip=206.1.2) to limit results to translations submitted from
                 a specific IP address or range (so you can ignore submissions that were not posted from
-                a trusted gateway you control)
-    output = text|html|xml|rss|json|google (google will mimic Google Translate API and response format)
+                a trusted gateway you control)</li>
+    <li>output = text|html|xml|rss|json|google (google will mimic Google Translate API and response format)</li></ul>
     
     The request handler will return the best available translation in simple HTML by
-    default. If you need a full revision history, you should use the /q interface.
+    default. If you need a full revision history, you should use the /q interface.<p>
     
     This interface makes it easy to merge translations into web documents as they are
     served, as it can be used as a type of server side include. This enables a website
     to exert direct control over how translations are displayed, to cache them locally
     and host the translations on the same publishing or web application environment.
     Note that this can also be used to localize a web interface as it provides a simple
-    gettext() style interface for fetching a translation for a string.
+    gettext() style interface for fetching a translation for a string.<p>
 
     NOTE: we _strongly_ recommend that you use the POST method to submit texts for translation.
-    You can use HTTP GET for requests, but you need to be very careful to correctly encoded texts. 
+    You can use HTTP GET for requests, but you need to be very careful to correctly encoded texts.<p>
     """
     def get(self, sl='', tl='', st=''):
         self.requesthandler(sl, tl, st)
@@ -654,22 +650,23 @@ class SimpleTranslation(webapp.RequestHandler):
             if len(text) > 0:
                 memcache.set('/t/' + md5hash + '/' + output, text, 300)
         else:
-            www.serve(self,self.__doc__, title='/t')
-            self.response.out.write('<table><form action=/t method=get accept-charset=utf-8>')
-            self.response.out.write('<tr><td>Source Language</td><td><input type=text name=sl></td></tr>')
-            self.response.out.write('<tr><td>Target Language</td><td><input type=text name=tl></td></tr>')
-            self.response.out.write('<tr><td colspan><b>Text To Translate</b><br><textarea name=st></textarea></td></tr>')
-            self.response.out.write('<tr><td>Language Service Provider (request pro translation)</td>')
-            self.response.out.write('<td><input type=text name=lsp></td></tr>')
-            self.response.out.write('<tr><td>LSP Username</td><td><input type=text name=lspusername></td></tr>')
-            self.response.out.write('<tr><td>LSP Password</td><td><input type=text name=lsppw></td></tr>')
-            self.response.out.write('<tr><td>Limit Results By IP Address or Pattern</td><td><input type=text name=ip></td></tr>')
-            self.response.out.write('<tr><td>Allow Machine Translation (y/n)</td><td><input type=text name=allow_machine value=y></td></tr>')
-            self.response.out.write('<tr><td>Allow Anonymous Translation (y/n)</td><td><input type=text name=allow_anonymous value=y></td></tr>')
-            self.response.out.write('<tr><td>Output Format</td><td><input type=text name=output value=text></td></tr>')
-            self.response.out.write('<tr><td colspan=2><input type=submit value=GO></td></tr>')
-            self.response.out.write('</form></table>')
-            
+            doc_text = self.__doc__
+            t = '<table><form action=/t method=get accept-charset=utf-8>'
+            t = t + '<tr><td>Source Language</td><td><input type=text name=sl></td></tr>'
+            t = t + '<tr><td>Target Language</td><td><input type=text name=tl></td></tr>'
+            t = t + '<tr><td colspan><b>Text To Translate</b><br><textarea name=st></textarea></td></tr>'
+            t = t + '<tr><td>Language Service Provider (request pro translation)</td>'
+            t = t + '<td><input type=text name=lsp></td></tr>'
+            t = t + '<tr><td>LSP Username</td><td><input type=text name=lspusername></td></tr>'
+            t = t + '<tr><td>LSP Password</td><td><input type=text name=lsppw></td></tr>'
+            t = t + '<tr><td>Limit Results By IP Address or Pattern</td><td><input type=text name=ip></td></tr>'
+            t = t + '<tr><td>Allow Machine Translation (y/n)</td><td><input type=text name=allow_machine value=y></td></tr>'
+            t = t + '<tr><td>Allow Anonymous Translation (y/n)</td><td><input type=text name=allow_anonymous value=y></td></tr>'
+            t = t + '<tr><td>Output Format</td><td><input type=text name=output value=text></td></tr>'
+            t = t + '<tr><td colspan=2><input type=submit value=GO></td></tr>'
+            t = t + '</form></table>'
+            www.serve(self,t, sidebar = doc_text, title='/t')
+
 class LogQueries(webapp.RequestHandler):
     def get(self):
         self.requesthandler()
@@ -706,18 +703,18 @@ class BatchTranslation(webapp.RequestHandler):
     Batch translation request handler. This request handler allows a client to submit a batch of texts to
     be translated, and to requery in a separate transaction if desired. This request handler will spawn
     a number of parallel queries that, in turn, write back to memcached. This allows for fast response
-    times on queries for a large number of texts. It expects the following parameters:
+    times on queries for a large number of texts. It expects the following parameters:<p>
 
-    sl = source language
-    tl = target language
-    st0..199 = source text to translate
-    allow_machine = y/n (use machine translation)
-    lsp = name of LSP, if requesting professional translations
-    lspusername = username for LSP query
-    lsppw = pw or API key for LSP query
-    guid = MD5hash (if repeating a recently submitted query)
-    async = y/n (if yes, returns an MD5hash, and expects user to re-query after some delay)
-    output = xml, rss, or json
+    <ul><li>sl = source language</li>
+    <li>tl = target language</li>
+    <li>st0..199 = source text to translate</li>
+    <li>allow_machine = y/n (use machine translation)</li>
+    <li>lsp = name of LSP, if requesting professional translations</li>
+    <li>lspusername = username for LSP query</li>
+    <li>lsppw = pw or API key for LSP query</li>
+    <li>guid = MD5hash (if repeating a recently submitted query)</li>
+    <li>async = y/n (if yes, returns an MD5hash, and expects user to re-query after some delay)</li>
+    <li>output = xml, rss, or json</li></ul>
     
     """
     def get(self):
@@ -804,20 +801,20 @@ class BatchTranslation(webapp.RequestHandler):
                 #
                 # form fields were empty, so generate a blank form instead
                 #
-                www.serve(self,self.__doc__, title='/batch')
-                self.response.out.write('<table><form action=/batch method=get>')
-                self.response.out.write('<tr><td>Async Query</td><td><input type=text name=async value=n></td></tr>')
-                self.response.out.write('<tr><td>Source Language</td><td><input type=text name=sl></td></tr>')
-                self.response.out.write('<tr><td>Target Language</td><td><input type=text name=tl></td></tr>')
-                self.response.out.write('<tr><td>Output Format</td><td><input type=text name=output value=rss></td></tr>')
+                doc_text = self.__doc__
+                t = '<table><form action=/batch method=get>'
+                t = t + '<tr><td>Async Query</td><td><input type=text name=async value=n></td></tr>'
+                t = t + '<tr><td>Source Language</td><td><input type=text name=sl></td></tr>'
+                t = t + '<tr><td>Target Language</td><td><input type=text name=tl></td></tr>'
+                t = t + '<tr><td>Output Format</td><td><input type=text name=output value=rss></td></tr>'
                 ctr = 0
                 while ctr < 20:
-                    self.response.out.write('<tr><td>Source Text #' + str(ctr+1) + '</td>')
-                    self.response.out.write('<td><input type=text name=st' + str(ctr) + '></td></tr>')
+                    t = t + '<tr><td>Source Text #' + str(ctr+1) + '</td>'
+                    t = t + '<td><input type=text name=st' + str(ctr) + '></td></tr>'
                     ctr = ctr + 1
-                self.response.out.write('<tr><td colspan=2><input type=submit value="OK"></td></tr>')
-                self.response.out.write('</form></table>')
-
+                t = t + '<tr><td colspan=2><input type=submit value="OK"></td></tr>'
+                t = t + '</form></table>'
+                www.serve(self,t, sidebar=doc_text)
 #
 # Main request handler, decides which request handler to call based on the URL pattern
 #
