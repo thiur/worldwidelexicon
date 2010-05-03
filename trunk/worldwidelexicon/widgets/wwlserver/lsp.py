@@ -55,7 +55,10 @@ import codecs
 from database import APIKeys
 from database import Translation
 from transcoder import transcoder
-from www import www
+try:
+    from www import www
+except:
+    pass
 
 # Define constants
 
@@ -115,22 +118,22 @@ class LSP():
 
 class TestTranslation(webapp.RequestHandler):
     """
-    /lsp/test
+    <h3>/lsp/test</h3>
 
     This is a test form you can use to submit translation requests to LSPs via WWL, to verify that
-    your API is processing queries correctly.
+    your API is processing queries correctly.<p>
 
     The form handler will submit the query to your server as defined in the guidelines for language
-    service providers (see blog.worldwidelexicon.org for details). You should return one of the following:
+    service providers (see blog.worldwidelexicon.org for details). You should return one of the following:<p>
 
-    * a UTF-8 encoded text with the translation for the source text
-    * a blank text, if no translation has been created yet (we will assume it is in queue)
-    * a HTTP error message, if the request is incomplete or the user credentials are invalid
+    <ul><li>a UTF-8 encoded text with the translation for the source text</li>
+    <li>a blank text, if no translation has been created yet (we will assume it is in queue)</li>
+    <li>a HTTP error message, if the request is incomplete or the user credentials are invalid</li></ul>
 
     WWL will cache the translation for 1 to 2 hours, after which it will resend the request to you. If the
     translation has changed since then, you can return the newest translation. (You should be sure to
     design your script so that it first checks to see if a text has already been translated, so you do not
-    resubmit an already translated text to translators again. 
+    resubmit an already translated text to translators again.<p>
     """
     def get(self):
         sl = self.request.get('sl')
@@ -146,43 +149,43 @@ class TestTranslation(webapp.RequestHandler):
             tt = clean(tt)
             self.response.out.write(tt)
         else:
-            www.serve(self, self.__doc__)
-            self.response.out.write('<table><form action=/lsp/test method=get>')
-            self.response.out.write('<tr><td>Source Language Code</td><td><input type=text name=sl></td></tr>')
-            self.response.out.write('<tr><td>Target Language Code</td><td><input type=text name=tl></td></tr>')
-            self.response.out.write('<tr><td>Source Text</td><td><input type=text name=st></td></tr>')
-            self.response.out.write('<tr><td>Domain</td><td><input type=text name=domain></td></tr>')
-            self.response.out.write('<tr><td>URL</td><td><input type=text name=url></td></tr>')
-            self.response.out.write('<tr><td>LSP</td><td><input type=text name=lsp></td></tr>')
-            self.response.out.write('<tr><td>LSP Username</td><td><input type=text name=lspusername></td></tr>')
-            self.response.out.write('<tr><td>LSP PW/Key</td><td><input type=text name=lsppw></td></tr>')
-            self.response.out.write('<tr><td colspan=2><input type=submit value=OK></td></tr>')
-            self.response.out.write('</form></table>')
+            doc_text = self.__doc__
+            t = '<table><form action=/lsp/test method=get>'
+            t = t + '<tr><td>Source Language Code</td><td><input type=text name=sl></td></tr>'
+            t = t + '<tr><td>Target Language Code</td><td><input type=text name=tl></td></tr>'
+            t = t + '<tr><td>Source Text</td><td><input type=text name=st></td></tr>'
+            t = t + '<tr><td>Domain</td><td><input type=text name=domain></td></tr>'
+            t = t + '<tr><td>URL</td><td><input type=text name=url></td></tr>'
+            t = t + '<tr><td>LSP</td><td><input type=text name=lsp></td></tr>'
+            t = t + '<tr><td>LSP Username</td><td><input type=text name=lspusername></td></tr>'
+            t = t + '<tr><td>LSP PW/Key</td><td><input type=text name=lsppw></td></tr>'
+            t = t + '<tr><td colspan=2><input type=submit value=OK></td></tr>'
+            t = t + '</form></table>'
+            www.serve(self, t, sidebar = doc_text)
 
 class SubmitTranslation(webapp.RequestHandler):
     """
-    /lsp/submit
+    <h3>/lsp/submit</h3>
 
     Used to submit a completed translation to the translation memory.
     This bypasses the usual community translation workflow that may require
     additional review or scoring, and treats the submission as a trusted
-    source.
+    source.<p>
 
-    It expects the following parameters:
+    It expects the following parameters:<p>
+    <ul>
+    <li>apikey = LSP api key</li>
+    <li>sl = source language code</li>
+    <li>tl = target language code</li>
+    <li>st = source text (utf8)</li>
+    <li>tt = translated text (utf8)</li>
+    <li>domain = optional domain text is from (e.g. foo.com)</li>
+    <li>url = optional source url text is from</li>
+    <li>guid = unique ID of the translation job</li>
+    </ul>
 
-    apikey = LSP api key
-    sl = source language code
-    tl = target language code
-    st = source text (utf8)
-    tt = translated text (utf8)
-    domain = optional domain text is from (e.g. foo.com)
-    url = optional source url text is from
-    guid = unique ID of the translation job
-
-    It returns ok or an error message
-
-    The web service will store the translation in the permanent translation memory, and will also update the
-    real-time cache associated with LSP queries. 
+    It returns ok or an error message. The web service will store the translation in the permanent translation memory,
+    and will also update the real-time cache associated with LSP queries. 
 
     """
     def get(self):
@@ -236,19 +239,20 @@ class SubmitTranslation(webapp.RequestHandler):
             else:
                 self.response.out.write('error')
         else:
-            www.serve(self, self.__doc__)
-            self.response.out.write('<table>')
-            self.response.out.write('<form action=/lsp/submit method=post>')
-            self.response.out.write('<tr><td>LSP Name (lsp)</td><td><input type=text name=lsp></td></tr>')
-            self.response.out.write('<tr><td>LSP API Key (apikey)</td><td><input type=text name=apikey></td></tr>')
-            self.response.out.write('<tr><td>Source Language Code (sl)</td><td><input type=text name=sl></td></tr>')
-            self.response.out.write('<tr><td>Target Language Code (tl)</td><td><input type=text name=tl></td></tr>')
-            self.response.out.write('<tr><td>Source Text (st)</td><td><input type=text name=st></td></tr>')
-            self.response.out.write('<tr><td>Translated Text (tt)</td><td><input type=text name=tt></td></tr>')
-            self.response.out.write('<tr><td>Domain (domain)</td><td><input type=text name=domain></td></tr>')
-            self.response.out.write('<tr><td>URL (url)</td><td><input type=text name=url></td></tr>')
-            self.response.out.write('<tr><td colspan=2><input type=submit value="Submit"></td></tr>')
-            self.response.out.write('</table></form>')
+            doc_text = self.__doc__
+            t = '<table>'
+            t = t + '<form action=/lsp/submit method=post>'
+            t = t + '<tr><td>LSP Name (lsp)</td><td><input type=text name=lsp></td></tr>'
+            t = t + '<tr><td>LSP API Key (apikey)</td><td><input type=text name=apikey></td></tr>'
+            t = t + '<tr><td>Source Language Code (sl)</td><td><input type=text name=sl></td></tr>'
+            t = t + '<tr><td>Target Language Code (tl)</td><td><input type=text name=tl></td></tr>'
+            t = t + '<tr><td>Source Text (st)</td><td><input type=text name=st></td></tr>'
+            t = t + '<tr><td>Translated Text (tt)</td><td><input type=text name=tt></td></tr>'
+            t = t + '<tr><td>Domain (domain)</td><td><input type=text name=domain></td></tr>'
+            t = t + '<tr><td>URL (url)</td><td><input type=text name=url></td></tr>'
+            t = t + '<tr><td colspan=2><input type=submit value="Submit"></td></tr>'
+            t = t + '</table></form>'
+            www.serve(self, t, sidebar = doc_text)
 
 application = webapp.WSGIApplication([('/lsp/submit', SubmitTranslation),
                                       ('/lsp/test', TestTranslation)],
