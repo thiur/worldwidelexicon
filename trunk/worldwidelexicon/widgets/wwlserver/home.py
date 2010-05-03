@@ -215,6 +215,30 @@ sidebar_credits = '<h3>Credits</h3>\
                 <li>System and Source Code Documentation : <a href=http://www.google.com/profiles/bsmcconnell>Brian S McConnell</a></li>\
                 <ul>'
 
+class web():
+    text = dict()
+    def get(self, url):
+        text = memcache.get('/url/' + url)
+        if text is not None:
+            self.text[url] = text
+            return True
+        else:
+            result = urlfetch.fetch(url=url)
+            if result.status_code == 200:
+                memcache.set('/url/' + url, result.content, 300)
+                self.text[url]=result.content
+                return True
+            else:
+                return False
+    def replace(self, url, tag, text):
+        try:
+            self.text[url]=string.replace(self.text[url], tag, text)
+            return True
+        except:
+            return False
+    def out(self, url):
+        return self.text.get(url, '')
+
 class languages():
     """
     This class implements several convenience methods for managing the list of supported languages on
@@ -317,67 +341,20 @@ class MainPage(webapp.RequestHandler):
   def get(self, url=''):
     """Generates the WWL translation server home page"""
     cookies = Cookies(self, max_age=72000)
-    self.response.headers['Content-Type']='text/html'
-    self.response.out.write('<head><title>Worldwide Lexicon : Version 2 Web API (Test)</title>')
-    self.response.out.write('<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />')
-    self.response.out.write(css_header)
-    self.response.out.write(css_main)
-    menus = '<ul><li><a href=http://blog.worldwidelexicon.org>Blog</a></li><li><a href=http://code.google.com/p/worldwidelexicon>Code</a></li></ul>'
-    self.response.out.write(string.replace(css_menu,'[list]',menus))
-    self.response.out.write(css_wide)
-    self.response.out.write('<h3>Tutorials</h3>')
-    self.response.out.write('<ul>')
-    self.response.out.write('<li><a href=/s/api.html>Overview of WWL API</a></li>')
-    self.response.out.write('<li><a href=http://www.worldwidelexicon.org/s/lsps.html>Language Service Providers API</a></li>')
-    self.response.out.write('<li><a href=http://broadcast.oreilly.com/2009/10/adding-professional-translatio.html>(oreilly.com) Adding Professional Translation to Your Website</a></li>')
-    self.response.out.write('</ul>')
-    self.response.out.write('<h3>Source Code & Documentation (April 2010 Release)</h3>')
-    self.response.out.write('<ul>')
-    self.response.out.write('<li>akismet.py : Implements the Akismet spam filtering service <a href=/doc?module=akismet>(doc)</a></li>')
-    self.response.out.write('<li>comments.py : Save and retrieve comments about translations <a href=/doc?module=comments>(doc)</a></li>')
-    self.response.out.write('<li>config.py : Editable configuration file for system settings</li>')
-    self.response.out.write('<li>deeppickle.py : General purpose data format conversion module <a href=/doc?module=deeppickle>(doc)</a></li>')
-    self.response.out.write('<li>feedparser.py : General purpose RSS feed parser (<a href=http://www.feedparser.org>www.feedparser.org</a>)</li>')
-    self.response.out.write('<li>hosts.py : Implements host controller for translation proxy servers (<a href=/doc?module=hosts>doc</a>)</li>')
-    self.response.out.write('<li>language.py : Language utilities and language detection <a href=/doc?module=language>(doc)</a>')
-    self.response.out.write('<li>lsp.py : Language service provider module <a href=/doc?module=lsp>(doc)</a></li>')
-    self.response.out.write('<li>mt.py : Machine translation proxy server <a href=/doc?module=mt>(doc)</a></li>')
-    self.response.out.write('<li>scores.py : Save and retrieve scores for translations <a href=/doc?module=scores>(doc)</a></li>')
-    self.response.out.write('<li>translations.py : Save translations, retrieve human and/or machine translations <a href=/doc?module=translations>(doc)</a></li>')
-    self.response.out.write('<li>users.py : User related classes and methods <a href=/doc?module=users>(doc)</a></li>')
-    self.response.out.write('<li>www.py : Embedded documentation server <a href=/doc?module=www>(doc)</a></li>')
-    self.response.out.write('</ul>')
-    self.response.out.write('<h3>Web API Documentation & Test Forms</h3>')
-    self.response.out.write('<ul>')
-    self.response.out.write('<li><a href=/comments/get>/comments/get</a> (fetch comments about a translation)</li>')
-    self.response.out.write('<li><a href=/comments/submit>/comments/submit</a> (submit comment about a translation)</li>')
-    self.response.out.write('<li><a href=/language>/language</a> (language utilities, and language detection)</li>')
-    self.response.out.write('<li><a href=/lsp/submit>/lsp/submit</a> (language service provider API to submit a translation)</li>')
-    self.response.out.write('<li><a href=/lsp/test>/lsp/test</a> (language service provider, test form)</li>')
-    self.response.out.write('<li><a href=/mt>/mt</a> (machine translation proxy server)</li>')
-    self.response.out.write('<li><a href=/mt/en/es>/mt/lang1/lang2</a> (machine translation discovery/directory service</li>')
-    self.response.out.write('<li><a href=/q>/q</a> (search for translations</li>')
-    self.response.out.write('<li><a href=/scores/get>/scores/get</a> (fetch raw score history)</li>')
-    self.response.out.write('<li><a href=/scores/vote>/scores/vote</a> (submit score for a translation)</li>')
-    self.response.out.write('<li><a href=/submit>/submit</a> (submit a user/community translation)</li>')
-    self.response.out.write('<li><a href=/t>/t</a> (simple translation request API)</li>')
-    self.response.out.write('<li><a href=/users/auth?doc=y>/users/auth</a> (authenticate user)</li>')
-    self.response.out.write('<li><a href=/users/check>/users/check</a> (check username available)</li>')
-    self.response.out.write('<li><a href=/users/currentuser?doc=y>/users/currentuser</a> (get current username for session</li>')
-    self.response.out.write('<li><a href=/users/count>/users/count</a> (get total edits and word count for current user)</li>')
-    self.response.out.write('<li><a href=/users/logout?doc=y>/users/logout</a> (logout from system)</a></li>')
-    self.response.out.write('<li><a href=/users/new>/users/new</a> (create new user account)</a></li>')
-    self.response.out.write('<li><a href=/users/setlanguage>/users/setlanguage</a> (set language, options)</a></li>')
-    self.response.out.write('<li><a href=/users/setoptions>/users/setoptions</a> (set language, options)</li>')
-    self.response.out.write('<li><a href=/users/validate>/users/validate</a> (validate new user account)</li>')
-    self.response.out.write('</ul>')
-    self.response.out.write('</div>')
-    self.response.out.write(css_wide_close)
-    self.response.out.write(css_sidebar)
-    self.response.out.write(sidebar_about)
-    self.response.out.write(sidebar_credits)
-    self.response.out.write(css_sidebar_close)
-    self.response.out.write(css_footer)
+    u = 'http://www.worldwidelexicon.org/css/template.html'
+    w = web()
+    valid = w.get(u)
+    if valid:
+        menus = '<ul><li><a href=http://blog.worldwidelexicon.org>Blog</a></li><li><a href=http://code.google.com/p/worldwidelexicon>Code</a></li></ul>'
+        w.replace(u, '[menu]', menus)
+        w.get('http://www.worldwidelexicon.org/static/api_main.html')
+        left = w.out('http://www.worldwidelexicon.org/static/api_main.html')
+        w.replace(u, '[left_column]', left)
+        w.replace(u, '[right_column]', sidebar_about + sidebar_credits)
+        w.replace(u, '[footer]', 'Copyright 1998-2010, Brian S McConnell. Copyright 2008-2010, Worldwide Lexicon Inc')
+        self.response.out.write(w.out(u))
+    else:
+        self.error(404)
 
 class DocServer(webapp.RequestHandler):
   """
