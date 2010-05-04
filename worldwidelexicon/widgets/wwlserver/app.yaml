@@ -1,5 +1,5 @@
 application: worldwidelexicon
-version: 3
+version: 2
 runtime: python
 api_version: 1
 
@@ -14,10 +14,6 @@ handlers:
 
 - url: /robots.txt
   script: admin.py
-
-- url: /blueprint.html
-  static_files: blueprint/index.html
-  upload: blueprint/index.html
 
 - url: /favicon.ico
   static_files: image/favicon.ico
@@ -36,37 +32,6 @@ handlers:
   
 - url: /image
   static_dir: image
-  
-- url: /blueprint_overrides.css
-  static_files: blueprint/blueprint_overrides.css
-  upload: blueprint/blueprint_overrides.css
-
-- url: /blueprint/plugins/buttons/icons
-  static_dir: blueprint/plugins/buttons/icons
-
-- url: /blueprint/plugins/buttons
-  static_dir: blueprint/plugins/buttons
-
-- url: /blueprint/plugins/fancy-type
-  static_dir: blueprint/plugins/fancy-type
-
-- url: /blueprint/plugins/link-icons/icons
-  static_dir: blueprint/plugins/link-icons/icons
-
-- url: /blueprint/plugins/link-icons
-  static_dir: blueprint/plugins/link-icons
-
-- url: /blueprint/plugins/rtl
-  static_dir: blueprint/plugins/rtl
-
-- url: /blueprint/plugins
-  static_dir: blueprint/plugins
-
-- url: /blueprint/src
-  static_dir: blueprint/plugins
-
-- url: /blueprint
-  static_dir: blueprint
   
 - url: /api
   script: home.py
