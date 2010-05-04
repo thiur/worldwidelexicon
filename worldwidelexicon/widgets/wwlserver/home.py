@@ -322,7 +322,9 @@ class MainPage(webapp.RequestHandler):
     w = web()
     valid = w.get(u)
     if valid:
-        menus = '<ul><li><a href=http://blog.worldwidelexicon.org>Blog</a></li><li><a href=http://code.google.com/p/worldwidelexicon>Code</a></li></ul>'
+        menus = '<ul><li><a href=http://www.worldwidelexicon.org/api>API</a></li>\
+<li><a href=http://blog.worldwidelexicon.org>Blog</a></li>\
+<li><a href=http://code.google.com/p/worldwidelexicon>Code</a></li></ul>'
         w.replace(u, '[menu]', menus)
         w.replace(u, '[title]', 'Worldwide Lexicon')
         w.get('http://www.worldwidelexicon.org/static/api_main.html')

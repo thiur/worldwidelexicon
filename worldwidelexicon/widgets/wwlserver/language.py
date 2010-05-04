@@ -119,24 +119,18 @@ class lx():
 
 class ProcessForm(webapp.RequestHandler):
     """
-    /language
+    <h3>/language</h3>
     
     This request handler enables you to set the target language (to translate to), and also to detect the
-    source language of a web domain or block of text. It expects any of the following parameters:
+    source language of a web domain or block of text. It expects any of the following parameters:<p>
     
-    sl = to set the source language (if requesting a list of machine translation servers)
-    tl = to set the target language (it will set a cookie, tl, on the user's browser)
-    domain = to detect the language associated with a web domain (e.g. lemonde.fr)
-    text = to detect the language for a block of text (auto detection)
+    <ul><li>sl = to set the source language (if requesting a list of machine translation servers)</li>
+    <li>tl = to set the target language (it will set a cookie, tl, on the user's browser)</li>
+    <li>domain = to detect the language associated with a web domain (e.g. lemonde.fr)</li>
+    <li>text = to detect the language for a block of text (auto detection)</li></ul>
     
     if you use this API call to detect the source language, it will return the source language code (2 or 3
-    letter ISO code), or a blank response if it cannot detect or guess the language. 
-    
-    You can use this API to do the following tasks:
-    
-    * get a list of machine translation servers and their APIs for a sl-->tl language pair
-    * find out if a specific language is associated with a domain, eg. lemonde.fr = french
-    * test a text to automatically guess its source language (about 90% reliable)
+    letter ISO code), or a blank response if it cannot detect or guess the language. <p>
     """
     def get(self):
         self.requesthandler()
@@ -153,14 +147,13 @@ class ProcessForm(webapp.RequestHandler):
         elif len(text) < 1 and len(sl) > 0 and len(tl) > 0:
             self.mt(sl, tl)
         elif len(tl) < 1 and len(domain) < 1 and len(text) < 1:
-            www.serve(self, self.__doc__)
-            self.response.out.write('<form action=/language method=get accept-charset=utf-8>')
-            self.response.out.write('<table>')
-            self.response.out.write('<tr><td>Set Target Language</td><td><input type=text name=tl maxlength=3 size=3></td></tr>')
-            self.response.out.write('<tr><td>Web Domain (e.g. www.xyz.com)</td><td><input type=text name=domain></td></tr>')
-            self.response.out.write('<tr><td colspan=2>Detect Source Language For A Block of Text<br><textarea name=text></textarea></td></tr>')
-            self.response.out.write('<tr><td colspan=2><input type=submit value=OK></td></tr>')
-            self.response.out.write('</table></form>')
+            t = '<form action=/language method=get accept-charset=utf-8><table>'
+            t = t + '<tr><td>Set Target Language</td><td><input type=text name=tl maxlength=3 size=3></td></tr>'
+            t = t + '<tr><td>Web Domain (e.g. www.xyz.com)</td><td><input type=text name=domain></td></tr>'
+            t = t + '<tr><td>Block of Text</td><td><input type=text name=text></td></tr>'
+            t = t + '<tr><td colspan=2><input type=submit value=OK></td></tr>'
+            t = t + '</table></form>'
+            www.serve(self, t, sidebar=self.__doc__, title = '/language (Language Detection API)')
         else:
             if len(tl) > 0:
                 referrer = self.request.referrer

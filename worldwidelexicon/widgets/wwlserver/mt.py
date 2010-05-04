@@ -588,27 +588,26 @@ class MTServer(webapp.RequestHandler):
     It front ends one or many different machine translation services, and presents
     a common interface to the clients using this interface, so the client can just
     submit one query to WWL, which proxies the request through to upstream services.
+    It expects the following parameters:<p>
     
-    It expects the following parameters:
-    
-    sl = source language (ISO code)
-    tl = target language (ISO code)
-    st = source text (Unicode UTF-8 encoding)
-    mtengine = machine translation engine to use (to override automatic selection)
+    <ul><li>sl = source language (ISO code)</li>
+    <li>tl = target language (ISO code)</li>
+    <li>st = source text (Unicode UTF-8 encoding)</li>
+    <li>mtengine = machine translation engine to use (to override automatic selection)</li></ul>
     
     It replies with a plain text response with the translated text, or an empty
     string if the query fails. The proxy server will memcache queries so frequently
     requested texts are cached in memory (such as in a page that is being reloaded
     frequently). Unless otherwise noted, the returned text will be Unicode with
-    UTF-8 encoding.
+    UTF-8 encoding.<p>
     
     The proxy server currently supports the following machine translation
-    services (more are being added for the June OSS release):
+    services (more are being added for the June OSS release):<p>
     
-      Google : about 30 languages supported
-      Apertium : Spanish, Catalan, French, Portuguese, Galician, Basque, Bretton
-      Moses : open source statistical machine translation system
-      World Lingo: commercial machine translation service (SaaS)
+      <ul><li>Google : about 50 languages supported</li>
+      <li>Apertium : Spanish, Catalan, French, Portuguese, Galician, Basque, Bretton</li>
+      <li>Moses : open source statistical machine translation system</li>
+      <li>World Lingo: commercial machine translation service (SaaS)</li></ul>
     
     We are planning to add connectors to several popular enterprise machine
     translation systems, as soon as we receive documentation from vendors
@@ -618,13 +617,13 @@ class MTServer(webapp.RequestHandler):
     accessible via a standard HTTP GET/POST CGI query and return Unicode
     compliant (UTF-8 encoded) text in response. You can also extend the
     mt.py module to create your own custom MT connectors for private or
-    intranet applications.
+    intranet applications.<p>
      
     NOTE: to request a combined recordset containing both human and
     machine translations, call the /q (get.py) web service instead, as it
     returns both types of translations depending on query settings. This
     method is provided specifically for MT queries, and for backward
-    compatibility with the version 1 web API.
+    compatibility with the version 1 web API.<p>
     
     """
     def get(self, sl='', tl='', st=''):
@@ -677,16 +676,15 @@ class MTServer(webapp.RequestHandler):
                 response=string.replace(response,'[translation]', string.replace(tt, '\"', '\''))
                 self.response.out.write(response)
         else:
-            www.serve(self, self.__doc__)
-            self.response.out.write('<h3>Test Form</h3>')
-            self.response.out.write('<form action=/mt method=post><table>')
-            self.response.out.write('<tr><td>Source Language Code</td><td><input type=text name=sl></td></tr>')
-            self.response.out.write('<tr><td>Target Language Code</td><td><input type=text name=tl></td></tr>')
-            self.response.out.write('<tr><td>Machine Translation Engine</td><td><input type=text name=mtengine></td></tr>')
-            self.response.out.write('<tr><td>Output Format (text|google)</td><td><input type=text name=output></td></tr>')
-            self.response.out.write('<tr><td colspan=2><textarea name=st rows=4 cols=60>Hello World</textarea></td></tr>')
-            self.response.out.write('<tr><td colspan=2><input type=submit value=Translate></td></tr>')
-            self.response.out.write('</table></form>')
+            t = '<form action=/mt method=post><table>'
+            t = t + '<tr><td>Source Language Code</td><td><input type=text name=sl></td></tr>'
+            t = t + '<tr><td>Target Language Code</td><td><input type=text name=tl></td></tr>'
+            t = t + '<tr><td>Machine Translation Engine</td><td><input type=text name=mtengine></td></tr>'
+            t = t + '<tr><td>Output Format (text|google)</td><td><input type=text name=output></td></tr>'
+            t = t + '<tr><td colspan=2><textarea name=st rows=4 cols=60>Hello World</textarea></td></tr>'
+            t = t + '<tr><td colspan=2><input type=submit value=Translate></td></tr>'
+            t = t + '</table></form>'
+            www.serve(self, t, sidebar = self.__doc__, title = '/mt (Machine Translation API)')
 
 class MTGetUrl(webapp.RequestHandler):
     def get(self, sl, tl):
