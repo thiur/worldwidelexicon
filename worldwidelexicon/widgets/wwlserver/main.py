@@ -111,7 +111,9 @@ standard_footer = 'Content management system and collaborative translation memor
 
 class WebServer(webapp.RequestHandler):
     def get(self, p1='', p2='', p3=''):
-        if p1 == 'test':
+        if p1 == 'blog':
+            self.redirect('http://blog.worldwidelexicon.org')
+        else:
             menus = '<ul><li><a href=/api>API</a></li>\
 <li><a href=http://blog.worldwidelexicon.org>Blog</a></li>\
 <li><a href=http://code.google.com/p/worldwidelexicon>Code</a></li>\
@@ -141,8 +143,6 @@ class WebServer(webapp.RequestHandler):
             r = r + Feeds.get('http://blog.worldwidelexicon.org/?feed=rss2')
             w.replace(template,'[right_column]', r)
             self.response.out.write(w.out(template))
-        else:
-            self.redirect('http://blog.worldwidelexicon.org')
     def post(self, p1='', p2='', p3=''):
         self.redirect('http://blog.worldwidelexicon.org')
 
