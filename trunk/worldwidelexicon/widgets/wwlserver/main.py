@@ -113,6 +113,11 @@ standard_footer = 'Content management system and collaborative translation memor
 
 class WebServer(webapp.RequestHandler):
     def get(self, p1='', p2='', p3=''):
+        if memcache.get('/heartbeat/running') is None:
+            self.error(500)
+            self.response.out.write('<h2>System Offline</h2>')
+            self.response.out.write('The system is offline for maintenence.')
+            return
         if p1 == 'blog':
             self.redirect('http://blog.worldwidelexicon.org')
         else:
