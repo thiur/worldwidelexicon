@@ -161,7 +161,7 @@ class TestTranslation(webapp.RequestHandler):
             t = t + '<tr><td>LSP PW/Key</td><td><input type=text name=lsppw></td></tr>'
             t = t + '<tr><td colspan=2><input type=submit value=OK></td></tr>'
             t = t + '</form></table>'
-            www.serve(self, t, sidebar = doc_text)
+            www.serve(self, t, sidebar = doc_text, title = '/lsp/test (LSP Interface Test Form)')
 
 class SubmitTranslation(webapp.RequestHandler):
     """
@@ -252,7 +252,7 @@ class SubmitTranslation(webapp.RequestHandler):
             t = t + '<tr><td>URL (url)</td><td><input type=text name=url></td></tr>'
             t = t + '<tr><td colspan=2><input type=submit value="Submit"></td></tr>'
             t = t + '</table></form>'
-            www.serve(self, t, sidebar = doc_text)
+            www.serve(self, t, sidebar = doc_text, title='/lsp/submit (LSP Submit Interface)')
 
 application = webapp.WSGIApplication([('/lsp/submit', SubmitTranslation),
                                       ('/lsp/test', TestTranslation)],

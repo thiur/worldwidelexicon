@@ -2638,15 +2638,14 @@ class Users(db.Model):
     @staticmethod
     def auth(username, pw, session, remote_addr, city = '', state = '', country = '', latitude = None, longitude = None):
         if len(session) > 0:
-            sessionname = memcache.get('sessions|' + session)
-            sessioninfo = dict()
+            sessioninfo = memcache.get('sessions|' + session)
         else:
-            sessionname = None
-        if sessionname is not None:
-            sessioninfo['username']=sessionname
-            sessioninfo['session']=session
+            sessioninfo = None
+        if sessioninfo is not None:
             return sessioninfo
-        elif sessionname is None:
+        elif sessioninfo is None and len(session) > 2:
+            return
+        else:
             udb = db.Query(Users)
             udb.filter('username = ', username)
             item = udb.get()
@@ -2702,8 +2701,6 @@ class Users(db.Model):
                     return sessioninfo
                 else:
                     return
-        else:
-            return
     @staticmethod
     def logout(username='', session=''):
         udb = db.Query(Users)
@@ -2717,6 +2714,8 @@ class Users(db.Model):
         if item is not None:
             item.session = ''
             item.put()
+            if len(session) > 0:
+                memcache.delete('sessions|' + session)
             return True
         else:
             return False
