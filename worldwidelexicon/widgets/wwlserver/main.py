@@ -129,11 +129,19 @@ class WebServer(webapp.RequestHandler):
             sdb = db.Query(Directory)
             sdb.filter('tl = ', 'root')
             sdb.order('-lastupdated')
-            results = sdb.fetch(limit=10)
+            results = sdb.fetch(limit=25)
             sites = list()
             for r in results:
                 if r.domain not in sites:
-                    sites.append(r.domain)
+                    skip=False
+                    if string.count(r.domain,'localhost') > 0:
+                        skip=True
+                    domains = string.split(r.domain, '.')
+                    if len(domains) == 3:
+                        if len(domains[2]) > 2 and domains[2] != 'info':
+                            skip=True
+                    if not skip:
+                        sites.append(r.domain)
             t = t + '<h2>New Websites On The WWL Network</h2><ul>'
             for s in sites:
                 t = t +'<li><a href=http://' + s + '>' + s + '</a></li>'
@@ -150,7 +158,9 @@ class Feeds():
     @staticmethod
     def get(url, fulltext=True, limit=10, maxlength=200):
         f = feedparser.parse(url)
-        t = ''
+        t = memcache.get('/feeds/' + url)
+        if t is not None:
+            return t
         entries = f.entries
         ctr = 0
         if len(entries) > 0:
@@ -162,6 +172,7 @@ class Feeds():
                     if fulltext:
                         txt = clean(e.description)
                         t = t + txt[0:maxlength] + ' ...'
+        memcache.set('/feeds/' + url, t, 300)
         return t
 
 application = webapp.WSGIApplication([(r'/(.*)/(.*)/(.*)', WebServer),
