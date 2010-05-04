@@ -3,15 +3,8 @@ version: 2
 runtime: python
 api_version: 1
 
-inbound_services:
-- mail
-
 handlers:
     
-- url: /_ah/mail/(.*)
-  script: incoming_email.py 
-  login: admin
-
 - url: /robots.txt
   script: admin.py
 
