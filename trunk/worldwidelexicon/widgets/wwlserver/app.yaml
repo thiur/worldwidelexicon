@@ -113,6 +113,9 @@ handlers:
 - url: /scores/(.*)
   script: scores.py
   secure: optional
+
+- url: /selftest
+  script: heartbeat.py
   
 - url: /setup
   script: admin.py
