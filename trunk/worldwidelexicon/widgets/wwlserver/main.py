@@ -39,14 +39,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 # import standard Python libraries
 import urllib
 import string
-import sys
-import demjson
 import md5
 import datetime
 import pydoc
-import codecs
-import sgmllib
-import types
 # import Google App Engine modules
 import wsgiref.handlers
 from google.appengine.ext import webapp
@@ -56,70 +51,16 @@ from google.appengine.api import memcache
 from google.appengine.api import urlfetch
 # import Worldwide Lexicon modules
 import feedparser
-from database import languages
-from database import Translation
-from database import Search
+from database import Directory
 from database import Settings
-from database import Users
-from geo import geo
-from webappcookie import Cookies
-from mt import MTWrapper
-from deeppickle import DeepPickle
 from transcoder import transcoder
+from www import web
 from www import www
 
 # Define convenience functions
-
-class MyParser(sgmllib.SGMLParser):
-    """
-    This class implements a basic HTML parser that is used to extract
-    title, description and keywords from a page's HTML header. 
-    """
-    inside_title = False
-    title = ''
-    inside_meta = False
-    keywords = ''
-    description = ''
-
-    def start_title(self, attrs):
-        self.inside_title = True
-
-    def end_title(self):
-        self.inside_title = False
-
-    def start_meta(self, attrs):
-        self.inside_meta = True
-        name = attrs[0]
-        content = attrs[1]
-        if string.lower(name[1]) == 'description':
-            self.description = content[1]
-        if string.lower(name[1]) == 'keywords':
-            self.keywords = content[1]
-
-    def end_meta(self, attrs):
-        self.inside_meta = False
-
-    def handle_data(self, data):
-        if self.inside_title and data:
-            self.title = self.title + data + ' '
             
 def clean(text):
     return transcoder.clean(text)
-
-def tx(sl, tl, st, split = 'n'):
-    """
-    tx()
-    
-    This convenience function fetches a human or machine translation for a text
-    and displays it in a bilingual format.
-    """
-    tt = Translation.lucky(sl=sl, tl=tl, st=st, domain='www.worldwidelexicon.org', lsp='speaklike', lspusername=Settings.get('speaklikeusername'), lsppw=Settings.get('speaklikepw'))
-    if sl == tl or len(tl) < 2:
-        return st
-    elif len(tt) > 0:
-        return tt
-    else:
-        return st
 
 # Define default settings
 
@@ -133,7 +74,7 @@ encoding = 'utf-8'
 
 default_language = 'en'
 
-default_title = 'Welcome to the Worldwide Lexicon'
+default_title = 'Worldwide Lexicon'
 
 default_css = 'blueprint'
 
@@ -143,50 +84,76 @@ document.write(unescape("%3Cscript src=\'\" + gaJsHost + \"google-analytics.com/
 </script>\
 <script type="text/javascript">\
 try {\
-var pageTracker = _gat._getTracker("UA-7294247-1");\
+var pageTracker = _gat._getTracker("' + Settings.get('googleanalytics') + '");\
 pageTracker._trackPageview();\
 } catch(err) {}</script>'
 
 # Define default settings for Blueprint CSS framework, included with this package as the default style sheet
 
-blueprint_header='<link rel="stylesheet" href="/blueprint_overrides.css" type="text/css" media="screen, projection">\
-            <link rel="stylesheet" href="/blueprint/screen.css" type="text/css" media="screen, projection">\
-            <link rel="stylesheet" href="/blueprint/print.css" type="text/css" media="print">\
-            <link rel="stylesheet" href="/blueprint/plugins/fancy-type/screen.css" type="text/css" media="screen, projection">\
-            <link rel="stylesheet" href="/blueprint/plugins/link-icons/screen.css" type="text/css" media="screen, projection">\
-            <!--[if IE]><link rel="stylesheet" href="/blueprint-css/blueprint/ie.css" type="text/css" media="screen, projection"><![endif]-->'
-
-blueprint_container = '<div class="container"><hr class="space">'
-
-blueprint_wide = '<div class="span-15 prepend-1 colborder">'
-
-blueprint_sidebar = '<div class="span-7 last">'
+template = 'http://www.worldwidelexicon.org/css/template.html'
+downloads = 'http://www.worldwidelexicon.org/s/downloads.html'
 
 # standard footer and source code attribution, do not modify or hide
 standard_footer = 'Content management system and collaborative translation memory powered \
                   by the <a href=http://www.worldwidelexicon.org>Worldwide Lexicon Project</a> \
-                  (c) 1998-2009 Brian S McConnell and Worldwide Lexicon Inc. All rights reserved. \
+                  (c) 1998-2010 Brian S McConnell and Worldwide Lexicon Inc. All rights reserved. \
                   WWL multilingual CMS and translation memory is open source software published \
                   under a BSD style license. Contact: bsmcconnell on skype or gmail.'
 
-translation_server = 'http://worldwidelexicon.appspot.com'
-
 class WebServer(webapp.RequestHandler):
     def get(self, p1='', p2='', p3=''):
-        self.redirect('http://blog.worldwidelexicon.org')
+        if p1 == 'test':
+            menus = '<ul><li><a href=/api>API</a></li>\
+<li><a href=http://blog.worldwidelexicon.org>Blog</a></li>\
+<li><a href=http://code.google.com/p/worldwidelexicon>Code</a></li>\
+</ul>'
+            w = web()
+            w.get(template)
+            w.replace(template,'[google_analytics]',google_analytics_header)
+            w.replace(template,'[title]',p1)
+            w.replace(template,'[footer]',standard_footer)
+            w.replace(template,'[menu]',menus)
+            w.get(downloads)
+            t = clean(w.out(downloads))
+            sdb = db.Query(Directory)
+            sdb.filter('tl = ', 'root')
+            sdb.order('-lastupdated')
+            results = sdb.fetch(limit=10)
+            sites = list()
+            for r in results:
+                if r.domain not in sites:
+                    sites.append(r.domain)
+            t = t + '<h2>New Websites On The WWL Network</h2><ul>'
+            for s in sites:
+                t = t +'<li><a href=http://' + s + '>' + s + '</a></li>'
+            t = t + '<li><a href=/sites>(more)</a></li></ul>'
+            w.replace(template,'[left_column]',t)
+            r = Feeds.get('http://blog.worldwidelexicon.org/?feed=rss2')
+            w.replace(template,'[right_column]', r)
+            self.response.out.write(w.out(template))
+        else:
+            self.redirect('http://blog.worldwidelexicon.org')
     def post(self, p1='', p2='', p3=''):
         self.redirect('http://blog.worldwidelexicon.org')
 
-class TranslationStats(webapp.RequestHandler):
-    def get(self):
-        self.requesthandler()
-    def post(self):
-        self.requesthandler()
-    def requesthandler(self):
-        self.response.out.write('')
+class Feeds():
+    @staticmethod
+    def get(url, fulltext=True, limit=10, maxlength=200):
+        f = feedparser.parse(url)
+        t = ''
+        entries = f.entries
+        ctr = 0
+        if len(entries) > 0:
+            t = '<h1>News From WWL</h1>'
+            for e in entries:
+                if ctr < limit:
+                    t = t + '<h3><a href=' + e.link + '>' + clean(e.title) + '</a></h3>'
+                    if fulltext:
+                        txt = clean(e.description)
+                        t = t + txt[0:maxlength] + ' ...'
+        return t
 
-application = webapp.WSGIApplication([('/stream', TranslationStats),
-                                      (r'/(.*)/(.*)/(.*)', WebServer),
+application = webapp.WSGIApplication([(r'/(.*)/(.*)/(.*)', WebServer),
                                       (r'/(.*)/(.*)', WebServer),
                                       (r'/(.*)', WebServer),
                                       ('/', WebServer)],

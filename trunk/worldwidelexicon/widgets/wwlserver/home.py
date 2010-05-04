@@ -161,6 +161,7 @@ from www import web
 import feedparser
 import string
 from webappcookie import Cookies
+from database import Settings
 
 css_header='<link rel="stylesheet" href="/css/style.css">'
 
@@ -190,6 +191,17 @@ css_sidebar = '<div id="right"><div class="box">'
 css_sidebar_close = '</div></div>'
 
 css_footer = '<div id="clear"></div></div><div id="footer">(c) 2008-2010 Worldwide Lexicon Inc, (c) 1998-2010, Brian S McConnell</div></div>'
+
+# Google Analytics Header
+google_analytics_header = '<script type="text/javascript">var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");\
+document.write(unescape("%3Cscript src=\'\" + gaJsHost + \"google-analytics.com/ga.js\' type=\'text/javascript\'%3E%3C/script%3E"));\
+</script>\
+<script type="text/javascript">\
+try {\
+var pageTracker = _gat._getTracker("' + Settings.get('googleanalytics') + '");\
+pageTracker._trackPageview();\
+} catch(err) {}</script>'
+
 
 sidebar_about = '<h3>About WWL</h3>\
                 The Worldwide Lexicon is an open source collaborative translation platform. It is similar to \
@@ -326,6 +338,7 @@ class MainPage(webapp.RequestHandler):
 <li><a href=http://blog.worldwidelexicon.org>Blog</a></li>\
 <li><a href=http://code.google.com/p/worldwidelexicon>Code</a></li></ul>'
         w.replace(u, '[menu]', menus)
+        w.replace(u, '[google_analytics]', google_analytics_header)
         w.replace(u, '[title]', 'Worldwide Lexicon')
         w.get('http://www.worldwidelexicon.org/static/api_main.html')
         left = w.out('http://www.worldwidelexicon.org/static/api_main.html')

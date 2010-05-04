@@ -539,8 +539,11 @@ class wwwLogout(webapp.RequestHandler):
         else:
             success = False
             cookies = Cookies(self,max_age=3600)
+            t = '<table><form action=/users/logout method=post>'
+            t = t + '<tr><td>Session ID</td><td><input type=text name=session></td></tr>'
+            t = t + '<tr><td colspan=2><input type=submit value=Logout></td></tr></table></form>'
             if doc == 'y':
-                www.serve(self,self.__doc__, title = '/users/logout')
+                www.serve(self,t, sidebar = self.__doc__, title = '/users/logout')
             else:
                 try:
                     session = cookies['session']
@@ -555,9 +558,6 @@ class wwwLogout(webapp.RequestHandler):
                     else:
                         self.response.out.write('error')
                 else:
-                    t = '<table><form action=/users/logout method=post>'
-                    t = t + '<tr><td>Session ID</td><td><input type=text name=session></td></tr>'
-                    t = t + '<tr><td colspan=2><input type=submit value=Logout></td></tr></table></form>'
                     www.serve(self,t, sidebar=self.__doc__, title = '/users/logout')
 
 class wwwUpdate(webapp.RequestHandler):
