@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Worldwide Lexicon Project
-Language Utilities (language.py)
+Host Directory (hosts.py)
 by Brian S McConnell <brian@worldwidelexicon.org>
 
 OVERVIEW
