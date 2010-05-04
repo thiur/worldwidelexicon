@@ -98,6 +98,9 @@ class www():
     Embedded documentation server. Serves pydoc compatible
     docstrings. Used for self-documentation for web API server.
     """
+    menus = '<ul><li><a href=http://www.worldwidelexicon.org/api>API</a></li>\
+<li><a href=http://blog.worldwidelexicon.org>Blog</a></li>\
+<li><a href=http://code.google.com/p/worldwidelexicon>Code</a></li></ul>'
     @staticmethod
     def serve(rh,text, title='', sidebar='', mode='text/html', css='/css/main.css', cssbody='overall', cssheader="header"):
         rh.response.headers['Content-Type']=mode
@@ -110,6 +113,7 @@ class www():
         w.replace(u, '[footer]', 'Copyright 1998-2010 Brian S McConnell, Copyright 2008-2010 Worldwide Lexicon Inc.')
         w.replace(u,'[left_column]',  text)
         w.replace(u,'[right_column]', sidebar)
+        w.replace(u,'[menu]', www.menus)
         rh.response.out.write(w.out(u))
     @staticmethod
     def servedoc(rh, module, title = 'WWL Documentation Server', mode='text/html', css='/css/main.css', cssbody='overall', cssheader='header'):
@@ -117,6 +121,7 @@ class www():
         w = web()
         w.get(u)
         w.replace(u, '[title]', title)
+        w.replace(u, '[menu]', www.menus)
         try:
             m = __import__(module)
             t = HTMLDoc()

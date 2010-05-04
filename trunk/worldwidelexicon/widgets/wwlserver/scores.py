@@ -146,23 +146,18 @@ class UserScores(webapp.RequestHandler):
 
 class GetScores(webapp.RequestHandler):
     """
-    /scores/get
+    <h3>/scores/get</h3>
     
     This request handler returns a raw score history for a source text,
-    translation or username. It expects the following parameters:
+    translation or username. It expects the following parameters:<p>
     
-    guid : the md5 hash or guid for the translation being scored
-    url : the URL of the source document you want scores for
-    username : the WWL or external username you want a score history for
-    remote_addr : the IP address of the translator (for anonymous translations)
-    output : output format (xml, json, with xml by default)
+    <ul><li>guid : the md5 hash or guid for the translation being scored</li>
+    <li>url : the URL of the source document you want scores for<li>
+    <li>username : the WWL or external username you want a score history for</li>
+    <li>remote_addr : the IP address of the translator (for anonymous translations)</li>
+    <li>output : output format (xml, json, with xml by default)</li></ul>
     
-    It returns output in one of the following formats:
-    
-    xml (default)
-    json
-    text (csv)
-    
+    It returns output in xml, json or text format.
     """
     def get(self):
         """Processes HTTP GET calls"""
@@ -196,32 +191,31 @@ class GetScores(webapp.RequestHandler):
             text = d.pickleTable(results, output)
             self.response.out.write(text)
         else:
-            www.serve(self,self.__doc__, title = '/scores/get')
-            self.response.out.write('<h3>Test Form</h3>')
-            self.response.out.write('<table><form action=/scores/get method=get>')
-            self.response.out.write('<tr><td>GUID For Specific Translation</td><td><input type=text name=guid></td></tr>')
-            self.response.out.write('<tr><td>WWL Username To Request Scores For</td><td><input type=text name=username></td></tr>')
-            self.response.out.write('<tr><td>User IP Address</td><td><input type=text name=remote_addr></td></tr>')
-            self.response.out.write('<tr><td>URL Of Source Document</td><td><input type=text name=url></td></tr>')
-            self.response.out.write('<tr><td>Output Format</td><td><input type=text name=output value=xml></td></tr>')
-            self.response.out.write('<tr><td colspan=2><input type=submit value=SEARCH></td></tr>')
-            self.response.out.write('</table></form>')
+            t = '<table><form action=/scores/get method=get>'
+            t = t + '<tr><td>GUID For Specific Translation</td><td><input type=text name=guid></td></tr>'
+            t = t + '<tr><td>WWL Username To Request Scores For</td><td><input type=text name=username></td></tr>'
+            t = t + '<tr><td>User IP Address</td><td><input type=text name=remote_addr></td></tr>'
+            t = t + '<tr><td>URL Of Source Document</td><td><input type=text name=url></td></tr>'
+            t = t + '<tr><td>Output Format</td><td><input type=text name=output value=xml></td></tr>'
+            t = t + '<tr><td colspan=2><input type=submit value=SEARCH></td></tr>'
+            t = t + '</table></form>'
+            www.serve(self,t, sidebar=self.__doc__, title = '/scores/get')
 
 class Vote(webapp.RequestHandler):
     """
-    /scores/vote
+    <h3>/scores/vote</h3>
 
     This request handler implements the up/down/block voting system to complement the 5 star
     subjective scoring system. This request handler checks to see if the submitting IP address
     is rate limited, and if not, schedules a worker task to log the vote and recalculate
-    associated user scores, etc. It expects the following parameters:
+    associated user scores, etc. It expects the following parameters:<p>
 
-    guid = the GUID of the translation being scored
-    votetype = up, down or block
-    score = integer score from 0..5 (0=bad/spam, 5 = excellent/native)
-    session (cookie) = session cookie, sent automatically if user is logged in to WWL server
-    username = optional WWL username (can be used to authenticate user on submitting score)
-    pw = WWL password
+    <ul><li>guid = the GUID of the translation being scored</li>
+    <li>votetype = up, down or block</li>
+    <li>score = integer score from 0..5 (0=bad/spam, 5 = excellent/native)</li>
+    <li>session (cookie) = session cookie, sent automatically if user is logged in to WWL server</li>
+    <li>username = optional WWL username (can be used to authenticate user on submitting score)</li>
+    <li>pw = WWL password</li></ul>
 
     It returns a simple 'ok' or 'error' message
     """
@@ -281,19 +275,19 @@ class Vote(webapp.RequestHandler):
                 taskqueue.add(url='/scores/worker', params=p)
                 self.response.out.write('ok')
             else:
-                www.serve(self,self.__doc__)
-                self.response.out.write('<table><form action=/scores/vote method=get>')
-                self.response.out.write('<tr><td>GUID of translation</td><td><input type=text name=guid></td></tr>')
-                self.response.out.write('<tr><td>WWL Username (optional)</td><td><input type=text name=username></td></tr>')
-                self.response.out.write('<tr><td>WWL Password (optional)</td><td><input type=text name=pw></td></tr>')
-                self.response.out.write('<tr><td>Action (votetype)</td><td><select name=votetype>')
-                self.response.out.write('<option value=up>Vote Up (+1)</option>')
-                self.response.out.write('<option value=down>Vote Down (-1)</option>')
-                self.response.out.write('<option value=block>Block/Ban Translator</option>')
-                self.response.out.write('</select></td></tr>')
-                self.response.out.write('<tr><td>Integer Score (0..5)</td><td><input type=text name=score maxlength=1></td></tr>')
-                self.response.out.write('<tr><td colspan=2><input type=submit value=OK></td></tr>')
-                self.response.out.write('</table></form>')
+                t = '<table><form action=/scores/vote method=get>'
+                t = t + '<tr><td>GUID of translation</td><td><input type=text name=guid></td></tr>'
+                t = t + '<tr><td>WWL Username (optional)</td><td><input type=text name=username></td></tr>'
+                t = t + '<tr><td>WWL Password (optional)</td><td><input type=text name=pw></td></tr>'
+                t = t + '<tr><td>Action (votetype)</td><td><select name=votetype>'
+                t = t + '<option value=up>Vote Up (+1)</option>'
+                t = t + '<option value=down>Vote Down (-1)</option>'
+                t = t + '<option value=block>Block/Ban Translator</option>'
+                t = t + '</select></td></tr>'
+                t = t + '<tr><td>Integer Score (0..5)</td><td><input type=text name=score maxlength=1></td></tr>'
+                t = t + '<tr><td colspan=2><input type=submit value=OK></td></tr>'
+                t = t + '</table></form>'
+                www.serve(self,t,sidebar=self.__doc__,title = '/scores/vote (Score a Translation)')
         else:
             self.response.out.write('error')
 

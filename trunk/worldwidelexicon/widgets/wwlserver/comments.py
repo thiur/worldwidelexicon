@@ -93,19 +93,18 @@ def clean(text):
 class GetComments(webapp.RequestHandler):
     """
     
-    GetComments()
-    /comments/get
+    <h3>/comments/get</h3>
     
     This request handler responds with a recordset of comments about a translation.
-    It expects one of the following parameters:
+    It expects one of the following parameters:<p>
     
-    md5hash : MD5 hash key for the original source text being commented on
-    guid : the MD5 hash key or guid for the specific translation being commented on
-    tl : to request comments about translations to a specific language, tl = {ISO language code}
-    cl : limit comments to comments written in this language, cl = {ISO language code}
-    city : list comments posted from a certain city
-    country : list comments posted from a certain country
-    output : output format (xml, json or rss, with xml by default)
+    <ul><li>md5hash : MD5 hash key for the original source text being commented on</li>
+    <li>guid : the MD5 hash key or guid for the specific translation being commented on</li>
+    <li>tl : to request comments about translations to a specific language, tl = {ISO language code}</li>
+    <li>cl : limit comments to comments written in this language, cl = {ISO language code}</li>
+    <li>city : list comments posted from a certain city</li>
+    <li>country : list comments posted from a certain country</li>
+    <li>output : output format (xml, json or rss, with xml by default)</li></ul>
     
     """
     def get(self):
@@ -140,25 +139,22 @@ class GetComments(webapp.RequestHandler):
                 self.response.headers['Content-Type']='text/html'
             self.response.out.write(text)
         else:
-            www.serve(self, self.__doc__, title = '/comments/get')
-            self.response.out.write('<h3>Test Form</h3>')
-            self.response.out.write('<table><form action=/comments/get method=get accept-charset=utf-8>')
-            self.response.out.write('<tr><td>MD5Hash of Source Text</td><td><input type=text name=md5hash></td></tr>')
-            self.response.out.write('<tr><td>GUID of Translation to Request Comments For</td><td><input type=text name=guid></td></tr>')
-            self.response.out.write('<tr><td>Comments By Username</td><td><input type=text name=username></td></tr>')
-            self.response.out.write('<tr><td>Translation Language</td><td><input type=text name=tl></td></tr>')
-            self.response.out.write('<tr><td>Language Comments Are In</td><td><input type=text name=cl></td></tr>')
-            self.response.out.write('<tr><td>City</td><td><input type=text name=city></td></tr>')
-            self.response.out.write('<tr><td>Country</td><td><input type=text name=country></td></tr>')
-            self.response.out.write('<tr><td>Output Format</td><td><input type=text name=output value=xml></td></tr>')
-            self.response.out.write('<tr><td colspan=2><input type=submit value=SEARCH></td></tr>')
-            self.response.out.write('</table></form>')
+            t = '<table><form action=/comments/get method=get accept-charset=utf-8>'
+            t = t + '<tr><td>MD5Hash of Source Text</td><td><input type=text name=md5hash></td></tr>'
+            t = t + '<tr><td>GUID of Translation to Request Comments For</td><td><input type=text name=guid></td></tr>'
+            t = t + '<tr><td>Comments By Username</td><td><input type=text name=username></td></tr>'
+            t = t + '<tr><td>Translation Language</td><td><input type=text name=tl></td></tr>'
+            t = t + '<tr><td>Language Comments Are In</td><td><input type=text name=cl></td></tr>'
+            t = t + '<tr><td>City</td><td><input type=text name=city></td></tr>'
+            t = t + '<tr><td>Country</td><td><input type=text name=country></td></tr>'
+            t = t + '<tr><td>Output Format</td><td><input type=text name=output value=xml></td></tr>'
+            t = t + '<tr><td colspan=2><input type=submit value=SEARCH></td></tr>'
+            t = t + '</table></form>'
+            www.serve(self, t, sidebar = self.__doc__, title = '/comments/get')
 
 class SubmitComment(webapp.RequestHandler):
     """
-    
-    SubmitComment()
-    /comments/submit
+    <h3>/comments/submit</h3>
     
     This API handler processes comments about translations in the WWL
     translation memory. It allows users to submit comments
@@ -169,17 +165,17 @@ class SubmitComment(webapp.RequestHandler):
     about the translations, and not the source material. This is
     a place where users can become confused, and of course,
     WWL does not know anything about the content of the comments
-    being submitted.
+    being submitted.<p>
     
-    The API handler expects the following parameters
+    The API handler expects the following parameters<p>
      
-    md5hash : the md5hash generated from the source text, required
-    guid : the globally unique identifier for a specific edit to the translation, optional
-    domain : the parent website's domain or API key, optional
-    tl : the translation language (ISO language code), required
-    cl : the language the comment is written in (ISO language code), optional (defaults to same as tl if omitted)
-    comment : the text of the comment itself (Unicode, UTF 8 encoding)
-    session : session key (cookie)
+    <ul><li>md5hash : the md5hash generated from the source text, required</li>
+    <li>guid : the globally unique identifier for a specific edit to the translation, optional</li>
+    <li>domain : the parent website's domain or API key, optional</li>
+    <li>tl : the translation language (ISO language code), required</li>
+    <li>cl : the language the comment is written in (ISO language code), optional (defaults to same as tl if omitted)</li>
+    <li>comment : the text of the comment itself (Unicode, UTF 8 encoding)</li>
+    <li>session : session key (cookie)</li></ul>
     """
     def requesthandler(self):
         remote_addr = self.request.remote_addr
@@ -270,56 +266,22 @@ class SubmitComment(webapp.RequestHandler):
                 else:
                     self.response.out.write('error : invalid user')
         else:
-            www.serve(self,self.__doc__, title = '/comments/submit')
-            self.response.out.write('<h3>Test Form</h3>')
-            self.response.out.write('<table><form action=/comments/submit method=post accept-charset=utf-8>')
-            self.response.out.write('<tr><td>MD5 Hash of Original Text</td><td><input type=text name=md5hash></td></tr>')
-            self.response.out.write('<tr><td>GUID of Translation</td><td><input type=text name=guid></td></tr>')
-            self.response.out.write('<tr><td>URL of source document (for general comments)</td><td><input type=text name=url></td></tr>')
-            self.response.out.write('<tr><td>Translation Language</td><td><input type=text name=tl></td></tr>')
-            self.response.out.write('<tr><td>Comment Language</td><td><input type=text name=cl></td></tr>')
-            self.response.out.write('<tr><td>Comment</td<td><textarea name=comment cols=40 rows=4></textarea></td></tr>')
-            self.response.out.write('<tr><td colspan=2><input type=submit value=SUBMIT></td></tr></table></form>')
+            t = '<table><form action=/comments/submit method=post accept-charset=utf-8>'
+            t = t + '<tr><td>MD5 Hash of Original Text</td><td><input type=text name=md5hash></td></tr>'
+            t = t + '<tr><td>GUID of Translation</td><td><input type=text name=guid></td></tr>'
+            t = t + '<tr><td>URL of source document (for general comments)</td><td><input type=text name=url></td></tr>'
+            t = t + '<tr><td>Translation Language</td><td><input type=text name=tl></td></tr>'
+            t = t + '<tr><td>Comment Language</td><td><input type=text name=cl></td></tr>'
+            t = t + '<tr><td>Comment</td<td><textarea name=comment cols=40 rows=4></textarea></td></tr>'
+            t = t + '<tr><td colspan=2><input type=submit value=SUBMIT></td></tr></table></form>'
+            www.serve(self,t,sidebar=self.__doc__, title = '/comments/submit')
     def get(self):
         self.requesthandler()
     def post(self):
         self.requesthandler()
-
-class StatsComments(webapp.RequestHandler):
-    """
-    
-    /stats/comments
-    
-    This web service returns statistics about comments about a translation or source text. It calculates the number of
-    languages the text has been translated to, number of edits, and other statistics.
-    Expects one the following parameters:
-    
-    st = source text
-    md5hash = md5hash of original source text
-    guid = guid of a specific translation to request comments about
-    username = username of person who submitted comments
-    remote_addr = remote_addr (IP) of person who submitted comments
-    
-    It returns a simple text response with the number of comments that match these critera. Use /comments/get to
-    retrieve the full comment recordset. 
-    """
-    def get(self):
-        self.requesthandler()
-    def post(self):
-        self.requesthandler()
-    def requesthandler(self):
-        st = self.request.get('st')
-        md5hash = self.request.get('md5hash')
-        guid = self.request.get('guid')
-        username = self.request.get('username')
-        remote_addr = self.request.get('remote_addr')
-        ctr = Comment.stats(st=st, md5hash=md5hash, guid=guid, username=username, remote_addr=remote_addr)
-        self.response.headers['Content-Type']='text/plain'
-        self.response.out.write(str(ctr))
             
 application = webapp.WSGIApplication([('/comments/get', GetComments),
-                                      ('/comments/submit', SubmitComment),
-                                      ('/stats/comments',StatsComments)],
+                                      ('/comments/submit', SubmitComment)],
                                      debug=True)
 
 def main():
