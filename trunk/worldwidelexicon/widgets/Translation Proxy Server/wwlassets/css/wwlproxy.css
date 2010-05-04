@@ -1,0 +1,82 @@
+.wwl-hide {
+	display: none;
+}
+
+.wwl-show {
+	display: inline;
+}
+
+span.wwl-is-editable { 
+	cursor: text; 
+}
+
+span.wwl-is-editable:hover {
+	background-color: #FFFFD3;
+}
+
+.wwl-editing {
+	background: #FFFF9E;
+	cursor: pointer;
+	padding-right: 0.3em;
+	padding-left: 0.3em;
+	border-right: 0.3em solid green;
+	border-left: 0.3em solid red;
+}
+
+#wwl-lightbox {
+	display: none;
+	font: normal 12px/1.2 Verdana, Arial, sans-serif;
+}
+
+#wwl-overlay {
+	position: fixed;
+	top: 0;
+	left: 0;
+	display: block;
+	width: 100%;
+	height: 100%;
+	z-index: 1001;
+	background: black;
+	-moz-opacity: 0.8;
+	opacity:.80;
+	filter: alpha(opacity=80);	
+}
+
+#wwl-translator {
+	position: fixed;
+	background: #FFF;
+	border: 10px solid #FFF;
+	width: 46%;
+	height: 56%;
+	top: 25%;
+	left: 25%;
+	padding: 1% 2%;
+	-moz-border-radius: 10px;
+	-webkit-border-radius: 10px;
+	z-index: 1100;	
+}
+
+#wwl-translator-title {
+	font: bold 14px/1 Verdana, Arial, sans-serif;
+	text-align: left;
+	margin-bottom: 15px;
+}
+
+#wwl-translator #wwl-translator-source-text {
+	height: 30%;
+	background: #EEE;
+	padding: 10px;
+	text-align: left;
+	border: 1px solid #777;
+	overflow: auto;
+}
+
+#wwl-translator textarea {
+	font: normal 12px/1.2 Verdana, Arial, sans-serif;
+	width: 98%;
+	height: 30%;
+	margin: 15px 0;
+	padding: 10px 1%;
+	border: 1px #777 solid;
+	overflow: auto;
+}

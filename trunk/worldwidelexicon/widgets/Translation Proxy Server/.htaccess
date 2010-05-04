@@ -1,0 +1,15 @@
+RewriteEngine on
+RewriteCond $1 !^(index\.php|memcache\.php|wwlassets|logs|cron|phpinfo\.php|321test\.php|favicon\.ico|robots\.txt)
+RewriteRule ^(.*)$ /index.php [L]
+
+# We have our first spammers
+order allow,deny
+deny from 72.51.37.41
+deny from 66.249.65.51
+deny from 66.249.68.
+deny from 69.176.137.245
+deny from 119.235.237.
+deny from 41.230.82.53
+deny from 41.99.91.225
+
+allow from all
