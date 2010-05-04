@@ -83,26 +83,33 @@ user_service = 'wwl'
 class wwwAuth(webapp.RequestHandler):
     """
     
-    wwwAuth()
-    /users/auth
+    <h3>/users/auth</h3>
     
     This request handler implements the /users/auth
-    request handler. It expects the following parameters:
+    request handler. It expects the following parameters:<p>
     
-    session (cookie) : md5hash key for current session
-    username : WWL or external username
-    pw : WWL or external password
+    <ul><li>session (cookie) : md5hash key for current session</li>
+    <li>username : WWL or external username</li>
+    <li>pw : WWL or external password</li></ul>
     
     It responds in plain text (text/plain) with either
     a session key (valid login or session key) or
-    an empty string if credentials are invalid or expired
+    an empty string if credentials are invalid or expired<p>
     
-    If the module is configured to use Google's user
-    management system, it will redirect calls to
-    /users/auth to a Google login screen. Note that we
-    generally do not recommend using Google's user management
-    system if you will be running WWL as an embedded
-    service.
+    This request handler can also be run in proxy server mode, where
+    it calls an external URL to authenticate the user. In this case,
+    you should supply the following additional parameters.
+
+    <ul><li>proxyurl : URL for the external authentication service</li>
+    <li>username_field : field for username</li>
+    <li>pw_field : field for password or key</li>
+    <li>success_msg : string to look for in successful login response</li>
+    <li>error_msg : string to look for in failed login</li>
+    </ul><p>
+
+    <blockquote>When using /users/auth in proxy mode, WWL will not store
+    user credentials. If the user is authenticated, WWL will assign a random
+    session key that expires after about one hour.</blockquote>
     """
     def get(self):
         """ Processes HTTP GET calls."""
@@ -132,6 +139,11 @@ class wwwAuth(webapp.RequestHandler):
             pw = self.request.get('pw')
             callback = self.request.get('callback')
             remote_addr = self.request.remote_addr
+            proxyurl = self.request.get('proxyurl')
+            username_field = self.request.get('username_field')
+            pw_field = self.request.get('pw_field')
+            success_msg = self.request.get('success_msg')
+            error_msg = self.request.get('error_msg')
             location = geo.get(remote_addr)
             city = location.get('city','')
             state = location.get('state', '')
@@ -142,56 +154,68 @@ class wwwAuth(webapp.RequestHandler):
             except:
                 latitude = None
                 longitude = None
-            if len(username) > 4 or len(session) > 4:
-                session = Users.auth(username, pw, session, remote_addr, city=city, state=state, country=country, latitude=latitude, longitude=longitude)
-                if session is not None:
-                    cookies['session'] = session
-                    if user_service != 'simple':
-                        udb = db.Query(Users)
-                        udb.filter('username = ', 'username')
-                        item = udb.get()
-                        if item is not None:
-                            try:
-                                if len(item.allow_anonymous) > 0:
-                                    cookies['allow_anonymous']=allow_anonymous
-                                if len(item.allow_machine) > 0:
-                                    cookies['allow_machine']=allow_machine
-                                if len(item.allow_unscored) > 0:
-                                    cookies['allow_unscored']=allow_unscored
-                                if len(item.minimum_score) > 0:
-                                    cookies['minimum_score']=minimum_score
-                            except:
-                                pass
+            if len(username) > 2 or len(session) > 2:
+                if len(proxyurl) > 0 and len(username_field) > 0 and len(pw_field) > 0:
+                    form=dict()
+                    form[username_field]=username
+                    form[pw_field]=pw
+                    form['user_ip']=remote_addr
+                    form_data = urllib.urlencode(form)
+                    result = urlfetch.fetch(url=proxyurl,
+                              payload=form_data,
+                              method=urlfetch.POST,
+                              headers={'Content-Type' : 'application/x-www-form-urlencoded','Accept-Charset' : 'utf-8'})
+                    if result.status_code == 200:
+                        text = clean(result.content)
+                        if string.count(text,success_msg) > 0:
+                            m = md5.new()
+                            m.update(username)
+                            m.update(str(datetime.datetime.now()))
+                            session = str(m.hexdigest())
+                            sessioninfo = dict()
+                            sessioninfo['username'] = username
+                            sessioninfo['session'] = session
+                            memcache.set('sessions|' + session, sessioninfo, 1800) 
+                        else:
+                            session = None
+                    else:
+                        session=None
+                else:
+                    sessioninfo = Users.auth(username, pw, session, remote_addr, city=city, state=state, country=country, latitude=latitude, longitude=longitude)
+                if sessioninfo is not None:
+                    cookies['session'] = sessioninfo.get('session','')
                 self.response.headers['Content-Type']='text/plain'
                 if len(callback) > 0:
                     self.redirect(callback)
                 else:
-                    if type(session) is dict:
-                        self.response.out.write(session.get('session',''))
+                    if type(sessioninfo) is dict:
+                        self.response.out.write(sessioninfo.get('session',''))
                     else:
                         self.response.out.write('')
             else:
-                www.serve(self,self.__doc__, title = '/users/auth')
-                self.response.out.write('<h3>Test Form</h3>')
-                self.response.out.write('<form action=/users/auth method=post accept-charset=utf-8>')
-                self.response.out.write('<table><tr><td wwlapi="tr">Username</td><td><input type=text name=username></td></tr>')
-                self.response.out.write('<tr><td wwlapi="tr">Password</td><td><input type=password name=pw></td></tr>')
-                self.response.out.write('<tr><td colspan=2><input type=submit value=LOGIN></td></tr>')
-                self.response.out.write('</table></form>')
+                t = '<form action=/users/auth method=post accept-charset=utf-8>'
+                t = t + '<table><tr><td>Username</td><td><input type=text name=username></td></tr>'
+                t = t + '<tr><td>Password</td><td><input type=password name=pw></td></tr>'
+                t = t + '<tr><td>Proxy URL (External Auth Server)</td><td><input type=text name=proxyurl value=http://www.worldwidelexicon.org/users/proxy></td></tr>'
+                t = t + '<tr><td>Username Field</td><td><input type=text name=username_field value=username></td></tr>'
+                t = t + '<tr><td>Password Field</td><td><input type=text name=pw_field value=pw></td></tr>'
+                t = t + '<tr><td>Success Message / String</td><td><input type=text name=success_msg value=welcome></td></tr>'
+                t = t + '<tr><td>Error Message / String</td><td><input type=text name=error_msg value=invalid></td></tr>'
+                t = t + '<tr><td colspan=2><input type=submit value=LOGIN></td></tr>'
+                t = t + '</table></form>'
+                www.serve(self,t, sidebar = self.__doc__, title = '/users/auth')
 
 class wwwCheckUser(webapp.RequestHandler):
     """
+    <h3>/users/check</h3>
     
-    wwwCheckUser()
-    /users/check
+    This web service tells you if the username is available for registration.
     
-    This web service tells you if the username is available for registration
+    It expects the parameter username={username}<p>
     
-    It expects the parameter username={username}
-    
-    It responds with in plain text as follows:
-    y (username available)
-    n (username taken)
+    It responds with in plain text as follows:<p>
+    y (username available)<p>
+    n (username taken)<p>
     
     """
     def get(self):
@@ -208,22 +232,21 @@ class wwwCheckUser(webapp.RequestHandler):
             else:
                 self.response.out.write('n')
         else:
-            www.serve(self,self.__doc__, title = '/users/check')
-            self.response.out.write('<h3>Test Form</h3>')
-            self.response.out.write('<form action=/users/check method=get accept-charset=utf-8>')
-            self.response.out.write('Username: <input type=text name=username><input type=submit value=OK></form>')
-
+            t = '<table><form action=/users/check method=get accept-charset=utf-8>'
+            t = t + '<tr><td>Username</td><td><input type=text name=username></td></tr>'
+            t = t + '<tr><td colspan=2><input type=submit value="Check Username"></td></tr></table></form>'
+            www.serve(self,t, sidebar = self.__doc__, title = '/users/check')
+            
 class wwwCount(webapp.RequestHandler):
     """
-    /users/count
+    <h3>/users/count</h3>
     
     This web service returns the edit and word counts for translations
-    posted by a user. The request handler expects the following parameters:
+    posted by a user. The request handler expects the following parameters:<p>
     
-    username : WWL or external username
+    <ul><li>username : WWL or external username</li></ul><p>
 
-    if username is blank, the request handler will serve an HTML form for generating test queries.
-    
+    If username is blank, the request handler will serve an HTML form for generating test queries.
     and returns the number of edits and number of words submitted as
     a comma separated list in a plain text response (e.g. 2, 10)
     
@@ -237,16 +260,14 @@ class wwwCount(webapp.RequestHandler):
             count = Users.count(username)
             self.response.out.write(str(count['edits']) + ',' + str(count['words']))
         else:
-            www.serve(self,self.__doc__, title = '/users/count')
-            self.response.out.write('<h3>Test Form</h3>')
-            self.response.out.write('<form action=/users/count method=get accept-charset=utf-8>')
-            self.response.out.write('Username or IP address: <input type=text name=username><input type=submit value=OK></form>')
+            t = '<table><form action=/users/count method=get accept-charset=utf-8>'
+            t = t + '<tr><td>Username</td><td><input type=text name=username><input type=submit value=OK></td></tr>'
+            t = t + '<tr><td colspan=2><input type=submit value=OK></td></tr></table></form>'
+            www.serve(self,t, sidebar = self.__doc__, title = '/users/count')
 
 class wwwCurrentUser(webapp.RequestHandler):
     """
-    
-    wwwCurrentUser()
-    /users/currentuser
+    <h3>/users/currentuser</h3>
     
     This web service returns the username associated with the
     current session key (session cookie). It responds to
@@ -279,41 +300,36 @@ class wwwCurrentUser(webapp.RequestHandler):
 
 class wwwNewUser(webapp.RequestHandler):
     """
-    
-    wwwNewUser(webapp.RequestHandler):
-    
-    /users/new
+    <h3>/users/new</h3>
     
     This request handler creates a new user account and issues
     a session key. It assumes that the user creation script
     will generate and send a welcome email to the user.
     (You can implement an email delivery script in App Engine
-    if desired).
+    if desired). It expects the following parameters:<p>
     
-    It expects the following parameters:
+    <ul><li>username : selected username</li>
+    <li>email : email address</li>
+    <li>pw : selected password</li></ul>
     
-    username : selected username
-    email : email address
-    pw : selected password
+    And the following optional parameters:<p>
     
-    And the following optional parameters:
-    
-    firstname
-    lastname
-    description
-    skype
-    facebook
-    linkedin
-    www
-    tags
-    city
-    state
-    country
+    <ul><li>firstname</li>
+    <li>lastname</li>
+    <li>description</li>
+    <li>skype</li>
+    <li>facebook</li>
+    <li>linkedin</li>
+    <li>www</li>
+    <li>tags</li>
+    <li>city</li>
+    <li>state</li>
+    <li>country</li></ul>
     
     The script will create the new user, issue a validation key
     which will be returned in plain text. It will return an
     empty string if user creation failed because the username
-    was already selected or the password was shorted than 8 chars.
+    was already selected or the password was shorted than 8 chars.<p>
     
     """
     def get(self):
@@ -372,45 +388,40 @@ class wwwNewUser(webapp.RequestHandler):
             else:
                 self.response.out.write('error')
         else:
-            www.serve(self,self.__doc__, title = '/users/new')
-            self.response.out.write('<h3>Test Form</h3>')
-            self.response.out.write('<form action=/users/new method=post accept-charset=utf-8>')
-            self.response.out.write('<table>')
-            self.response.out.write('<tr><td>Username</td><td><input type=text name=username></td></tr>')
-            self.response.out.write('<tr><td>Email</td><td><input type=text name=email></td></tr>')
-            self.response.out.write('<tr><td>Password</td><td><input type=password name=pw></td></tr>')
-            self.response.out.write('<tr><td colspan=2><input type=submit value="Create Account"></td></tr>')
-            self.response.out.write('</form></table>')
+            t = '<form action=/users/new method=post accept-charset=utf-8><table>'
+            t = t + '<tr><td>Username</td><td><input type=text name=username></td></tr>'
+            t = t + '<tr><td>Email</td><td><input type=text name=email></td></tr>'
+            t = t + '<tr><td>Password</td><td><input type=password name=pw></td></tr>'
+            t = t + '<tr><td colspan=2><input type=submit value="Create Account"></td></tr>'
+            t = t + '</form></table>'
+            www.serve(self,t, sidebar=self.__doc__, title = '/users/new')
             
 class wwwSetLanguage(webapp.RequestHandler):
     """
-    
-    wwwSetLanguage(webapp.RequestHandler):
-    
-    /users/setlanguage
-    /users/setoptions
+    <h3>/users/setlanguage</h3>
+    (also /users/setoptions)
     
     This request handler is used to set user preferences such as language settings,
     and preferences for filtering translations in search results. This request handler
-    expects any combination of the following parameters
+    expects any combination of the following parameters<p>
     
-    language1 = (ISO language code} : user's first preferred language
-    language2 = {ISO language code} : user's second preferred language
-    language3 = {ISO language code} : user's third preferred language
-    allow_anonymous = y/n : allow/hide anonymous translations
-    allow_machine = y/n : allow/hide machine translations
-    allow_unscored = y/n : allow/hide unscored translations
-    minimum_score = 0..5 : require minimum quality score for translations
-    callback = URL to redirect to after saving settings
+    <ul><li>language1 = (ISO language code} : user's first preferred language</li>
+    <li>language2 = {ISO language code} : user's second preferred language</li>
+    <li>language3 = {ISO language code} : user's third preferred language</li>
+    <li>allow_anonymous = y/n : allow/hide anonymous translations</li>
+    <li>allow_machine = y/n : allow/hide machine translations</li>
+    <li>allow_unscored = y/n : allow/hide unscored translations</li>
+    <li>minimum_score = 0..5 : require minimum quality score for translations</li>
+    <li>callback = URL to redirect to after saving settings</li></ul>
     
     The request handler will memorize these settings by placing cookies on the user's
     browser (the cookies have the same names as the CGI parameters). It also checks to see
     if the session cookie is present, and if it is a valid session, will also memorize these
-    settings in the user's permanent user profile (User data store).
+    settings in the user's permanent user profile (User data store).<p>
     
     The request handler returns an empty HTML document, and sets browser cookies as needed.
     If the callback parameter is present, it will instead redirect to the URL given in the
-    callback parameter.
+    callback parameter.<p>
     
     """
     def get(self):
@@ -433,20 +444,18 @@ class wwwSetLanguage(webapp.RequestHandler):
         callback = self.request.get('callback')
         remote_addr = self.request.remote_addr
         if len(tl) < 1 and len(language1) < 1 and len(language2) < 1 and len(language3) < 1 and len(allow_unscored) < 1 and len(allow_anonymous) < 1 and len(allow_machine) < 1 and len(minimum_score) < 1 and len(callback) < 1:
-                www.serve(self,self.__doc__, title = '/users/setoptions')
-                self.response.out.write('<h3>Test Form</h3>')
-                self.response.out.write('<form action=/users/setoptions method=get accept-charset=utf-8>')
-                self.response.out.write('<table>')
-                self.response.out.write('<tr><td>Language #1 (ISO Code)</td><td><input type=text name=language1 maxlength=3></td></tr>')
-                self.response.out.write('<tr><td>Language #2 (ISO Code)</td><td><input type=text name=language2 maxlength=3></td></tr>')
-                self.response.out.write('<tr><td>Language #3 (ISO Code)</td><td><input type=text name=language3 maxlength=3></td></tr>')
-                self.response.out.write('<tr><td>Allow Anonymous Translations (y/n)</td><td><input type=text name=allow_anonymous maxlength=1></td></tr>')
-                self.response.out.write('<tr><td>Allow Machine Translations (y/n)</td><td><input type=text name=allow_machine maxlength=1></td></tr>')
-                self.response.out.write('<tr><td>Allow Unscored Translations (y/n)</td><td><input type=text name=allow_unscored maxlength=1></td></tr>')
-                self.response.out.write('<tr><td>Minimum Score</td><td><select name=minimum_score><option selected value=''></option')
-                self.response.out.write('<option value=1>1</option><option value=2>2</option><option value=3>3</option>')
-                self.response.out.write('<option value=4>4</option><option value=5>5</option></select></td></tr>')
-                self.response.out.write('<tr><td colspan=2><input type=submit value=OK></td></tr></table></form')
+                t = '<table><form action=/users/setoptions method=get accept-charset=utf-8>'
+                t = t + '<tr><td>Language #1 (ISO Code)</td><td><input type=text name=language1 maxlength=3></td></tr>'
+                t = t + '<tr><td>Language #2 (ISO Code)</td><td><input type=text name=language2 maxlength=3></td></tr>'
+                t = t + '<tr><td>Language #3 (ISO Code)</td><td><input type=text name=language3 maxlength=3></td></tr>'
+                t = t + '<tr><td>Allow Anonymous Translations (y/n)</td><td><input type=text name=allow_anonymous maxlength=1></td></tr>'
+                t = t + '<tr><td>Allow Machine Translations (y/n)</td><td><input type=text name=allow_machine maxlength=1></td></tr>'
+                t = t + '<tr><td>Allow Unscored Translations (y/n)</td><td><input type=text name=allow_unscored maxlength=1></td></tr>'
+                t = t + '<tr><td>Minimum Score</td><td><select name=minimum_score><option selected value=''></option'
+                t = t + '<option value=1>1</option><option value=2>2</option><option value=3>3</option>'
+                t = t + '<option value=4>4</option><option value=5>5</option></select></td></tr>'
+                t = t + '<tr><td colspan=2><input type=submit value=OK></td></tr></table></form'
+                www.serve(self,t, sidebar= self.__doc__, title = '/users/setoptions')        
         else:
             cookies = Cookies(self,max_age=36000)
             try:
@@ -503,15 +512,11 @@ class wwwSetLanguage(webapp.RequestHandler):
 
 class wwwLogout(webapp.RequestHandler):
     """
-    #
-    # wwwLogout
-    # /users/logout
-    #
-    # This request handler deletes the session cookie if
-    # present, and clears the internal session register to
-    # log the user out. Returns ok or error in plain text
-    # document.
-    #
+    <h3>/users/logout</h3>
+    
+    This request handler deletes the session cookie if present, and clears the internal session register to
+    log the user out. Returns ok or error in plain text document. You can also submit the form parameter
+    session = session_id to force it to clear a session manually.
     """
     def get(self):
         """ Processes HTTP GET calls"""
@@ -540,36 +545,41 @@ class wwwLogout(webapp.RequestHandler):
                 try:
                     session = cookies['session']
                 except:
-                    session = ''
+                    session = self.request.get('session')
                 if len(session) > 0:
                     success = Users.logout(session=session)
                     cookies['session']=''
-                self.response.headers['Content-Type']='text/plain'
-                if success:
-                    self.response.out.write('ok')
+                    self.response.headers['Content-Type']='text/plain'
+                    if success:
+                        self.response.out.write('ok')
+                    else:
+                        self.response.out.write('error')
                 else:
-                    self.response.out.write('error')
+                    t = '<table><form action=/users/logout method=post>'
+                    t = t + '<tr><td>Session ID</td><td><input type=text name=session></td></tr>'
+                    t = t + '<tr><td colspan=2><input type=submit value=Logout></td></tr></table></form>'
+                    www.serve(self,t, sidebar=self.__doc__, title = '/users/logout')
 
 class wwwUpdate(webapp.RequestHandler):
     """
-    /users/update
+    <h3>/users/update</h3>
 
     This web service allows you to update basic user profile information.
-    It expects the following required parameters:
+    It expects the following required parameters:<p>
     
-    username : username
-    pw : password
+    <ul><li>username : username</li>
+    <li>pw : password</li></ul>
     
-    And the following optional parameters
+    And the following optional parameters<p>
     
-    firstname : First Name
-    lastname : Last Name
-    description : profile text
-    skype : Skype handle
-    facebook : Facebook profile URL
-    linkedin : Linked in profile URL
-    proz : ProZ username
-    www : website or blog
+    <ul><li>firstname : First Name</li>
+    <li>lastname : Last Name</li>
+    <li>description : profile text</li>
+    <li>skype : Skype handle</li>
+    <li>facebook : Facebook profile URL</li>
+    <li>linkedin : Linked in profile URL</li>
+    <li>proz : ProZ username</li>
+    <li>www : website or blog</li></ul>
     
     It responds with a simple 'ok' or 'error' message if the login is not valid
     
@@ -636,13 +646,13 @@ class wwwUpdate(webapp.RequestHandler):
 class wwwValidate(webapp.RequestHandler):
     """
 
-    /users/validate
+    <h3>/users/validate</h3>
 
     This web service is a simple callback URL handler that prompts the user to click on a link in an email to validate a newly
     created account. If the link is valid, the user account is marked as validated, and is redirected to a page for successful
-    activations (you can set the redirect URLs for success and failure in the header of this file).
+    activations (you can set the redirect URLs for success and failure in the header of this file).<p>
 
-    This request handler expects the parameter k={validation key}, in the form:
+    This request handler expects the parameter k={validation key}, in the form:<p>
     
     /users/validate?k={key}
     
@@ -657,10 +667,10 @@ class wwwValidate(webapp.RequestHandler):
             else:
                 self.redirect('/search')
         else:
-            www.serve(self,self.__doc__, title = '/users/validate')
-            self.response.out.write('<h3>Test Form</h3>')
-            self.response.out.write('<form action=/users/validate method=get>')
-            self.response.out.write('<div wwlapi="tr">Validation key:</div> <input type=text name=k size=32><input type=submit value=OK></form>')
+            t = '<table><form action=/users/validate method=get>'
+            t = t + '<tr><td>Validation key</td><td><input type=text name=k size=32>'
+            t = t + '<tr><td colspan=2><input type=submit value=OK></td></tr></table></form>'
+            www.serve(self,t, sidebar=self.__doc__, title = '/users/validate')
 
 class wwwSetParm(webapp.RequestHandler):
     def get(self):
@@ -699,13 +709,27 @@ class wwwGetParm(webapp.RequestHandler):
             txt = str(value)
         self.response.out.write(txt)
 
+class wwwProxyUserTest(webapp.RequestHandler):
+    def get(self):
+        self.requesthandler()
+    def post(self):
+        self.requesthandler()
+    def requesthandler(self):
+        username = self.request.get('username')
+        pw = self.request.get('pw')
+        self.response.headers['Content-Type']='text/html'
+        if username == 'fubar' and pw == 'fubar':
+            self.response.out.write('Hello, welcome to WWL')
+        else:
+            self.response.out.write('Invalid username or password.')
+
 application = webapp.WSGIApplication([('/users/auth', wwwAuth),
                                       ('/users/check', wwwCheckUser),
-                                      ('/users/count', wwwCount),
                                       ('/users/currentuser', wwwCurrentUser),
                                       ('/users/login', wwwAuth),
                                       ('/users/logout',wwwLogout),
                                       ('/users/new', wwwNewUser),
+                                      ('/users/proxy', wwwProxyUserTest),
                                       ('/users/get', wwwGetParm),
                                       ('/users/set', wwwSetParm),
                                       ('/users/setlanguage',wwwSetLanguage),
