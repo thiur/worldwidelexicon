@@ -93,6 +93,15 @@ pageTracker._trackPageview();\
 template = 'http://www.worldwidelexicon.org/css/template.html'
 downloads = 'http://www.worldwidelexicon.org/s/downloads.html'
 
+sidebar_about = 'The Worldwide Lexicon is an open source collaborative translation platform. It is similar to \
+                systems like <a href=http://www.wikipedia.org>Wikipedia</a>, and combines machine translation \
+                with submissions from volunteers and professional translators. WWL is a translation memory, \
+                essentially a giant database of translations, which can be embedded in almost any website or \
+                web application. \
+                Our mission is to eliminate the language barrier for interesting websites and articles, by \
+                enabling people to create translation communities around their favorite webites, topics or \
+                groups.'
+
 # standard footer and source code attribution, do not modify or hide
 standard_footer = 'Content management system and collaborative translation memory powered \
                   by the <a href=http://www.worldwidelexicon.org>Worldwide Lexicon Project</a> \
@@ -128,7 +137,8 @@ class WebServer(webapp.RequestHandler):
                 t = t +'<li><a href=http://' + s + '>' + s + '</a></li>'
             t = t + '<li><a href=/sites>(more)</a></li></ul>'
             w.replace(template,'[left_column]',t)
-            r = Feeds.get('http://blog.worldwidelexicon.org/?feed=rss2')
+            r = '<h1>About WWL</h1>' + sidebar_about
+            r = r + Feeds.get('http://blog.worldwidelexicon.org/?feed=rss2')
             w.replace(template,'[right_column]', r)
             self.response.out.write(w.out(template))
         else:
