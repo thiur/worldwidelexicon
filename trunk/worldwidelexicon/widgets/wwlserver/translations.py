@@ -482,13 +482,17 @@ class SimpleTranslation(webapp.RequestHandler):
     text-only interface for retrieving translations from WWL. The web service is called via
     a RESTful interface as follows:<p>
     
-    <blockquote>/t/{source_language}/{target_language}/{escape encoded text}
-    
-    /t/{source_language}/{target_language}</blockquote><p>
+    /t/{source_language}/{target_language}/{escape encoded text}<p>
+    or<p>
+    /t/{source_language}/{target_language}<p>
+    or<p>
+    /t
     
     with the parameters<p>
     
-    <ul><li>st = source text (UTF-8 or ASCII only, no other encodings supported)</li>
+    <ul><li>sl = source language code (if not in URL)</li>
+    <li>tl = target language code (if not in URL)</li>
+    <li>st = source text (UTF-8 or ASCII only, no other encodings supported, if not in URL)</li>
     <li>allow_anonymous = y/n (allow anonymous translations, default = y)</li>
     <li>allow_machine = y/n (allow machine translations, default = y)</li>
     <li>min_score = minimum average quality score (0 to 5, default 0)</li>
