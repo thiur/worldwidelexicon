@@ -137,9 +137,14 @@ class WebServer(webapp.RequestHandler):
                     if string.count(r.domain,'localhost') > 0:
                         skip=True
                     domains = string.split(r.domain, '.')
-                    if len(domains) == 3:
-                        if len(domains[2]) > 2 and domains[2] != 'info':
-                            skip=True
+                    ld = len(domains)
+                    if ld > 1:
+                        if ld == 3:
+                            if len(domains[2]) > 3 and domains[2] != 'info':
+                                skip = True
+                        if ld == 2:
+                            if len(domains[1]) > 3 and domains[1] != 'info':
+                                skip=True
                     if not skip:
                         sites.append(r.domain)
             t = t + '<h2>New Websites On The WWL Network</h2><ul>'
