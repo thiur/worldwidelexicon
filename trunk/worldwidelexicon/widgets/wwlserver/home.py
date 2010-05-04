@@ -254,6 +254,7 @@ class MainPage(webapp.RequestHandler):
         w.replace(u, '[menu]', menus)
         w.replace(u, '[google_analytics]', google_analytics_header)
         w.replace(u, '[title]', 'Worldwide Lexicon')
+        w.replace(u, '[meta]', '')
         w.get('http://www.worldwidelexicon.org/static/api_main.html')
         left = w.out('http://www.worldwidelexicon.org/static/api_main.html')
         w.replace(u, '[left_column]', left)

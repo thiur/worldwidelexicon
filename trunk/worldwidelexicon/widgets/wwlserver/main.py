@@ -93,6 +93,8 @@ pageTracker._trackPageview();\
 template = 'http://www.worldwidelexicon.org/css/template.html'
 downloads = 'http://www.worldwidelexicon.org/s/downloads.html'
 
+proxy_settings = '<meta name="allow_edit" content="y" />'
+
 sidebar_about = 'The Worldwide Lexicon is an open source collaborative translation platform. It is similar to \
                 systems like <a href=http://www.wikipedia.org>Wikipedia</a>, and combines machine translation \
                 with submissions from volunteers and professional translators. WWL is a translation memory, \
@@ -121,7 +123,10 @@ class WebServer(webapp.RequestHandler):
             w = web()
             w.get(template)
             w.replace(template,'[google_analytics]',google_analytics_header)
+            if len(p1) < 4:
+                p1 = 'Worldwide Lexicon'
             w.replace(template,'[title]',p1)
+            w.replace(template,'[meta]', proxy_settings)
             w.replace(template,'[footer]',standard_footer)
             w.replace(template,'[menu]',menus)
             w.get(downloads)
