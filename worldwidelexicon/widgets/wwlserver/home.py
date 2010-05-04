@@ -162,15 +162,12 @@ import feedparser
 import string
 from webappcookie import Cookies
 from database import Settings
+from transcoder import transcoder
+
+def clean(text):
+  return transcoder.clean(text)
 
 css_header='<link rel="stylesheet" href="/css/style.css">'
-
-#css_header='<link rel="stylesheet" href="/blueprint_overrides.css" type="text/css" media="screen, projection">\
-#            <link rel="stylesheet" href="/blueprint/screen.css" type="text/css" media="screen, projection">\
-#            <link rel="stylesheet" href="/blueprint/print.css" type="text/css" media="print">\
-#            <link rel="stylesheet" href="/blueprint/plugins/fancy-type/screen.css" type="text/css" media="screen, projection">\
-#            <link rel="stylesheet" href="/blueprint/plugins/link-icons/screen.css" type="text/css" media="screen, projection">\
-#<!--[if IE]><link rel="stylesheet" href="/blueprint-css/blueprint/ie.css" type="text/css" media="screen, projection"><![endif]-->'
 
 css_main= '<div id="wrap">'
 css_main_close = '</div>'
@@ -218,107 +215,24 @@ sidebar_about = '<h3>About WWL</h3>\
                 countries around the world.<br><br>'
 
 sidebar_credits = '<h3>Credits</h3>\
-                <ul><li>System Concept : <a href=http://www.google.com/profiles/bsmcconnell>Brian S McConnell</a> (1998-2009)</li>\
+                <ul><li>System Concept : <a href=http://www.google.com/profiles/bsmcconnell>Brian S McConnell</a> (1998-2010)</li>\
                 <li>Translation Memory Server Software</li>\
                 <ul><li><a href=http://www.google.com/profiles/bsmcconnell>Brian S McConnell</a> (Python/<a href=http://appengine.google.com>App Engine</a> Version)</li>\
-                <li><a href=http://www.metalink.com>Alexey Gavrilov (PHP/Cake Version 2007-2008)</a></li>\
+                <li><a href=http://www.metalinkltd.com>Alexey Gavrilov (PHP/Cake Version 2007-2008)</a></li>\
+                </ul>\
+                <li>Translation Addons</li>\
+                <ul><li>Drupal and Word Press Translators : <a href=http://www.metalinkltd.com>Alexey Gavrilov</a></li>\
+                <li>Translation Proxy Server : <a href=http://www.fleethecube.com>Cesar Gonzalez</a></li>\
                 </ul>\
                 <li>User Interface Designs & CSS : <a href=http://www.unthinkingly.com>Chris Blow</a></li>\
-                <li>Inline Javascript/AJAX Translation Viewer/Editor : Alex Tolley</li>\
+                <li>Inline Javascript/AJAX Translation Viewer/Editors</li>\
+                <ul><li><a href=http://www.linkedin.com/pub/alex-tolley/2/93b/19>Alexander Tolley</a></li>\
+                <li><a href=http://www.metalinkltd.com>Alexey Gavrilov</a></li>\
+                <li><a href=http://www.fleethecube.com>Cesar Gonzalez</a></li></ul>\
                 <li>System and Source Code Documentation : <a href=http://www.google.com/profiles/bsmcconnell>Brian S McConnell</a></li>\
-                <ul>'
-
-class languages():
-    """
-    This class implements several convenience methods for managing the list of supported languages on
-    your translation memory server. The system recognizes a relatively large list of languages by default
-    which are pre-defined in the method getlist(). 
-    """
-    @staticmethod
-    def getlist(languages=list()):
-        """
-        Returns a list of languages, indexed by ISO language code in a dict() object.
-        The optional languages argument is pass with a list of ISO codes to limit the
-        list to a smaller pre-defined list of languages (if you only want to allow
-        translations to a smaller group of languages on your site.
-        """
-        langs = memcache.get('languages|local')
-        if len(languages) < 1 and langs is not None:
-            return langs
-        else:
-            l=dict()
-            l['en']=u'English'
-            l['es']=u'Español'
-            l['af']=u'Afrikaans'
-            l['ar']=u'العربية'
-            l['bg']=u'български език'
-            l['bo']=u'བོད་ཡིག'
-            l['de']=u'Deutsch'
-            l['fr']=u'Français'
-            l['he']=u'עברית '
-            l['id']=u'Indonesian'
-            l['it']=u'Italiano'
-            l['ja']=u'日本語'
-            l['ko']=u'한국어'
-            l['ru']=u'русский'
-            l['th']=u'ไทย '
-            l['tl']=u'Tagalog'
-            l['zh']=u'中文 '
-            l['ca']=u'Català'
-            l['cs']=u'česky'
-            l['cy']=u'Cymraeg'
-            l['el']=u'Ελληνικά'
-            l['et']=u'Eesti keel'
-            l['eu']=u'Euskara'
-            l['fa']=u'فارسی '
-            l['fi']=u'suomen kieli'
-            l['ga']=u'Gaeilge'
-            l['gl']=u'Galego'
-            l['gu']=u'ગુજરાતી'
-            l['hi']=u'हिन्दी '
-            l['hr']=u'Hrvatski'
-            l['ht']=u'Kreyòl ayisyen'
-            l['hu']=u'Magyar'
-            l['is']=u'Íslenska'
-            l['iu']=u'ᐃᓄᒃᑎᑐᑦ'
-            l['jv']=u'basa Jawa'
-            l['ku']=u'كوردی'
-            l['la']=u'lingua latina'
-            l['lt']=u'lietuvių'
-            l['lv']=u'latviešu'
-            l['mn']=u'Монгол '
-            l['ms']=u'بهاس ملايو‎'
-            l['my']=u'Burmese'
-            l['ne']=u'नेपाली '
-            l['nl']=u'Nederlands'
-            l['no']=u'Norsk'
-            l['oc']=u'Occitan'
-            l['pa']=u'ਪੰਜਾਬੀ '
-            l['po']=u'polski'
-            l['ps']=u'پښتو'
-            l['pt']=u'Português'
-            l['ro']=u'română'
-            l['sk']=u'slovenčina'
-            l['sr']=u'српски језик'
-            l['sv']=u'svenska'
-            l['sw']=u'Kiswahili'
-            l['tr']=u'Türkçe'
-            l['uk']=u'Українська'
-            l['vi']=u'Tiếng Việt'
-            l['yi']=u'ייִדיש'
-            if type(languages) is list:
-                if len(languages) < 1:
-                    memcache.set('languages|local', l, 72000)
-                    return l
-                langs = dict()
-                for k in languages:
-                    lang = l.get(k)
-                    if len(lang) > 0:
-                        langs[k]=l[k]
-                return langs
-            else:
-                return l
-
+                <li>Deprecated Systems</li>\
+                <ul><li>Multilingual Instant Messaging System : Jonathan Augenstine and <a href=http://www.superliminal.com>Melinda Green</a></li></ul>\
+                </ul>'
 
 class MainPage(webapp.RequestHandler):
   """
@@ -343,7 +257,7 @@ class MainPage(webapp.RequestHandler):
         w.get('http://www.worldwidelexicon.org/static/api_main.html')
         left = w.out('http://www.worldwidelexicon.org/static/api_main.html')
         w.replace(u, '[left_column]', left)
-        w.replace(u, '[right_column]', sidebar_about + sidebar_credits)
+        w.replace(u, '[right_column]', sidebar_about + sidebar_credits + Feeds.get())
         w.replace(u, '[footer]', 'Copyright 1998-2010, Brian S McConnell. Copyright 2008-2010, Worldwide Lexicon Inc')
         self.response.out.write(w.out(u))
     else:
@@ -356,6 +270,27 @@ class DocServer(webapp.RequestHandler):
   def get(self):
     module = self.request.get('module')
     www.servedoc(self,module)
+
+class Feeds():
+    @staticmethod
+    def get(url = 'http://code.google.com/feeds/p/worldwidelexicon/svnchanges/basic', fulltext=False, limit=10, maxlength=200):
+        f = feedparser.parse(url)
+        t = memcache.get('/feeds/' + url)
+        if t is not None:
+            return t
+        entries = f.entries
+        ctr = 0
+        if len(entries) > 0:
+            t = '<h3>Source Code Revisions</h3>'
+            for e in entries:
+                if ctr < limit and string.count(e.title, 'No log message') < 1:
+                    ctr = ctr + 1
+                    t = t + '<h3><a href=' + e.link + '>' + clean(e.title) + '</a></h3>'
+                    if fulltext:
+                        txt = clean(e.description)
+                        t = t + txt[0:maxlength] + ' ...'
+        memcache.set('/feeds/' + url, t, 300)
+        return t
 
 application = webapp.WSGIApplication([('/api', MainPage),
                                       ('/help', MainPage),
