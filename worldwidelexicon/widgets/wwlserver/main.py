@@ -156,6 +156,7 @@ class Feeds():
         if len(entries) > 0:
             t = '<h1>News From WWL</h1>'
             for e in entries:
+                ctr = ctr + 1
                 if ctr < limit:
                     t = t + '<h3><a href=' + e.link + '>' + clean(e.title) + '</a></h3>'
                     if fulltext:
