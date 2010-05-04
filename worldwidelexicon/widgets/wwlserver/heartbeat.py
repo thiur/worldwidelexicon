@@ -108,7 +108,7 @@ class HeartBeat(webapp.RequestHandler):
             else:
                 self.response.out.write('error')
         
-application = webapp.WSGIApplication([('heartbeat', HeartBeat)],
+application = webapp.WSGIApplication([('selftest', HeartBeat)],
                                      debug=True)
 
 def main():
