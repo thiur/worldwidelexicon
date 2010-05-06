@@ -12,10 +12,6 @@
 	 *
 	 */
 	
-	// Let's display all errors for now.
-	ini_set('display_errors', 1); 
-	error_reporting(E_ALL);
-
 	// Start by loading all the stuff we need.
 	require('includes/config.php');
 	require('includes/functions.php');
@@ -58,8 +54,16 @@
 	// Next, we extract the source language, target language, and the target URL to be translated.
 	// There are two special cases where the URL is routed through worldwidelexicion.org, handle those first.
 
-	// (1) For testing purposes, anyone can access x.y.worldwidelexicon.org/path where x->lang & y->domain	
-	if ( preg_match('%worldwidelexicon\.org%', $full_url_string) && !preg_match('%http://proxy\.worldwidelexicon\.org%', $full_url_string))
+	// (0) The base case:  Are we translating the actual WWL website?  This one we know.
+	if ( preg_match('%http://..\.worldwidelexicon.org%', $full_url_string) )
+	{
+		$sourceLanguage = "en";
+		$targetLanguage = $lang_helper->detectTargetLanguage();
+		$targetUrl 		= new URL( preg_replace('%http://..\.%', 'http://www.', $full_url_string) );
+		
+	}
+	// (1) For testing purposes, anyone can access x.y.worldwidelexicon.org/path where x->lang & y->domain
+	elseif ( preg_match('%worldwidelexicon\.org%', $full_url_string) && !preg_match('%http://proxy\.worldwidelexicon\.org%', $full_url_string))
 	{
 		// Remove http:// and separate the URL at the .'s.  Then figure out source / target language & URL.
 		$segments = explode( '.', preg_replace('%http://%', '', $full_url_string) );
