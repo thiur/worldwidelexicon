@@ -36,6 +36,14 @@ class Wwlproxy extends Wwl {
 
 		// Let's use PHPs very decent built in DOMDocument class to parse the HTML.  Suppress errors.
 		@$this->doc->loadHTML($this->source_html);
+		
+		//echo $this->targetUrl->toString();
+		
+		// If the document is somehow null (it's happened), then display the original HTML
+		if ( $this->doc->documentElement == NULL ) {
+			echo $this->source_html;
+			exit;
+		}
 
 		// DEBUG: Let's walk the treeee...
 		// $this->walkDom($this->doc);
@@ -43,6 +51,13 @@ class Wwlproxy extends Wwl {
 		// Let's get the setting for that proxy object from (1) the WWL & (2) the page meta tags
 		$this->getProxySettings();
 
+		// If we're not supposed to translate this page, just display it (or redirect?)
+		if ( $this->page_settings->getTranslate() == 'n')
+		{
+			echo $this->source_html;
+			exit; 
+		}
+		
 		// And let's add the language selector if one is required through a shortcode
 		$this->addLanguageSelector();
 		
@@ -70,22 +85,11 @@ class Wwlproxy extends Wwl {
 	// Carry out the translation process, as requested.
 	function translate()
 	{
-		
 		// Turn off inline editing for now.
-		$this->page_settings->setAllowEdit('n');
+		// $this->page_settings->setAllowEdit('n');
 		
-		// If we're not supposed to translate this page, just display it (or redirect?)
-		if ( $this->page_settings->getTranslate() == 'n')
-		{
-			echo $this->source_html;
-			exit; 
-		}
-		
-		// If the document is somehow null (it's happened), then display the original HTML
-		if ( empty($this->doc->documentElement) ) {
-			echo $this->source_html;
-			exit;
-		}
+		// Correctly set the language and the language direction for the page
+		$this->_fixLanguageDefinition();
 		
 		// Next, let's fix the URLs of the embedded assets.
 		$this->_fixTagProperty('link', 'href' );
@@ -302,7 +306,7 @@ class Wwlproxy extends Wwl {
 					// If edits are allowed, then add two spans with the source and target snippes (source hidden) to enable JS translator.
 										
 					$span_src = $this->doc->createElement( 'span', htmlentities($st) );
-					$span_tgt = $this->doc->createElement( 'span', html_entity_decode( $tt, ENT_QUOTES ) );					
+					$span_tgt = $this->doc->createElement( 'span', html_entity_decode( $tt, ENT_QUOTES ) );
 
 					try {
 						$node->parentNode->insertBefore( $span_src, $node );
@@ -423,6 +427,7 @@ class Wwlproxy extends Wwl {
 	// Add the JS script that enables us to submit user-generated translations to the WWL.
 	function _makeEditable()
 	{
+		$assets_url_base = "http://" . $this->targetLanguage . "." . $this->targetUrl->getHostBase() . "/";
 		$head = $this->doc->getElementsByTagname('head')->item(0);
 
 		// Create and append: JS
@@ -438,7 +443,7 @@ class Wwlproxy extends Wwl {
 		$src = $this->doc->createAttribute('src');
 		$inline_edit_js->appendChild( $src );
 		
-		$src_text = $this->doc->createTextNode(PROXY_URL. "wwlassets/js/wwlproxy.js");
+		$src_text = $this->doc->createTextNode($assets_url_base. "wwlassets/js/wwlproxy.js");
 		$src->appendChild( $src_text );
 
 
@@ -461,7 +466,7 @@ class Wwlproxy extends Wwl {
 		$href = $this->doc->createAttribute('href');
 		$inline_edit_css->appendChild( $href );
 		
-		$href_text = $this->doc->createTextNode(PROXY_URL . "wwlassets/css/wwlproxy.css");
+		$href_text = $this->doc->createTextNode($assets_url_base . "wwlassets/css/wwlproxy.css");
 		$href->appendChild( $href_text );
 
 
@@ -469,7 +474,7 @@ class Wwlproxy extends Wwl {
 		$nodes = $this->doc->getElementsByTagname('body');
 		if (!empty($nodes)) { $body = $nodes->item(0); } else return;
 		
-		$tform_html = "<script type=\"text/javascript\">wwlproxy.sourceLanguage=\"" . $this->sourceLanguage . "\";wwlproxy.targetLanguage=\"" . $this->targetLanguage . "\";wwlproxy.ajaxURL=\"http://" . $this->targetLanguage . "." . $this->targetUrl->getHost() . "/wwlassets/ajax/submit.php\";</script><div id=\"wwl-lightbox\"><div id=\"wwl-overlay\"></div><div id=\"wwl-translator\"><div id=\"wwl-translator-title\">Edit Translation</div><div id=\"wwl-translator-source-text\"></div><textarea id=\"wwl-translator-target-text\"></textarea><input id=\"wwl-inline-editor-update\" type=\"button\" value=\"Update translation\" onclick=\"return wwlproxy.submitTranslation();\" /> or <a href=\"#\" onclick=\"return wwlproxy.hideTranslatorForm();\">Cancel</a></div></div>";
+		$tform_html = "<script type=\"text/javascript\">wwlproxy.sourceLanguage=\"" . $this->sourceLanguage . "\";wwlproxy.targetLanguage=\"" . $this->targetLanguage . "\";wwlproxy.ajaxURL=\"" . $assets_url_base . "wwlassets/ajax/submit.php\";</script><div id=\"wwl-lightbox\"><div id=\"wwl-overlay\"></div><div id=\"wwl-translator\"><div id=\"wwl-translator-title\">Edit Translation</div><div id=\"wwl-translator-source-text\"></div><textarea id=\"wwl-translator-target-text\"></textarea><input id=\"wwl-inline-editor-update\" type=\"button\" value=\"Update translation\" onclick=\"return wwlproxy.submitTranslation();\" /> or <a href=\"#\" onclick=\"return wwlproxy.hideTranslatorForm();\">Cancel</a></div></div>";
 
 		$tform = $this->doc->createDocumentFragment();
 		$tform->appendXML($tform_html);
@@ -508,6 +513,41 @@ class Wwlproxy extends Wwl {
 	}
 
 
+	// Fix the language codes and text direction embedded in the HTML tag
+	function _fixLanguageDefinition()
+	{
+		$elem = $this->doc->getElementsByTagname('html');
+		$rtl_langs = array( "ar", "fa", "he", "iw", "ur" );
+		
+		foreach( $elem as $html_tag ) {
+			
+			// Update the lang definitions in the HTML tag
+			if ( !empty($html_tag->attributes->getNamedItem('lang')->nodeValue) ) {
+				$html_tag->attributes->getNamedItem('lang')->nodeValue = $this->targetLanguage;
+			}
+			
+			if ( !empty($html_tag->attributes->getNamedItem('xml:lang')->nodeValue) )
+				$html_tag->attributes->getNamedItem('xml:lang')->nodeValue = $this->targetLanguage;
+
+			// Ensure the text direction is set correctly
+			if ( in_array( $this->targetLanguage, $rtl_langs ))
+			{
+				if ( !empty($html_tag->attributes->getNamedItem('dir')->nodeValue) ) {
+					$html_tag->attributes->getNamedItem('dir')->nodeValue = "rtl";
+				} 
+				else 
+				{
+					$dir = $this->doc->createAttribute('dir');
+					$html_tag->appendChild( $dir );
+					$dir_text = $this->doc->createTextNode('rtl');
+					$dir->appendChild( $dir_text );
+				
+				}
+			}
+		}
+	}
+
+
 	// Fix root-indexed and relative targets for links by adding the base URL
 	function _fixLinks()
 	{
@@ -539,17 +579,24 @@ class Wwlproxy extends Wwl {
 					$node->attributes->getNamedItem('href')->nodeValue = 
 						htmlentities( "http://proxy.worldwidelexicon.org?l=" . $this->targetLanguage . "&u=" . $href );
 				}
+				elseif ( preg_match("%^http://www%", $href) && preg_match($pattern, $href) )
+				{
+					// Is this an absolute internal url with the "www"? Remove the www and add the language code.
+					$node->attributes->getNamedItem('href')->nodeValue =
+						htmlentities($this->_addLanguageCode( preg_replace("%http://www\.%", "http://", $href)));
+				}
 				elseif ( preg_match("%^http%", $href ) && preg_match( $pattern, $href ) )
 				{
-					// Is this an absolute internal url?  Add the language code.
+					// Is this an absolute internal url without the "www"?  Add the language code.
 					$node->attributes->getNamedItem('href')->nodeValue = 
 						htmlentities( $this->_addLanguageCode( $href ) );
 				}
 				elseif ( !empty($href) && !preg_match( "%^http%", $href ) ) 
 				{
 					// Is this a relative internal url? Combine it and add the language code.
-					$node->attributes->getNamedItem('href')->nodeValue = 
-						htmlentities( $this->_addLanguageCode( $this->_combinedURL( $this->targetUrl->toString(), $href ) ) );
+					$newurl = $this->_combinedURL( $this->targetUrl->toString(), $href );
+					$newurl = htmlentities($this->_addLanguageCode( preg_replace("%http://www\.%", "http://", $newurl)));
+					$node->attributes->getNamedItem('href')->nodeValue = $newurl;
 				}
 			}
 		}		
@@ -614,8 +661,8 @@ class Wwlproxy extends Wwl {
 	function getCommentNodes() 
 	{					
 		$comment_nodes = array();
-
-		if ( !empty($this->doc->documentElement) ) {
+		
+		if ( $this->doc->documentElement != NULL ) {
 			$this->recursiveFindComments( $this->doc->documentElement, $comment_nodes );
 		}
 		

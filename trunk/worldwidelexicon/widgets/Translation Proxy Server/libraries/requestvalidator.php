@@ -9,10 +9,6 @@
 	 *	@license	BSD
 	 */
 
-	// Let's display all errors for now.
-	ini_set('display_errors', 1); 
-	error_reporting(E_ALL);
-
 	class RequestValidator {
 	
 		private $requested_url;
@@ -75,6 +71,9 @@
 				if ( preg_match("/$domain/", $url) ) { $allowed = true; }	
 			}
 			
+			// This is for domain we know are trying to abuse the WWL.
+			$blacklist = explode(" ", PROXY_BLACKLIST);
+			foreach ($blacklist as $domain) { if ( preg_match("/$domain/", $url) ) { $allowed = false; } }
 			return $allowed;
 		}
 		

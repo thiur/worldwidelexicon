@@ -15,22 +15,8 @@
  *		mb_internal_encoding('UTF-8');
  *		mb_http_output('UTF-8');
  *
- *
- *	STILL TO DO:
- *	============
- *	+ Figure out bug in multiget() -- The array of translated snippets that is returned has fewer members than the 
- *	  array of snippets to be translated that is passed in.  So somewhere in the cURL calls, snippets are being
- *    dropped and I'm not keeping a record of it.  At the least, I should log these as errors right?
- *
  */
 
-
-/**
- *  memcache - If the server has the memcache daemon running and the PHP memcache extension
- *  is enabled, then lets use it.  Enable memcache below and set the address and ttl.
- *
- */
-define( 'MEMCACHE_ENABLED', false);
 
 /**
  *	This class encapsulates the functionality of the WWL (the World Wide Lexicon) for automatically
@@ -45,9 +31,10 @@ class Wwl {
 	var $wwl_servers = array('www.worldwidelexicon.org');
 	var $secure_wwl_servers = array('worldwidelexicon.appspot.com');
 
+	var $memcache_enabled = true;
 	var $memcache_address = 'localhost';
-	var $memcache_port = 2020;
-	var $memcache_ttl = 86400;		// Time to maintain translation in memcache, in seconds  [24 hours]
+	var $memcache_port = 11211;
+	var $memcache_ttl = 86400;
 
 	// For gettext() support
 	var $gettext_app_domain = "mydomain";
@@ -59,6 +46,12 @@ class Wwl {
 
 		$this->targetLanguage = $tl;
 		$this->sourceLanguage = $sl;
+		
+		// Get setting from the configuation file
+		$this->memcache_enabled 	= MEMCACHE_ENABLED;
+		$this->memcache_address 	= MEMCACHE_ADDRESS;
+		$this->memcache_port 		= MEMCACHE_PORT;
+		$this->memcache_ttl 		= MEMCACHE_TTL;
 
         log_message('debug', "WWL class initialized - source: $sl, target: $tl");
 	}			
@@ -249,14 +242,14 @@ class Wwl {
 	function getcache( $st ) {
 		
 		// If memcache is enabled, make sure all arguments are not empty strings.
-		if ( class_exists("Memcache") && MEMCACHE_ENABLED && strlen($this->memcache_address) > 0 && strlen($this->sourceLanguage) > 0 && 
-			strlen($this->targetLanguage) > 0 && strlen($st) > 0 && strlen($tt) > 0 ) {
+		if ( class_exists("Memcache") && $this->memcache_enabled && strlen($this->memcache_address) > 0 && strlen($this->sourceLanguage) > 0 && 
+			strlen($this->targetLanguage) > 0 && strlen($st) > 0 ) {
 				
 			$memcache = new Memcache;
 			if ( $memcache->connect( $this->memcache_address, $this->memcache_port) ) {
 
 				// Check if there is a memcached result, if so return it.
-				$result = $memcache->get( MD5($this->sourceLanguage . $this->targetLanguage . $st) );
+				$result = $memcache->get( MD5($this->sourceLanguage . $this->targetLanguage . $st) );				
 				return $result;
 			}
 			
@@ -274,7 +267,7 @@ class Wwl {
 	function setcache( $st, $tt ) {
 
 		// If memcache is enabled, also make sure all arguments are not empty strings.
-		if (class_exists("Memcache") && MEMCACHE_ENABLED && strlen($this->memcache_address) > 0 && strlen($this->sourceLanguage) > 0 && 
+		if (class_exists("Memcache") && $this->memcache_enabled && strlen($this->memcache_address) > 0 && strlen($this->sourceLanguage) > 0 && 
 			strlen($this->targetLanguage) > 0 && strlen($st) > 0 && strlen($tt) > 0 ) {
 		
 			$memcache = new Memcache;
