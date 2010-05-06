@@ -98,6 +98,11 @@
 			return $this->Host;
 		}
 
+		// Returns the base url WITHOUT the www in it.
+		function getHostBase()
+		{
+			return preg_replace("%www\.%", "", $this->Host);
+		}
 
 		// Returns the domain for the current URL string in the form http://example.com
 		function getDomain()

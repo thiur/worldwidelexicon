@@ -1,5 +1,5 @@
 RewriteEngine on
-RewriteCond $1 !^(index\.php|memcache\.php|wwlassets|logs|cron|phpinfo\.php|321test\.php|favicon\.ico|robots\.txt)
+RewriteCond $1 !^(index\.php|memcache\.php|wwlassets|logs|cron|123info\.php|favicon\.ico|robots\.txt)
 RewriteRule ^(.*)$ /index.php [L]
 
 # We have our first spammers
