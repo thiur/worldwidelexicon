@@ -242,11 +242,11 @@ class MainPage(webapp.RequestHandler):
   the system. 
   """
   def get(self, url=''):
-    if memcache.get('/heartbeat/running') is None:
-      self.error(500)
-      self.response.out.write('<h2>System Offline</h2>')
-      self.response.out.write('The system is down for maintenence.')
-      return
+#    if memcache.get('/heartbeat/running') is None:
+#      self.error(500)
+#      self.response.out.write('<h2>System Offline</h2>')
+#      self.response.out.write('The system is down for maintenence.')
+#      return
     """Generates the WWL translation server home page"""
     cookies = Cookies(self, max_age=72000)
     u = 'http://www.worldwidelexicon.org/css/template.html'
