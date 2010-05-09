@@ -2286,7 +2286,7 @@ class Translation(db.Model):
         else:
             return False
     @staticmethod
-    def submit(sl='', st='', tl='', tt='', username='', remote_addr='', domain='', url='', city='', state='', country='', longitude=None, latitude=None, professional=False, lsp='', proxy='n', apikey=''):
+    def submit(sl='', st='', tl='', tt='', username='', remote_addr='', domain='', url='', city='', state='', country='', longitude=None, latitude=None, professional=False, spam = False, lsp='', proxy='n', apikey=''):
         if len(sl) > 0 and len(st) > 0 and len(tl) > 0 and len(tt) > 0:
             validquery = True
         else:
@@ -2320,6 +2320,7 @@ class Translation(db.Model):
             tdb.state = state
             tdb.country = country
             tdb.professional = professional
+            tdb.spam = spam
             if len(apikey) > 0:
                 username = APIKeys.getusername(apikey)
                 if len(username) > 0:

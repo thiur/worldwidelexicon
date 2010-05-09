@@ -80,6 +80,7 @@ from database import Translation
 from database import languages
 from database import Users
 from database import Settings
+from language import TestLanguage
 from lsp import LSP
 from ip import ip
 
@@ -400,6 +401,10 @@ class SubmitTranslation(webapp.RequestHandler):
                 spam = False
         else:
             spam = False
+        if len(tl) > 0 and len(tt) > 5:
+            tl2 = TestLanguage.language(d='', text=tt)
+            if tl != tl2:
+                spam = True
         location = geo.get(remote_addr)
         if location is not None:
             city = location['city']
@@ -419,10 +424,7 @@ class SubmitTranslation(webapp.RequestHandler):
             p['action']='translate'
             p['remote_addr']=self.request.remote_addr
             taskqueue.add(url = '/log', params = p)
-        if not spam:
-            result = Translation.submit(sl=sl, st=st, tl=tl, tt=tt, username=username, remote_addr=remote_addr, domain=domain, url=url, city=city, state=state, country=country, latitude=latitude, longitude=longitude, lsp=lsp, proxy=proxy, apikey=apikey)
-        else:
-            result = True
+        result = Translation.submit(sl=sl, st=st, tl=tl, tt=tt, username=username, remote_addr=remote_addr, domain=domain, url=url, city=city, state=state, country=country, latitude=latitude, longitude=longitude, lsp=lsp, spam = spam, proxy=proxy, apikey=apikey)
         if len(title) > 0 and len(url) > 0:
             p = dict()
             p['remote_addr'] = remote_addr
