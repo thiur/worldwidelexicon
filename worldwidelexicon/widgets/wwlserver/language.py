@@ -65,7 +65,7 @@ from transcoder import transcoder
 def clean(text):
     return transcoder.clean(text)
 
-class Domains(db.Model):
+class TestLanguage(db.Model):
     domain = db.StringProperty(default='')
     sl = db.StringProperty(default='')
     tl = db.StringProperty(default='')
@@ -161,7 +161,7 @@ class ProcessForm(webapp.RequestHandler):
                 cookies['tl'] = tl
                 self.redirect('/')
             else:
-                sl = Domains.language(d=domain, text=text)
+                sl = TestLanguage.language(d=domain, text=text)
                 self.response.headers['Content-Type']='text/plain'
                 self.response.out.write(sl)
     def mt(self, sl, tl):
