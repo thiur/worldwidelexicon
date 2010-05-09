@@ -648,7 +648,58 @@ class Directory(db.Model):
                 return False
         else:
             return False
-
+class Domains(db.Model):
+    domain = db.StringProperty(default='')
+    description = db.TextProperty(default='')
+    email = db.StringProperty(default='')
+    isowner = db.BooleanProperty(default=False)
+    isadmin = db.BooleanProperty(default=False)
+    createdon = db.DateTimeProperty(auto_now_add = True)
+    updatedon = db.DateTimeProperty()
+    @staticmethod
+    def create(domain, email):
+        if len(domain) > 0 and len(owner) > 0:
+            ddb = db.Query(Domains)
+            ddb.filter('domain = ', domain)
+            item = ddb.get()
+            if item is None:
+                item = Domains()
+                item.domain = domain
+                item.email = email
+                item.isadmin = True
+                item.isowner = True
+                item.updatedon = datetime.datetime.now()
+                item.put()
+                return True
+        return False
+    @staticmethod
+    def add(domain, email, isadmin = False):
+        if len(domain) > 0 and len(email) > 0:
+            ddb = db.Query(Domains)
+            ddb.filter('domain = ', domain)
+            ddb.filter('email = ', email)
+            item = ddb.get()
+            if item is None:
+                item = Domains()
+                item.domain = domain
+                item.email = email
+                item.isadmin = isadmin
+                item.isowner = False
+                item.updatedon = datetime.datetime.now()
+                item.put()
+                return True
+        return False
+    @staticmethod
+    def remove(domain, email):
+        if len(domain) > 0 and len(email) > 0:
+            ddb = db.Query(Domains)
+            ddb.filter('domain = ', domain)
+            ddb.filter('email = ', email)
+            item = ddb.get()
+            if item is not None:
+                item.delete()
+                return True
+        return False
 
 class Languages(db.Model):
     code = db.StringProperty(default='')
@@ -1178,6 +1229,71 @@ class Queue(db.Model):
 
 class rec():
     sl = 'en'
+
+class Permissions(db.Model):
+    domain = db.StringProperty(default='')
+    username = db.StringProperty(default='')
+    email = db.StringProperty(default='')
+    languages = db.StringProperty(default='')
+    banned = db.BooleanProperty(default=False)
+    professional = db.BooleanProperty(default=False)
+    allowed = db.BooleanProperty(default=False)
+    lastedit = db.DateTimeProperty()
+    edits = db.IntegerProperty(default=0)
+    @staticmethod
+    def add(domain, email, username='', languages='all', banned=False, professional=False, allowed=True):
+        if len(domain) > 0 and len(email) > 0:
+            udb = db.Query(Permissions)
+            udb.filter('domain = ', domain)
+            udb.filter('email = ', email)
+            item = udb.get()
+            if item is not None:
+                item = Permissions()
+                item.domain = domain
+                item.email = email
+                item.username = username
+                item.languages = languages
+                item.banned = banned
+                item.professional = professional
+                item.allowed = allowed
+                item.put()
+                return True
+        return False
+    @staticmethod
+    def update(domain, email, username=None, languages=None, banned=None, professional=None, allowed=None):
+        if len(domain) > 0 and len(email) > 0:
+            udb = db.Query(Permissions)
+            udb.filter('domain = ', domain)
+            udb.filter('email = ', email)
+            item = udb.get()
+            if item is not None:
+                try:
+                    if username is not None:
+                        item.username = username
+                    if languages is not None:
+                        item.languages = languages
+                    if banned is not None:
+                        item.banned = banned
+                    if professional is not None:
+                        item.professional = professional
+                    if allowed is not None:
+                        item.allowed = allowed
+                    item.put()
+                    return True
+                except:
+                    return False
+        return False
+    @staticmethod
+    def delete(domain, email):
+        if len(domain) > 0 and len(email) > 0:
+            udb = db.Query(Permissions)
+            udb.filter('domain = ', domain)
+            udb.filter('email = ', email)
+            item = udb.get()
+            if item is not None:
+                item.delete()
+                return True
+        return False
         
 class Score(db.Model):
     """
