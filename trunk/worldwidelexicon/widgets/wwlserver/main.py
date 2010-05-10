@@ -113,13 +113,34 @@ standard_footer = 'Content management system and collaborative translation memor
 
 class WebServer(webapp.RequestHandler):
     def get(self, p1='', p2='', p3=''):
-        if p1 == 'blog':
-            self.redirect('http://blog.worldwidelexicon.org')
-        else:
-            menus = '<ul><li><a href=/api>API</a></li>\
+        menus = '<ul><li><a href=/api>API</a></li>\
 <li><a href=http://blog.worldwidelexicon.org>Blog</a></li>\
 <li><a href=http://code.google.com/p/worldwidelexicon>Code</a></li>\
+<li><a href=/drupal>Drupal</a></li>\
+<li><a href=/proxy>Proxy</a></li>\
+<li><a href=http://wordpress.org/extend/plugins/speaklike-worldwide-lexicon-translator/>WP</li>\
 </ul>'
+        if p1 == 'blog':
+            self.redirect('http://blog.worldwidelexicon.org')
+        elif len(p1) > 0:
+            page = 'http://www.worldwidelexicon.org/s/' + p1 + '.html'
+            w = web()
+            w.get(page)
+            t = clean(w.out(page))            
+            w.get(template)
+            w.replace(template,'[google_analytics]',google_analytics_header)
+            if len(p1) < 4:
+                p1 = 'Worldwide Lexicon'
+            w.replace(template,'[title]',p1)
+            w.replace(template,'[meta]', proxy_settings)
+            w.replace(template,'[footer]',standard_footer)
+            w.replace(template,'[menu]',menus)
+            w.replace(template,'[left_column]',t)
+            r = '<h1>About WWL</h1>' + sidebar_about
+            r = r + Feeds.get('http://blog.worldwidelexicon.org/?feed=rss2')
+            w.replace(template,'[right_column]', r)
+            self.response.out.write(w.out(template))
+        else:
             w = web()
             w.get(template)
             w.replace(template,'[google_analytics]',google_analytics_header)
