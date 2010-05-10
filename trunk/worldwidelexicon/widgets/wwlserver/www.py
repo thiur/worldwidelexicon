@@ -66,6 +66,10 @@ from google.appengine.api import memcache
 from google.appengine.api import urlfetch
 from pydoc import HTMLDoc
 import string
+from transcoder import transcoder
+
+def clean(text):
+    return transcoder.clean(text)
 
 class web():
     text = dict()
@@ -77,17 +81,16 @@ class web():
         else:
             result = urlfetch.fetch(url=url)
             if result.status_code == 200:
+                text = clean(result.content)
                 memcache.set('/url/' + url, result.content, 300)
-                self.text[url]=result.content
+                self.text[url]=text
                 return True
             else:
                 return False
     def replace(self, url, tag, text):
-        try:
-            self.text[url]=string.replace(self.text[url], tag, text)
-            return True
-        except:
-            return False
+        text = clean(text)
+        self.text[url]=string.replace(self.text[url], tag, text)
+        return True
     def out(self, url):
         return self.text.get(url, '')
 
