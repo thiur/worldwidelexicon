@@ -118,7 +118,7 @@ class WebServer(webapp.RequestHandler):
 <li><a href=http://code.google.com/p/worldwidelexicon>Code</a></li>\
 <li><a href=/drupal>Drupal</a></li>\
 <li><a href=/proxy>Proxy</a></li>\
-<li><a href=http://wordpress.org/extend/plugins/speaklike-worldwide-lexicon-translator/>WP</li>\
+<li><a href=http://wordpress.org/extend/plugins/speaklike-worldwide-lexicon-translator/>WP</a></li>\
 </ul>'
         if p1 == 'blog':
             self.redirect('http://blog.worldwidelexicon.org')
