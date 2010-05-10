@@ -2328,6 +2328,7 @@ class Translation(db.Model):
                     tdb.anonymous = False
                     tdb.reviewed = True
                     tdb.username = username
+                    tdb.spam = False
             if lsp == 'speaklike':
                 tdb.professional = True
                 tdb.reviewed = True

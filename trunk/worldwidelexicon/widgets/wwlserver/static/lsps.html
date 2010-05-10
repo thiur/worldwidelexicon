@@ -1,4 +1,4 @@
-<h2>WWL For Language Service Providers</h2>
+ï»¿<h2>WWL For Language Service Providers</h2>
 
 We have developed an open API for professional translation service bureaus. If you are an LSP, and would like to join the Worldwide Lexicon system, all you need to do is to build a few simple web scripts to receive translation requests from the system. WWL is a hybrid system that combines human translators with machine translation services such as Google Translate. It is also highly automated. Human translators work behind the scenes to improve or to replace machine translations.
 
@@ -32,14 +32,15 @@ Joining the network is easy. Just follow these steps:<p>
 WWL will call a URL on your server that processes a simple HTML form. The form will contain the following fields:<p>
 
 <ul>
-<li>sl – source language code</li>
-<li>tl – target language code</li>
-<li>st – original text (utf-8 encoding only)</li>
-<li>domain – source domin</li>
-<li>url – URL or original page if it is a public web page</li>
-<li>lspusername – username for person or account on your system</li>
-<li>lsppw – password or API key for person or account on your system</li>
-<li>priority – priority level (optional)</li>
+<li>sl â€“ source language code</li>
+<li>tl â€“ target language code</li>
+<li>st â€“ original text (utf-8 encoding only)</li>
+<li>domain â€“ source domin</li>
+<li>url â€“ URL or original page if it is a public web page</li>
+<li>lspusername â€“ username for person or account on your system</li>
+<li>lsppw â€“ password or API key for person or account on your system</li>
+<li>priority â€“ priority level (optional)</li>
+<li>price - per word price (optional, used in "name your price" transactions)</li>
 </ul>
 
 Your script will process this form, and will reply with one of the following responses (plain text, utf-8 encoding):<p>
@@ -57,13 +58,13 @@ The WWL server will cache this response and store it in the global translation m
 Normally, you can just wait for WWL to call your system with requests to the /t web service. If you do not update translations frequently once they are completed, the first web script is all you usually need. Any changes will be picked up within an hour or so. If you want to support instant updates to the global translation memory, all you need to do is build a script that posts a form to www.worldwidelexicon.org/lsp/submit with the following fields:<p>
 
 <ul>
-<li>apikey – your secret API key</li>
-<li>sl – source language code</li>
-<li>tl – target language code</li>
-<li>st – source text (utf8)</li>
-<li>tt – translated text (utf8)</li>
-<li>domain – optional domain text is from (e.g. foo.com)</li>
-<li>url – optional url text is from</li>
+<li>apikey â€“ your secret API key</li>
+<li>sl â€“ source language code</li>
+<li>tl â€“ target language code</li>
+<li>st â€“ source text (utf8)</li>
+<li>tt â€“ translated text (utf8)</li>
+<li>domain â€“ optional domain text is from (e.g. foo.com)</li>
+<li>url â€“ optional url text is from</li>
 </ul>
 
 The system will validate your API key. It replies with ok or error, and will update the data store and cache immediately so the updated translation is visible to other applications almost immediately.<p>
