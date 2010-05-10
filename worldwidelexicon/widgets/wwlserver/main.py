@@ -115,8 +115,8 @@ class WebServer(webapp.RequestHandler):
     def get(self, p1='', p2='', p3=''):
         menus = '<ul><li><a href=/api>API</a></li>\
 <li><a href=http://blog.worldwidelexicon.org>Blog</a></li>\
-<li><a href=http://code.google.com/p/worldwidelexicon>Code</a></li>\
 <li><a href=/drupal>Drupal</a></li>\
+<li><a href=/lsps>LSPs</a></li>\
 <li><a href=/proxy>Proxy</a></li>\
 <li><a href=http://wordpress.org/extend/plugins/speaklike-worldwide-lexicon-translator/>WP</a></li>\
 </ul>'
@@ -126,7 +126,7 @@ class WebServer(webapp.RequestHandler):
             page = 'http://www.worldwidelexicon.org/s/' + p1 + '.html'
             w = web()
             w.get(page)
-            t = clean(w.out(page))            
+            t = w.out(page)
             w.get(template)
             w.replace(template,'[google_analytics]',google_analytics_header)
             if len(p1) < 4:
