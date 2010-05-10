@@ -1,0 +1,46 @@
+﻿<h2>TransKit</h2>
+
+TransKit is a family of SDKs for popular programming languages that make it easy to embed best effort translation in virtually any type of application or web service. We are developing simple, easy to use libraries for the following languages, as well as plugins for popular blogging and publishing platforms. These libraries are open source (BSD license), and can be integrated into any application or service:<p>
+
+<h3>Publishing and Content Management Systems</h3>
+
+<ul>
+<li><a href=/wordpress>Word Press</a> : this new plugin for Word Press enables you to publish in many languages, and to use a combination of machine, volunteer and professional translation (professional translation via <a href=http://www.speaklike.com>SpeakLike</a>)</li>
+<li><a href=/drupal>Drupal</a> : this Drupal module enables on demand machine, community and professional translation (currently in testing)</li>
+<li><a href=/proxy>Translation Proxy Server</a> : we have built a PHP based proxy service that can front end any website or web app. Simply map a domain to the proxy server (e.g. es.yoursite.com), and it will insert translations into pages as they are served.</li>
+<li>Custom plugin development : if you would like to hire us to build a module for your content management system, contact us for information about our custom softwate development services.</li>
+</ul>
+
+<h3>TransKit Libraries for Software Developers</h3>
+
+<ul>
+<li>C : high performance C library, to make adding best effort translation to a wide range of applications easy and reliable. Can be ported to other C variants fairly easily. (currently in development)</li>
+<li>Python : simple client library for Python to fetch, submit and score translations, with memcached for performance. Available now at <a href=code.google.com/p/worldwidelexicon>Google Code</a></li>
+<li>Python for Google App Engine : version of library designed for use in Google App Engine cloud computing environment. Available now at <a href=http://code.google.com/p/worldwidelexicon>Google Code</a></li>
+<li>Java : <a href=http://www.speaklike.com>SpeakLike</a>, one of our partners, is contributing a Java library that will be out soon after the C library.</li>
+<li>PHP : simple wrapper library for PHP, includes caching to make rendering translations on the fly fast and easy. Available now at <a href=http://code.google.com/p/worldwidelexicon>Google Code</a></li>
+<li>Ruby on Rails : simple translation library for Rails makes building translatable web apps easy. (coming soon)</li>
+<li>Other languages planned, if you’d like to contribute a library for your favorite programming language, why not share your library with the WWL community? All you need to do is build a wrapper library that calls our <a href=/api>web API</a></li>
+</ul>
+
+Join our <a href=http://groups.google.com/worldwidelexicon>Google Group</a> to stay updated about new releases, toolkits and other developer news.
+
+<h3>Core Features</h3>
+
+The library simplifies and consolidates access to several language services, and provides the following functionality via a simple and easy to use API:<p>
+
+<ul>
+<li>Access multiple machine translation services, enables applications to communicate with Google Translate, Language Weaver via Worldlingo, Apertium and Moses, with more options coming soon.</li>
+<li>High performance, with in memory and disk based cache for recent human and machine translation. Enables pages, texts, etc to be translated and rendered very quickly, in both browser and server based applications.</li>
+<li>Access human translation services via WWL translation servers and gateways, with ability to select WWL servers (e.g. use the public WWL server at worldwidelexicon.org by default, or use private WWL servers).</li>
+<li>Support for user generated/user edited translations, as well as professional translations</li>
+<li>Open gateway to professional translation agencies, enables you to select language service providers on demand, on a per request basis. For example, use SpeakLike to translate to some languages, ProZ for others.</li>
+<li>Ability to filter translations, adjust quality up and down on a per query basis.</li>
+<li>Supports both read-only translation applications, as well as user mediated translations where users can submit and score translations.</li>
+<li>Available for most major programming and scripting languages.</li>
+<li>Open source, published under BSD license. Can be used in any application or web service with attribution.</li>
+</ul>
+
+The most important aspect of TransKit is that it is designed for speed, and to communicate with a variety of translation services. A developer can integrate it using just two or three API calls, and does not need to know the details of the various web APIs and output formats used by different translation services. This is all abstracted by TransKit and/or the WWL gateways it talks to and provides you with a simple and consistent interface for interacting with any combination of machine, volunteer and professional translation services, and will be extended to support more services over time.<p>
+
+For more information contact Brian McConnell at bsmcconnell at gmail
