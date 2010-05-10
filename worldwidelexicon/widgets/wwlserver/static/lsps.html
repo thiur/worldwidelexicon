@@ -1,0 +1,69 @@
+<h2>WWL For Language Service Providers</h2>
+
+We have developed an open API for professional translation service bureaus. If you are an LSP, and would like to join the Worldwide Lexicon system, all you need to do is to build a few simple web scripts to receive translation requests from the system. WWL is a hybrid system that combines human translators with machine translation services such as Google Translate. It is also highly automated. Human translators work behind the scenes to improve or to replace machine translations.
+
+<h3>Benefits</h3>
+
+Joining the WWL network is easy, and delivers many benefits for your professional translation services company:<p>
+
+<ul>
+<li>Automatic inclusion in TransKit : software developers who use the TransKit libraries to build translatable programs and web applications will be able to send professional translation requests to you, just as easily as they can submit a query to <a href=http://www.google.com/translate>Google Translate</a>. You will be accessible via all of our SDKs for major programming languages, including PHP, Python, C and Java.</li>
+<lI>CMS Plugins : people using our CMS plugins, such as <a href=/drupal>WWL for Drupal> will be able to have their sites automatically translated by your professional translators if they choose to.</li>
+<li><a href=/proxy>Translation Proxy Server : people using our open source translation proxy server can have their website partially or fully translated by your workers.</li>
+<li>More interfaces coming soon : we are building a broad range of translation tools, with the goal of providing open tools for all major publishing and application development environments this year. For example, we are working on an Apache translator that will enable best effort human/machine translation on any Apache web server (Apache is one of the most widely used web servers). By joining WWL, you can focus on providing professional translation services, while we focus on building tools for software developers and web content producers.</li>
+</ul>
+
+<h3>Qualifying Requirements</h3>
+
+This program is available to professional translation service bureaus only, with either accredited translators, or a system for screening translators and peer reviewing translations. WWL does not sell professional translation services directly, but works with service bureaus as an affiliate. We provide tools that make it easy for customers to build multilingual websites, and to work with a variety of professional translation bureaus based on their specific needs.
+
+<h3>Implementation</h3>
+
+Joining the network is easy. Just follow these steps:<p>
+
+<ol>
+<li>Request an API key. This is a secret code you will send when you submit translations or scores to the system. Contact bsmcconnell at gmail to request your key.</li>
+<li>Build a simple web script that mimics the /t web service on WWL. WWL will call this service to request translations from your system (and if it is a new request, your system will send this request to your translators). See below for details.</li>
+<li>(Optional) Build a simple web script that posts a form to www.worldwidelexicon.org/lsp/submit to submit recently completed or edited translations to WWL.</li>
+</ol>
+
+<h4>Web Script Details (/t Web Service)</h4>
+
+WWL will call a URL on your server that processes a simple HTML form. The form will contain the following fields:<p>
+
+<ul>
+<li>sl – source language code</li>
+<li>tl – target language code</li>
+<li>st – original text (utf-8 encoding only)</li>
+<li>domain – source domin</li>
+<li>url – URL or original page if it is a public web page</li>
+<li>lspusername – username for person or account on your system</li>
+<li>lsppw – password or API key for person or account on your system</li>
+<li>priority – priority level (optional)</li>
+</ul>
+
+Your script will process this form, and will reply with one of the following responses (plain text, utf-8 encoding):<p>
+
+<ul>
+<li>The completed or most recent approved translation for the source text</li>
+<li>A blank text, if the request was valid, but no translation has been completed yet (WWL will assume the translation is in progress, and use a placeholder or machine translation for a while)</li>
+<li>An HTTP error code (e.g. if the login credentials are invalid)</li>
+</ul>
+
+The WWL server will cache this response and store it in the global translation memory, with a time to live of 1 to 2 hours. Once the cache expires, it will call you again to request the translation, so if it has been edited in that time, you can update your response. If not, you return the same translation as before from your translation memory. This is a simple way to keep WWL in sync with your system, and is also a very easy API to implement.<p>
+
+<h4>Submitting A Completed Translation Or Updating The Cache</h4>
+
+Normally, you can just wait for WWL to call your system with requests to the /t web service. If you do not update translations frequently once they are completed, the first web script is all you usually need. Any changes will be picked up within an hour or so. If you want to support instant updates to the global translation memory, all you need to do is build a script that posts a form to www.worldwidelexicon.org/lsp/submit with the following fields:<p>
+
+<ul>
+<li>apikey – your secret API key</li>
+<li>sl – source language code</li>
+<li>tl – target language code</li>
+<li>st – source text (utf8)</li>
+<li>tt – translated text (utf8)</li>
+<li>domain – optional domain text is from (e.g. foo.com)</li>
+<li>url – optional url text is from</li>
+</ul>
+
+The system will validate your API key. It replies with ok or error, and will update the data store and cache immediately so the updated translation is visible to other applications almost immediately.<p>
