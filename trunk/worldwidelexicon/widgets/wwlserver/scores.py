@@ -78,6 +78,10 @@ from database import Score
 from database import Translation
 from database import Users
 from geo import geo
+from transcoder import transcoder
+
+def clean(text):
+    return transcoder.clean(text)
 
 class stat():
     sl = ''
@@ -241,11 +245,21 @@ class Vote(webapp.RequestHandler):
     def requesthandler(self):
         rate_limited = memcache.get('ratelimit|vote|' + self.request.remote_addr)
         if rate_limited is None:
-            memcache.set('ratelimit|vote|' + self.request.remote_addr, True, 5)
+            memcache.set('ratelimit|vote|' + self.request.remote_addr, True, 1)
             guid = self.request.get('guid')
+            sl = self.request.get('sl')
+            tl = self.request.get('tl')
+            st = clean(self.request.get('st'))
+            tt = clean(self.request.get('tt'))
             votetype = self.request.get('votetype')
             score = self.request.get('score')
-            remote_addr = self.request.remote_addr
+            proxy = self.request.get('proxy')
+            if proxy == 'y':
+                remote_addr = self.request.get('ip')
+                if len(remote_addr) < 1:
+                    remote_addr = self.request.remote_addr
+            else:
+                remote_addr = self.request.remote_addr
             cookies = Cookies(self, max_age=7200)
             try:
                 session = cookies['session']
@@ -273,13 +287,29 @@ class Vote(webapp.RequestHandler):
                 else:
                     username = ''
                     loggedin = False
-            if len(guid) > 0:
+            if len(guid) < 1:
+                # find the most recent matching translation using sl, tl, st, and tt
+                results = Translation.fetch(sl, tl, st)
+                complete = False
+                for r in results:
+                    if clean(r.st) == st and clean(r.tt) == tt and not complete:
+                        guid = r.guid
+                        sl = r.sl
+                        tl = r.tl
+                        st = clean(r.st)
+                        tt = clean(t.tt)
+                        complete = True
+            if len(guid) > 0 or len(st) > 0:
                 location = geo.get(remote_addr)
                 p = dict()
                 p['guid']=guid
-                p['votetype']=votetype
+                p['sl']=sl
+                p['tl']=tl
+                p['st']=st
+                p['tt']=tt
+                #p['votetype']=votetype
                 p['score']=score
-                p['remote_addr']=self.request.remote_addr
+                p['remote_addr']=remote_addr
                 p['username']=username
                 if type(location) is dict:
                     p['city'] = location['city']
@@ -298,11 +328,6 @@ class Vote(webapp.RequestHandler):
                 t = t + '<tr><td>Translated Text (optional)</td><td><input type=text name=tt></td></tr>'
                 t = t + '<tr><td>WWL Username (optional)</td><td><input type=text name=username></td></tr>'
                 t = t + '<tr><td>WWL Password (optional)</td><td><input type=text name=pw></td></tr>'
-                t = t + '<tr><td>Action (votetype)</td><td><select name=votetype>'
-                t = t + '<option value=up>Vote Up (+1)</option>'
-                t = t + '<option value=down>Vote Down (-1)</option>'
-                t = t + '<option value=block>Block/Ban Translator</option>'
-                t = t + '</select></td></tr>'
                 t = t + '<tr><td>Integer Score (0..5)</td><td><input type=text name=score maxlength=1></td></tr>'
                 t = t + '<tr><td colspan=2><input type=submit value=OK></td></tr>'
                 t = t + '</table></form>'
@@ -326,6 +351,10 @@ class ScoreSubmitWorker(webapp.RequestHandler):
         votetype = self.request.get('votetype')
         score = self.request.get('score')
         guid = self.request.get('guid')
+        sl = self.request.get('sl')
+        tl = self.request.get('tl')
+        st = clean(self.request.get('st'))
+        tt = clean(self.request.get('tt'))
         username = self.request.get('username')
         remote_addr = self.request.get('remote_addr')
         city = self.request.get('city')
@@ -341,7 +370,7 @@ class ScoreSubmitWorker(webapp.RequestHandler):
                 except:
                     author = ''
                 try:
-                    result = Score.save(guid, votetype=votetype, score=score, username=username, remote_addr=remote_addr, city=city, state=state, country=country, latitude=latitude, longitude=longitude)
+                    result = Score.save(guid, sl=sl, tl=tl, st=st, tt=tt, votetype=votetype, score=score, username=username, remote_addr=remote_addr, city=city, state=state, country=country, latitude=latitude, longitude=longitude)
                 except:
                     result = False
                 try:

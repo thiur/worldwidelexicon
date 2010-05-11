@@ -1321,6 +1321,8 @@ class Score(db.Model):
     url = db.StringProperty(default='')
     sl = db.StringProperty(default='')
     tl = db.StringProperty(default='')
+    st = db.TextProperty(default='')
+    tt = db.TextProperty(default='')
     score = db.IntegerProperty(default=0)
     username = db.StringProperty(default='')
     remote_addr = db.StringProperty(default='127.0.0.1')
@@ -1462,7 +1464,7 @@ class Score(db.Model):
         else:
             return
     @staticmethod
-    def save(guid, votetype='', username='', remote_addr='', score='', city='', state='', country='', latitude=None, longitude=None):
+    def save(guid, sl='', tl='', st='', tt='', votetype='', username='', remote_addr='', score='', city='', state='', country='', latitude=None, longitude=None, domain='', url=''):
         """
         This method saves a score to the Score data store, after first checking to see if
         a score has already been recorded for this item (guid locator) from the user's IP
@@ -1471,10 +1473,14 @@ class Score(db.Model):
         """
         tx = Translation.getbyguid(guid)
         if type(tx) is dict:
+            if len(score) > 0 and int(score) < 1 and len(guid) > 0:
+                Translation.spam(guid)
             author_username = tx.get('username', '')
             author_ip = tx.get('remote_addr', '')
             sl = tx.get('sl', '')
             tl = tx.get('tl', '')
+            st = tx.get('st', '')
+            tt = tx.get('tt', '')
             domain = tx.get('domain', '')
             url = tx.get('url', '')
             md5hash = tx.get('md5hash', '')
@@ -1496,6 +1502,8 @@ class Score(db.Model):
             item.country = country
             item.sl = sl
             item.tl = tl
+            item.st = clean(st)
+            item.tt = clean(tt)
             item.domain = domain
             item.url = url
             try:
@@ -2285,6 +2293,18 @@ class Translation(db.Model):
                 return False
         else:
             return False
+    @staticmethod
+    def spam(guid):
+        if len(guid) > 0:
+            tdb = db.Query(Translation)
+            tdb.filter('guid = ', guid)
+            item = tdb.get()
+            if item is not None:
+                item.spam = True
+                item.professional = False
+                item.put()
+                return True
+        return False
     @staticmethod
     def submit(sl='', st='', tl='', tt='', username='', remote_addr='', domain='', url='', city='', state='', country='', longitude=None, latitude=None, professional=False, spam = False, lsp='', proxy='n', apikey=''):
         if len(sl) > 0 and len(st) > 0 and len(tl) > 0 and len(tt) > 0:
