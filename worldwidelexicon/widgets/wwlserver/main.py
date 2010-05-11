@@ -95,14 +95,22 @@ downloads = 'http://www.worldwidelexicon.org/s/downloads.html'
 
 proxy_settings = '<meta name="allow_edit" content="y" />'
 
-sidebar_about = 'The Worldwide Lexicon is an open source collaborative translation platform. It is similar to \
+sidebar_about = '<h1>About</h1>The Worldwide Lexicon is an open source collaborative translation platform. It is similar to \
                 systems like <a href=http://www.wikipedia.org>Wikipedia</a>, and combines machine translation \
                 with submissions from volunteers and professional translators. WWL is a translation memory, \
                 essentially a giant database of translations, which can be embedded in almost any website or \
                 web application. \
                 Our mission is to eliminate the language barrier for interesting websites and articles, by \
                 enabling people to create translation communities around their favorite webites, topics or \
-                groups.'
+                groups.\
+                <h1>Services</h1>\
+                In addition to publishing free, open source software for translation, we offer a wide variety \
+                of hosting and consulting services to customers including:\
+                <ul><li>Turnkey, hosted translation solutions for business websites</li>\
+                <li>Translation community solutions, where your own readers translate your website</li>\
+                <li>Custom software development services</li>\
+                </ul>\
+                Visit our <a href=/services>services page</a> to learn more.<br><br>'
 
 # standard footer and source code attribution, do not modify or hide
 standard_footer = 'Content management system and collaborative translation memory powered \
@@ -136,7 +144,7 @@ class WebServer(webapp.RequestHandler):
             w.replace(template,'[footer]',standard_footer)
             w.replace(template,'[menu]',menus)
             w.replace(template,'[left_column]',t)
-            r = '<h1>About WWL</h1>' + sidebar_about
+            r = sidebar_about
             r = r + Feeds.get('http://blog.worldwidelexicon.org/?feed=rss2')
             w.replace(template,'[right_column]', r)
             self.response.out.write(w.out(template))
@@ -178,7 +186,7 @@ class WebServer(webapp.RequestHandler):
                 t = t +'<li><a href=http://' + s + '>' + s + '</a></li>'
             t = t + '<li><a href=/sites>(more)</a></li></ul>'
             w.replace(template,'[left_column]',t)
-            r = '<h1>About WWL</h1>' + sidebar_about
+            r = sidebar_about
             r = r + Feeds.get('http://blog.worldwidelexicon.org/?feed=rss2')
             w.replace(template,'[right_column]', r)
             self.response.out.write(w.out(template))
