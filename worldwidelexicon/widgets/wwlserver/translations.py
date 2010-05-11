@@ -305,6 +305,7 @@ class SubmitTranslation(webapp.RequestHandler):
             whatever username you provide)</li>
     <li>session - session key (cookie, stored whenever user logs into system)</li>
     <li>apikey - API key (for trusted submitters and LSPs)</li></ul>
+    <li>ip - user IP address (if proxy=y, include this field to provide the user's IP address</li>
     
     The API call returns a text/plain object, with either an ok response or an error message.<p>
     
@@ -372,7 +373,10 @@ class SubmitTranslation(webapp.RequestHandler):
         domain = self.request.get('domain')
         url = self.request.get('url')
         doc = self.request.get('doc')
-        remote_addr = self.request.remote_addr
+        if proxy == 'y':
+            remote_addr = self.request.get('ip')
+        else:
+            remote_addr = self.request.remote_addr
         lsp = self.request.get('lsp')
         if doc == 'y':
             display_docs = True
@@ -464,6 +468,7 @@ class SubmitTranslation(webapp.RequestHandler):
                 t = t + '<tr><td>WWL Username</td><td><input type=text name=username></td></tr>'
                 t = t + '<tr><td>WWL Password</td><td><input type=password name=pw></td></tr>'
                 t = t + '<tr><td>Proxy Mode (y/n)</td><td><input type=text name=proxy value=n></td></tr>'
+                t = t + '<tr><td>Proxy User IP Address</td><td><input type=text name=ip></td></tr>'
                 t = t + '<tr><td>API Key</td><td><input type=text name=apikey></td></tr>'
                 t = t + '<tr><td>Output format</td><td><input type=text name=output value=text></td></tr>'
                 t = t + '<tr><td colspan=2><input type=submit value=OK></td></tr>'
