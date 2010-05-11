@@ -304,8 +304,8 @@ class SubmitTranslation(webapp.RequestHandler):
             (in proxy mode, we use you are filtering submissions upstream and will accept
             whatever username you provide)</li>
     <li>session - session key (cookie, stored whenever user logs into system)</li>
-    <li>apikey - API key (for trusted submitters and LSPs)</li></ul>
-    <li>ip - user IP address (if proxy=y, include this field to provide the user's IP address</li>
+    <li>apikey - API key (for trusted submitters and LSPs)</li>
+    <li>ip - user IP address (if proxy=y, include this field to provide the user's IP address</li></ul>
     
     The API call returns a text/plain object, with either an ok response or an error message.<p>
     
