@@ -279,10 +279,23 @@ class SubmitComment(webapp.RequestHandler):
         self.requesthandler()
     def post(self):
         self.requesthandler()
+
+class TestError(webapp.RequestHandler):
+    def get(self):
+        self.response.out.write(1/0)
+
+debug_setting = Settings.get('debug')
+if debug_setting == 'True':
+    debug_setting = True
+elif debug_setting == 'False':
+    debug_setting = False
+else:
+    debug_setting = True
             
 application = webapp.WSGIApplication([('/comments/get', GetComments),
+                                      ('/comments/error', TestError),
                                       ('/comments/submit', SubmitComment)],
-                                     debug=True)
+                                     debug=debug_setting)
 
 def main():
   run_wsgi_app(application)
