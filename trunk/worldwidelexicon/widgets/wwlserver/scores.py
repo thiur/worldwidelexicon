@@ -208,12 +208,27 @@ class Vote(webapp.RequestHandler):
     This request handler implements the up/down/block voting system to complement the 5 star
     subjective scoring system. This request handler checks to see if the submitting IP address
     is rate limited, and if not, schedules a worker task to log the vote and recalculate
-    associated user scores, etc. It expects the following parameters:<p>
+    associated user scores, etc.<p>
+
+    You can submit scores using two methods. The best method is to use the GUID (globally unique
+    indentifier) associated with a specific translation. You can also submit the source language,
+    target language, text and translation, and the system will attempt to locate matching records
+    and record the score for them. Where possible, you should key scores to the GUID as this will
+    be more precise, because the system will know which version of which translation the score is
+    for.<p>
+
+    It expects the following parameters:<p>
 
     <ul><li>guid = the GUID of the translation being scored</li>
+    <li>sl = source language code (if scoring without guid)</li>
+    <li>tl = target language code (if scoring without guid)</li>
+    <li>st = source text (if scoring without guid)</li>
+    <li>tt = translated text (if scoring without guid)</li>
     <li>votetype = up, down or block</li>
     <li>score = integer score from 0..5 (0=bad/spam, 5 = excellent/native)</li>
     <li>session (cookie) = session cookie, sent automatically if user is logged in to WWL server</li>
+    <li>proxy = y/n (y if vote is submitted via proxy server/agent</li>
+    <li>ip = user IP address (if proxy=y)</li>
     <li>username = optional WWL username (can be used to authenticate user on submitting score)</li>
     <li>pw = WWL password</li></ul>
 
@@ -277,6 +292,10 @@ class Vote(webapp.RequestHandler):
             else:
                 t = '<table><form action=/scores/vote method=get>'
                 t = t + '<tr><td>GUID of translation</td><td><input type=text name=guid></td></tr>'
+                t = t + '<tr><td>Source Language (optional)</td><td><input type=text name=sl></td></tr>'
+                t = t + '<tr><td>Target Language (optional)</td><td><input type=text name=tl></td></tr>'
+                t = t + '<tr><td>Source Text (optional)</td><td><input type=text name=st></td></tr>'
+                t = t + '<tr><td>Translated Text (optional)</td><td><input type=text name=tt></td></tr>'
                 t = t + '<tr><td>WWL Username (optional)</td><td><input type=text name=username></td></tr>'
                 t = t + '<tr><td>WWL Password (optional)</td><td><input type=text name=pw></td></tr>'
                 t = t + '<tr><td>Action (votetype)</td><td><select name=votetype>'
