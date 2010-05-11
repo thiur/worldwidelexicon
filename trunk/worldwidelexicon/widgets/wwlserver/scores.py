@@ -75,6 +75,7 @@ from deeppickle import DeepPickle
 from www import www
 from webappcookie import Cookies
 from database import Score
+from database import Settings
 from database import Translation
 from database import Users
 from geo import geo
@@ -386,11 +387,23 @@ class ScoreSubmitWorker(webapp.RequestHandler):
         else:
             self.response.out.write('error')
 
+class TestError(webapp.RequestHandler):
+    def get(self):
+        self.response.out.write(1/0)
+
+debug_setting = Settings.get('debug')
+if debug_setting == 'True':
+    debug_setting = True
+elif debug_setting == 'False':
+    debug_setting = False
+else:
+    debug_setting = True            
+
 application = webapp.WSGIApplication([('/scores/get', GetScores),
                                       ('/scores/vote', Vote),
                                       ('/scores/worker', ScoreSubmitWorker),
                                       ('/scores/user', UserScores)], 
-                                     debug=True)
+                                     debug=debug_setting)
 
 def main():
     run_wsgi_app(application)
