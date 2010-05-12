@@ -79,18 +79,24 @@ class web():
             self.text[url] = text
             return True
         else:
-            result = urlfetch.fetch(url=url)
-            if result.status_code == 200:
-                text = clean(result.content)
-                memcache.set('/url/' + url, result.content, 300)
-                self.text[url]=text
-                return True
-            else:
+            try:
+                result = urlfetch.fetch(url=url)
+                if result.status_code == 200:
+                    text = clean(result.content)
+                    memcache.set('/url/' + url, result.content, 300)
+                    self.text[url]=text
+                    return True
+                else:
+                    return False
+            except:
                 return False
     def replace(self, url, tag, text):
         text = clean(text)
-        self.text[url]=string.replace(self.text[url], tag, text)
-        return True
+        try:
+            self.text[url]=string.replace(self.text[url], tag, text)
+            return True
+        except:
+            return False
     def out(self, url):
         return self.text.get(url, '')
 

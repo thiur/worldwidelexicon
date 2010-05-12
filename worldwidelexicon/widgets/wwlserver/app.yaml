@@ -1,5 +1,5 @@
 application: worldwidelexicon
-version: 3
+version: 2
 runtime: python
 api_version: 1
 
@@ -23,9 +23,6 @@ handlers:
 - url: /static
   static_dir: static
 
-- url: /s
-  static_dir: static
-  
 - url: /image
   static_dir: image
   
