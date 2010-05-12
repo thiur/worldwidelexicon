@@ -150,6 +150,16 @@ class APIKeys(db.Model):
         results = adb.fetch(limit=100)
         return results
     @staticmethod
+    def getapikey(username):
+        if len(username) > 0:
+            adb = db.Query(APIKeys)
+            adb.filter('username = ', username)
+            item = adb.get()
+            if item is not None:
+                return item.guid
+            else:
+                return ''
+    @staticmethod
     def getusername(guid):
         if len(guid) > 8:
             adb = db.Query(APIKeys)
@@ -2588,7 +2598,25 @@ class Translation(db.Model):
             results = memcache.get('translations|fetch|sl=' + sl + '|tl=' + tl + '|md5hash=' + md5hash)
         else:
             results = memcache.get('translations|fetch|sl=' + sl + '|tl=' + tl + '|domain=' + domain + '|url=' + url)
-        if results is None:
+        if len(lsp) > 0:
+            tt = LSP.get(sl,tl,st,domain=domain,url=url,lsp=lsp,lspusername=lspusername,lsppw=lsppw)
+            t = tx()
+            t.sl = sl
+            t.tl = tl
+            t.st = st
+            t.tt = tt
+            t.domain = domain
+            t.url = url
+            t.username = lsp
+            t.professional = True
+            t.spam = False
+            t.anonymous = False
+            results = list()
+            results.append(t)
+            if len(md5hash) > 0:
+                memcache.set('translations|fetch|sl=' + sl + '|tl=' + tl + '|md5hash=' + md5hash, results, 600)
+            return results
+        if results is None and len(tt) < 1:
             sortdate = True
             tdb = db.Query(Translation)
             tdb.filter('sl = ', sl)

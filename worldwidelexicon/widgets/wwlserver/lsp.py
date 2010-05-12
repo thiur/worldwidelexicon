@@ -67,7 +67,7 @@ def clean(text):
 
 class LSP():
     @staticmethod
-    def get(sl, tl, st, domain='', url='', lsp='', lspusername='', lsppw='', ttl = 3600):
+    def get(sl, tl, st, domain='', url='', lsp='', lspusername='', lsppw='', ttl = 120):
         """
         This function is checks memcached for a cached translation from the desired LSP and text,
         and if one is cached locally returns it. If the cache has expired or does not exist, it
@@ -75,12 +75,17 @@ class LSP():
         will return either a blank text, a completed translation or an HTTP error. 
         """
         if len(lsp) > 0 and len(sl) > 0 and len(tl) > 0 and len(st) > 0:
-            url = memcache.get('/lsp/url/' + lsp)
-            if url is None:
-                url = APIKeys.geturl(lsp=lsp)
-                if len(url) > 0:
-                    memcache.set('/lsp/url/' + lsp, url, 1800)
-            if len(url) > 0:
+            baseurl = memcache.get('/lsp/url/' + lsp)
+            if baseurl is None:
+                baseurl = APIKeys.geturl(lsp=lsp)
+                if len(baseurl) > 0:
+                    memcache.set('/lsp/url/' + lsp, baseurl, 1800)
+            apikey = memcache.get('/lsp/apikey/' + lsp)
+            if apikey is None:
+                apikey = APIKeys.getapikey(lsp)
+                if len(apikey) > 0:
+                    memcache.set('/lsp/apikey/' + lsp, apikey, 1800)
+            if len(baseurl) > 0:
                 st = clean(st)
                 m = md5.new()
                 m.update(sl)
@@ -91,6 +96,7 @@ class LSP():
                 if text is not None:
                     return text
                 else:
+                    fullurl = baseurl + '/t'
                     parms = dict()
                     parms['sl']=sl
                     parms['tl']=tl
@@ -99,9 +105,10 @@ class LSP():
                     parms['url']=url
                     parms['lspusername']=lspusername
                     parms['lsppw']=lsppw
+                    parms['apikey']=apikey
                     form_data = urllib.urlencode(parms)
                     try:
-                        result = urlfetch.fetch(url=url, payload = form_data, method = urlfetch.POST, headers = {'Content-Type' : 'application/x-www-form-urlencoded' , 'Accept-Charset' : 'utf-8'})
+                        result = urlfetch.fetch(url=fullurl, payload = form_data, method = urlfetch.POST, headers = {'Content-Type' : 'application/x-www-form-urlencoded' , 'Accept-Charset' : 'utf-8'})
                         if result.status_code == 200:
                             tt = clean(result.content)
                         else:
