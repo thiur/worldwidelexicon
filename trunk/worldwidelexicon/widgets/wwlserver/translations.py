@@ -554,6 +554,8 @@ class SimpleTranslation(webapp.RequestHandler):
         hostname = self.request.get('hostname')
         st = transcoder.clean(st)
         st = string.replace(st, '+', ' ')
+        username = ''
+        guid = ''
         if output == 'google':
             q = self.request.get('q')
             langpair = self.request.get('langpair')
@@ -589,6 +591,8 @@ class SimpleTranslation(webapp.RequestHandler):
             tt = ''
             if len(lsp) > 0 and lsp != 'speaklike':
                 tt = LSP.get(sl, tl, st, domain=domain, url=url, lsp=lsp, lspusername=lspusername, lsppw=lsppw)
+                if len(tt) > 0:
+                    username = lsp
             if len(tt) < 1:
                 tdb = db.Query(Translation)
                 tdb.filter('sl = ', sl)
@@ -598,6 +602,8 @@ class SimpleTranslation(webapp.RequestHandler):
                 item = tdb.get()
                 if item is not None:
                     tt = item.tt
+                    guid = item.guid
+                    username = item.username
             if len(tt) < 1:
                 m = md5.new()
                 m.update(st)
@@ -620,19 +626,28 @@ class SimpleTranslation(webapp.RequestHandler):
                         if min_score is not None:
                             if r.avgscore >= min_score:
                                 tt = r.tt
+                                guid = r.guid
+                                username = r.username
                         elif allow_anonymous == 'n':
                             if r.anonymous == False:
                                 tt = r.tt
+                                guid = r.guid
+                                username = r.username
                         else:
                             tt = r.tt
+                            guid = r.guid
+                            username = r.username
             if len(tt) < 1 and allow_machine != 'n':
                 mt = MTWrapper()
+                mtengine = mt.pickEngine(sl,tl)
                 tt = mt.getTranslation(sl, tl, st)
+
             # phasing out call to Translation.lucky() due to issues with properly finding user generated translations
             #
             # if len(tt) < 1:
             #    tt = Translation.lucky(sl=sl, tl=tl, st=st, allow_anonymous=allow_anonymous, allow_machine=allow_machine, min_score=min_score, output=output, lsp=lsp, lspusername=lspusername, lsppw = lsppw, mtengine=mtengine, queue=queue, ip=ip, userip=userip, hostname=hostname)
             #
+            tt = clean(tt)
             if output == 'text':
                 self.response.headers['Content-Type']='text/plain'
                 self.response.out.write(tt)
@@ -645,21 +660,31 @@ class SimpleTranslation(webapp.RequestHandler):
                 self.response.out.write(text)
             else:
                 d = DeepPickle()
-                p = dict()
-                p['sl']=sl
-                p['tl']=tl
-                p['st']=st
-                p['tt']=tt
-                text = d.makeRow(p, output)
-                if output == 'xml' or output == 'rss':
-                    text = '<item>' + text + '</item>'
+                d.autoheader=True
+                t = tx()
+                t.sl = sl
+                t.tl = tl
+                t.st = st
+                t.tt = tt
+                t.guid = guid
+                t.username = username
+                t.mtengine = mtengine
+                results = list()
+                results.append(t)
+                if output == 'xml' or output == 'rss' or output == 'xliff':
                     self.response.headers['Content-Type']='text/xml'
-                    self.response.out.write(text)
+                    self.response.out.write(d.pickleTable(results, output))
+                elif output == 'json':
+                    self.response.headers['Content-Type']='text/javascript'
+                    self.response.out.write(d.pickleTable(results, output))
+                elif output == 'po':
+                    self.response.headers['Content-Type']='text/plain'
+                    self.response.out.write(d.pickleTable(results, output))
                 else:
                     self.response.headers['Content-Type']='text/html'
                     self.response.out.write(text)
-            if len(text) > 0:
-                memcache.set('/t/' + md5hash + '/' + output, text, 300)
+                if len(results) > 0:
+                    memcache.set('/t/' + md5hash + '/' + output, d.pickleTable(results,output), 300)
         else:
             doc_text = self.__doc__
             t = '<table><form action=/t method=get accept-charset=utf-8>'

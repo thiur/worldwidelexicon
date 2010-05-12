@@ -229,8 +229,9 @@ class Vote(webapp.RequestHandler):
     <li>tl = target language code (if scoring without guid)</li>
     <li>st = source text (if scoring without guid)</li>
     <li>tt = translated text (if scoring without guid)</li>
-    <li>votetype = up, down or block</li>
     <li>score = integer score from 0..5 (0=bad/spam, 5 = excellent/native)</li>
+    <li>comment = comment about translation</li>
+    <li>cl = comment language code</li>
     <li>session (cookie) = session cookie, sent automatically if user is logged in to WWL server</li>
     <li>proxy = y/n (y if vote is submitted via proxy server/agent</li>
     <li>ip = user IP address (if proxy=y)</li>
@@ -259,6 +260,8 @@ class Vote(webapp.RequestHandler):
             proxy = self.request.get('proxy')
             username = ''
             professional = ''
+            comment = self.request.get('comment')
+            cl = self.request.get('cl')
             if proxy == 'y':
                 remote_addr = self.request.get('ip')
                 if len(remote_addr) < 1:
@@ -327,6 +330,21 @@ class Vote(webapp.RequestHandler):
                     p['latitude'] = str(location['latitude'])
                     p['longitude'] = str(location['longitude'])
                 taskqueue.add(url='/scores/worker', params=p)
+                if len(comment) > 0:
+                    p = dict()
+                    p['guid']
+                    p['sl']=sl
+                    p['tl']=tl
+                    p['st']=st
+                    p['tt']=tt
+                    p['domain']=domain
+                    p['url']=url
+                    p['remote_addr']=remote_addr
+                    p['proxy']='y'
+                    p['username']=username
+                    p['comment']=comment
+                    p['cl']=cl
+                    taskqueue.add(url='/comments/submit', params=p)
                 self.response.out.write('ok')
             else:
                 t = '<table><form action=/scores/vote method=get>'
@@ -338,6 +356,8 @@ class Vote(webapp.RequestHandler):
                 t = t + '<tr><td>WWL Username (optional)</td><td><input type=text name=username></td></tr>'
                 t = t + '<tr><td>WWL Password (optional)</td><td><input type=text name=pw></td></tr>'
                 t = t + '<tr><td>Integer Score (0..5)</td><td><input type=text name=score maxlength=1></td></tr>'
+                t = t + '<tr><td>Comment (optional)</td><td><input type=text name=comment></td></tr>'
+                t = t + '<tr><td>Comment Language (optional)</td><td><input type=text name=cl></td></tr>'
                 t = t + '<tr><td>LSP Name (for testing)</td><td><input type=text name=lsp></td></tr>'
                 t = t + '<tr><td colspan=2><input type=submit value=OK></td></tr>'
                 t = t + '</table></form>'

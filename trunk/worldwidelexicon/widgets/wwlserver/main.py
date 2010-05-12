@@ -130,6 +130,8 @@ class WebServer(webapp.RequestHandler):
 </ul>'
         if p1 == 'blog':
             self.redirect('http://blog.worldwidelexicon.org')
+        elif p1 == 's':
+            self.redirect('http://www.worldwidelexicon.org')
         elif len(p1) > 0:
             page = 'http://www.worldwidelexicon.org/s/' + p1 + '.html'
             w = web()
@@ -196,23 +198,27 @@ class WebServer(webapp.RequestHandler):
 class Feeds():
     @staticmethod
     def get(url, fulltext=True, limit=10, maxlength=200):
-        f = feedparser.parse(url)
         t = memcache.get('/feeds/' + url)
         if t is not None:
             return t
-        entries = f.entries
-        ctr = 0
-        if len(entries) > 0:
-            t = '<h1>News From WWL</h1>'
-            for e in entries:
-                ctr = ctr + 1
-                if ctr < limit:
-                    t = t + '<h3><a href=' + e.link + '>' + clean(e.title) + '</a></h3>'
-                    if fulltext:
-                        txt = clean(e.description)
-                        t = t + txt[0:maxlength] + ' ...'
-        memcache.set('/feeds/' + url, t, 300)
-        return t
+        else:
+            try:
+                f = feedparser.parse(url)
+                entries = f.entries
+                ctr = 0
+                if len(entries) > 0:
+                    t = '<h1>News From WWL</h1>'
+                    for e in entries:
+                        ctr = ctr + 1
+                        if ctr < limit:
+                            t = t + '<h3><a href=' + e.link + '>' + clean(e.title) + '</a></h3>'
+                            if fulltext:
+                                txt = clean(e.description)
+                                t = t + txt[0:maxlength] + ' ...'
+                memcache.set('/feeds/' + url, t, 300)
+                return t
+            except:
+                return ''
 
 application = webapp.WSGIApplication([(r'/(.*)/(.*)/(.*)', WebServer),
                                       (r'/(.*)/(.*)', WebServer),
