@@ -2598,6 +2598,7 @@ class Translation(db.Model):
             results = memcache.get('translations|fetch|sl=' + sl + '|tl=' + tl + '|md5hash=' + md5hash)
         else:
             results = memcache.get('translations|fetch|sl=' + sl + '|tl=' + tl + '|domain=' + domain + '|url=' + url)
+        tt = ''
         if len(lsp) > 0:
             tt = LSP.get(sl,tl,st,domain=domain,url=url,lsp=lsp,lspusername=lspusername,lsppw=lsppw)
             t = tx()

@@ -122,6 +122,34 @@ class LSP():
                     return ''
         else:
             return ''
+    @staticmethod
+    def score(guid, score, lsp='', sl='', tl='', st='', tt='', domain='', url='', remote_addr=''):
+        if len(guid) > 0 and len(username) > 0:
+            baseurl = APIKeys.geturl(lsp=username)
+            apikey = APIKeys.getapikey(username)
+            if len(baseurl) > 0:
+                fullurl = baseurl + '/scores/vote'
+                p = dict()
+                p['guid'] = guid
+                p['score']=score
+                p['sl']=sl
+                p['tl']=tl
+                p['st']=st
+                p['tt']=tt
+                p['domain']=domain
+                p['url']=url
+                p['remote_addr']=remote_addr
+                p['apikey']=apikey
+                form_data = urllib.urlencode(p)
+                try:
+                    result = urlfetch.fetch(url=fullurl, payload=form_data, method = urlfetch.POST, headers = {'Content-Type' : 'application/x-www-form-urlencoded' , 'Accept-Charset' : 'utf-8'})
+                    if result.status_code == 200:
+                        return True
+                    else:
+                        return False
+                except:
+                    return False
+        return False
 
 class TestTranslation(webapp.RequestHandler):
     """

@@ -235,8 +235,10 @@ class Vote(webapp.RequestHandler):
     <li>proxy = y/n (y if vote is submitted via proxy server/agent</li>
     <li>ip = user IP address (if proxy=y)</li>
     <li>username = optional WWL username (can be used to authenticate user on submitting score)</li>
-    <li>pw = WWL password</li></ul>
-
+    <li>pw = WWL password</li>
+    <li>lsp = optional LSP name (for testing, it will relay scores for translations posted by an LSP automatically.</li>
+    <ul>
+    
     It returns a simple 'ok' or 'error' message
     """
     def get(self):
@@ -255,6 +257,8 @@ class Vote(webapp.RequestHandler):
             votetype = self.request.get('votetype')
             score = self.request.get('score')
             proxy = self.request.get('proxy')
+            username = ''
+            professional = ''
             if proxy == 'y':
                 remote_addr = self.request.get('ip')
                 if len(remote_addr) < 1:
@@ -299,7 +303,11 @@ class Vote(webapp.RequestHandler):
                         tl = r.tl
                         st = clean(r.st)
                         tt = clean(t.tt)
+                        username = r.username
+                        professional = r.professional
                         complete = True
+            if len(guid) > 0 and len(username) > 0 and professional:
+                LSP.score(guid, score, lsp=username, sl=sl, tl=tl, st=st, tt=tt, domain=domain, url=url, remote_addr=remote_addr)
             if len(guid) > 0 or len(st) > 0:
                 location = geo.get(remote_addr)
                 p = dict()
@@ -330,6 +338,7 @@ class Vote(webapp.RequestHandler):
                 t = t + '<tr><td>WWL Username (optional)</td><td><input type=text name=username></td></tr>'
                 t = t + '<tr><td>WWL Password (optional)</td><td><input type=text name=pw></td></tr>'
                 t = t + '<tr><td>Integer Score (0..5)</td><td><input type=text name=score maxlength=1></td></tr>'
+                t = t + '<tr><td>LSP Name (for testing)</td><td><input type=text name=lsp></td></tr>'
                 t = t + '<tr><td colspan=2><input type=submit value=OK></td></tr>'
                 t = t + '</table></form>'
                 www.serve(self,t,sidebar=self.__doc__,title = '/scores/vote (Score a Translation)')
