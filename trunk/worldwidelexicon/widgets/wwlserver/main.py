@@ -92,7 +92,7 @@ pageTracker._trackPageview();\
 # Define default settings for Blueprint CSS framework, included with this package as the default style sheet
 
 template = 'http://www.worldwidelexicon.org/css/template.html'
-downloads = 'http://www.worldwidelexicon.org/s/downloads.html'
+downloads = 'http://www.worldwidelexicon.org/static/downloads.html'
 
 proxy_settings = '<meta name="allow_edit" content="y" />'
 
@@ -123,10 +123,11 @@ standard_footer = 'Content management system and collaborative translation memor
 class WebServer(webapp.RequestHandler):
     def get(self, p1='', p2='', p3=''):
         proxy_settings = '<meta name="allow_edit" content="y" />'        
-        lsp = Settings.get('lsp')
-        lspusername = Settings.get('lspusername')
-        lsppw = Settings.get('lsppw')
-        professional_translation_languages = Settings.get('professional_translation_languages')
+        lsp = ''
+        lspusername = ''
+        lsppw = ''
+        professional_translation_languages = ''
+        #professional_translation_languages = Settings.get('professional_translation_languages')
         if len(lsp) > 0:
             proxy_settings = proxy_settings + '<meta name="lsp" content="'+ lsp + '" />'
         if len(lspusername) > 0:
@@ -144,8 +145,11 @@ class WebServer(webapp.RequestHandler):
 </ul>'
         if p1 == 'blog':
             self.redirect('http://blog.worldwidelexicon.org')
+        elif p1 == 's':
+            self.error(404)
+            self.response.out.write('<h2>Page Not Found</h2>')
         elif len(p1) > 0:
-            page = 'http://www.worldwidelexicon.org/s/' + p1 + '.html'
+            page = 'http://www.worldwidelexicon.org/static/' + p1 + '.html'
             w = web()
             w.get(page)
             t = w.out(page)
