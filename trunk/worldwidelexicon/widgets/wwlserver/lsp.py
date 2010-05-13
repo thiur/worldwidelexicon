@@ -67,20 +67,24 @@ def clean(text):
 
 class LSP():
     @staticmethod
-    def get(sl, tl, st, domain='', url='', lsp='', lspusername='', lsppw='', ttl = 120):
+    def get(sl, tl, st, domain='', url='', lsp='', lspusername='', lsppw='', ttl = 7200):
         """
         This function is checks memcached for a cached translation from the desired LSP and text,
         and if one is cached locally returns it. If the cache has expired or does not exist, it
         makes an HTTP/S call to the language service provider to request the translation. The LSP
         will return either a blank text, a completed translation or an HTTP error. 
         """
+        if lsp == 'speaklike':
+            lsp = 'speaklikeapi'
         if len(lsp) > 0 and len(sl) > 0 and len(tl) > 0 and len(st) > 0:
-            baseurl = memcache.get('/lsp/url/' + lsp)
+            baseurl = None
+            #baseurl = memcache.get('/lsp/url/' + lsp)
             if baseurl is None:
                 baseurl = APIKeys.geturl(lsp=lsp)
                 if len(baseurl) > 0:
                     memcache.set('/lsp/url/' + lsp, baseurl, 1800)
-            apikey = memcache.get('/lsp/apikey/' + lsp)
+            apikey = None
+            #apikey = memcache.get('/lsp/apikey/' + lsp)
             if apikey is None:
                 apikey = APIKeys.getapikey(lsp)
                 if len(apikey) > 0:
@@ -107,15 +111,9 @@ class LSP():
                     parms['lsppw']=lsppw
                     parms['apikey']=apikey
                     form_data = urllib.urlencode(parms)
-                    try:
-                        result = urlfetch.fetch(url=fullurl, payload = form_data, method = urlfetch.POST, headers = {'Content-Type' : 'application/x-www-form-urlencoded' , 'Accept-Charset' : 'utf-8'})
-                        if result.status_code == 200:
-                            tt = clean(result.content)
-                        else:
-                            tt = ''
-                    except:
-                        tt=''
-                    if len(tt) > 0:                        
+                    result = urlfetch.fetch(url=fullurl, payload = form_data, method = urlfetch.POST, headers = {'Content-Type' : 'application/x-www-form-urlencoded' , 'Accept-Charset' : 'utf-8'})
+                    tt = result.content
+                    if len(tt) > 0 and result.status_code == 200:
                         memcache.set('/lsp/' + lsp + '/' + guid, tt, ttl)
                     return tt
             else:
@@ -124,6 +122,8 @@ class LSP():
             return ''
     @staticmethod
     def score(guid, score, lsp='', sl='', tl='', st='', tt='', domain='', url='', remote_addr=''):
+        if lsp == 'speaklike':
+            lsp = 'speaklikeapi'
         if len(guid) > 0 and len(username) > 0:
             baseurl = APIKeys.geturl(lsp=username)
             apikey = APIKeys.getapikey(username)

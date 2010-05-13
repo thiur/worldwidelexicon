@@ -51,6 +51,7 @@ from google.appengine.api import memcache
 from google.appengine.api import urlfetch
 # import Worldwide Lexicon modules
 import feedparser
+from database import APIKeys
 from database import Directory
 from database import Settings
 from transcoder import transcoder
@@ -121,6 +122,19 @@ standard_footer = 'Content management system and collaborative translation memor
 
 class WebServer(webapp.RequestHandler):
     def get(self, p1='', p2='', p3=''):
+        proxy_settings = '<meta name="allow_edit" content="y" />'        
+        lsp = Settings.get('lsp')
+        lspusername = Settings.get('lspusername')
+        lsppw = Settings.get('lsppw')
+        professional_translation_languages = Settings.get('professional_translation_languages')
+        if len(lsp) > 0:
+            proxy_settings = proxy_settings + '<meta name="lsp" content="'+ lsp + '" />'
+        if len(lspusername) > 0:
+            proxy_settings = proxy_settings + '<meta name="lspusername" content="' + lspusername + '" />'
+        if len(lsppw) > 0:
+            proxy_settings = proxy_settings + '<meta name="lsppw" content="' + lsppw + '" />'
+        if len(professional_translation_languages) > 0:
+            proxy_settings = proxy_settings + '<meta name="professional_translation_languages" content="' + professional_translation_languages + '" />'
         menus = '<ul><li><a href=/api>API</a></li>\
 <li><a href=http://blog.worldwidelexicon.org>Blog</a></li>\
 <li><a href=/drupal>Drupal</a></li>\
@@ -130,8 +144,6 @@ class WebServer(webapp.RequestHandler):
 </ul>'
         if p1 == 'blog':
             self.redirect('http://blog.worldwidelexicon.org')
-        elif p1 == 's':
-            self.redirect('http://www.worldwidelexicon.org')
         elif len(p1) > 0:
             page = 'http://www.worldwidelexicon.org/s/' + p1 + '.html'
             w = web()

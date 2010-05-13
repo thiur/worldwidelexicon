@@ -116,6 +116,7 @@ class GetTranslations(webapp.RequestHandler):
     <li>mtengine : optional machine translation engine to call out to for machine translations
                     if no human translations are available (options are: google, apertium,
                     moses, with more coming soon)</li>
+    <li>ttl : cache time to live (for professional translations, in seconds</li>
     <li>output : output format (xml, rss, json, po, xliff)</li></ul><p>
     
     The request handler returns the recordset in the desired format (xml if not specified)
@@ -154,6 +155,12 @@ class GetTranslations(webapp.RequestHandler):
         lspusername = self.request.get('lspusername')
         lsppw = self.request.get('lsppw')
         mtengine = self.request.get('mtengine')
+        try:
+            ttl = int(self.request.get('ttl'))
+            if ttl < 1:
+                ttl = 7200
+        except:
+            ttl = 7200
         remote_addr = self.request.remote_addr
         if md5hash == 'test':
             test = True
@@ -217,6 +224,24 @@ class GetTranslations(webapp.RequestHandler):
             else:
                 validquery = True
         if validquery:
+            results = None
+            if len(lsp) > 0:
+                tt = LSP.get(sl,tl,st,domain=domain,url=url,lsp=lsp,lspusername=lspusername,lsppw=lsppw, ttl = ttl)
+                t = tx()
+                t.sl = sl
+                t.tl = tl
+                t.st = st
+                t.tt = tt
+                t.domain = domain
+                t.url = url
+                t.username = lsp
+                t.professional = True
+                t.spam = False
+                t.anonymous = False
+                results = list()
+                results.append(t)
+                if len(md5hash) > 0:
+                    memcache.set('translations|fetch|sl=' + sl + '|tl=' + tl + '|md5hash=' + md5hash, results, 600)
             if len(url) > 0:
                 p = dict()
                 p['remote_addr']=self.request.remote_addr
@@ -224,7 +249,8 @@ class GetTranslations(webapp.RequestHandler):
                 p['sl']=sl
                 p['tl']=tl
                 taskqueue.add(url='/log', params=p)
-            results = Translation.fetch(sl=sl, st=st, tl=tl, domain='', url=url, userip=remote_addr, allow_machine=allow_machine, allow_anonymous=allow_anonymous, min_score=minimum_score, max_blocked_votes=max_blocked_votes, fuzzy=fuzzy, lsp=lsp, lspusername=lspusername, lsppw=lsppw)
+            if results is None:
+                results = Translation.fetch(sl=sl, st=st, tl=tl, domain='', url=url, userip=remote_addr, allow_machine=allow_machine, allow_anonymous=allow_anonymous, min_score=minimum_score, max_blocked_votes=max_blocked_votes, fuzzy=fuzzy, lsp=lsp, lspusername=lspusername, lsppw=lsppw)
             if len(results) < 1 or fuzzy=='y':
                 try:
                     st = urllib.unquote(st)
@@ -279,6 +305,7 @@ class GetTranslations(webapp.RequestHandler):
             t = t + '<tr><td>Language Servuce Provider (lsp)</td><td><input type=text name=lsp></td></tr>'
             t = t + '<tr><td>LSP Username</td><td><input type=text name=lspusername></td></tr>'
             t = t + '<tr><td>LSP Password</td><td><input type=text name=lsppw></td></tr>'
+            t = t + '<tr><td>Cache Time to Live (seconds)</td><td><input type=text name=ttl></td></tr>'
             t = t + '<tr><td>Output Format</td><td><input type=text name=output value=rss></td></tr>'
             t = t + '<tr><td colspan=2><input type=submit value=SEARCH></td></tr>'
             t = t + '</table></form>'
@@ -509,6 +536,7 @@ class SimpleTranslation(webapp.RequestHandler):
     <li>queue = add translation to translation queue for third party service (e.g. beextra.org)</li>
     <li>mtengine = request translation via a specific machine translation service, if not specified will
                 select MT engine automatically using defaults in mt.py</li>
+    <li>ttl = cache time to live (for professional translations), in seconds</li>
     <li>ip = dotted IP address or prefix (e.g. ip=206.1.2) to limit results to translations submitted from
                 a specific IP address or range (so you can ignore submissions that were not posted from
                 a trusted gateway you control)</li>
@@ -550,6 +578,12 @@ class SimpleTranslation(webapp.RequestHandler):
         output = self.request.get('output')
         mtengine = self.request.get('mtengine')
         queue = self.request.get('queue')
+        try:
+            ttl = int(self.request.get('ttl'))
+            if ttl < 1:
+                ttl = 7200
+        except:
+            ttl = 7200
         ip = self.request.get('ip')
         hostname = self.request.get('hostname')
         st = transcoder.clean(st)
@@ -589,8 +623,8 @@ class SimpleTranslation(webapp.RequestHandler):
             return
         if len(tl) > 0 and len(st) > 0:
             tt = ''
-            if len(lsp) > 0 and lsp != 'speaklike':
-                tt = LSP.get(sl, tl, st, domain=domain, url=url, lsp=lsp, lspusername=lspusername, lsppw=lsppw)
+            if len(lsp) > 0:
+                tt = LSP.get(sl, tl, st, domain=domain, url=url, lsp=lsp, lspusername=lspusername, lsppw=lsppw, ttl=ttl)
                 if len(tt) > 0:
                     username = lsp
             if len(tt) < 1:
@@ -695,6 +729,7 @@ class SimpleTranslation(webapp.RequestHandler):
             t = t + '<td><input type=text name=lsp></td></tr>'
             t = t + '<tr><td>LSP Username</td><td><input type=text name=lspusername></td></tr>'
             t = t + '<tr><td>LSP Password</td><td><input type=text name=lsppw></td></tr>'
+            t = t + '<tr><td>Cache Time to Live (seconds)</td><td><input type=text name=ttl></td></tr>'
             t = t + '<tr><td>Limit Results By IP Address or Pattern</td><td><input type=text name=ip></td></tr>'
             t = t + '<tr><td>Allow Machine Translation (y/n)</td><td><input type=text name=allow_machine value=y></td></tr>'
             t = t + '<tr><td>Allow Anonymous Translation (y/n)</td><td><input type=text name=allow_anonymous value=y></td></tr>'
@@ -855,9 +890,15 @@ class BatchTranslation(webapp.RequestHandler):
 # Main request handler, decides which request handler to call based on the URL pattern
 #
 
+class IndexNgrams(webapp.RequestHandler):
+    def get(self):
+        result = Translation.ngrams()
+        self.response.out.write('ok')
+
 application = webapp.WSGIApplication([('/q', GetTranslations),
                                       ('/batch', BatchTranslation),
                                       ('/log', LogQueries),
+                                      ('/ngrams', IndexNgrams),
                                       (r'/t/(.*)/(.*)/(.*)', SimpleTranslation),
                                       (r'/t/(.*)/(.*)', SimpleTranslation),
                                       ('/t', SimpleTranslation),
