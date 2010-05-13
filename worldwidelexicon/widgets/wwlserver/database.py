@@ -2229,6 +2229,39 @@ class Translation(db.Model):
         else:
             return ''
     @staticmethod
+    def ngrams(limit=1):
+        """
+        This function is called as a background process to index new translations for full text
+        search (breaks the words into ngrams).
+        """
+        tdb = db.Query(Translation)
+        tdb.filter('reviewed = ', False)
+        results = tdb.fetch(limit=limit)
+        for r in results:
+            st = string.lower(clean(r.st))
+            st = string.replace(st, '.', '')
+            st = string.replace(st, '\'', '')
+            st = string.replace(st, '\"', '')
+            st = string.replace(st, '-','')
+            swords = string.split(st, ' ')
+            tt = string.lower(clean(r.tt))
+            tt = string.replace(tt, '.', '')
+            tt = string.replace(tt, '\'', '')
+            tt = string.replace(tt, '\"', '')
+            tt = string.replace(tt, '-','')
+            twords = string.split(tt, ' ')
+            ngrams = list()
+            r.reviewed = True
+            r.put()
+            for s in swords:
+                if len(s) < 30:
+                    ngrams.append(s)
+            for t in twords:
+                if len(t) < 30:
+                    ngrams.append(s)
+            r.ngrams = ngrams
+            r.put()
+    @staticmethod
     def seteditor(guid, editorscore='', approved='', rejected='', spam=''):
         if len(guid) > 0:
             tdb = db.Query(Translation)
@@ -2389,30 +2422,6 @@ class Translation(db.Model):
             words = string.replace(words, '\'', '')
             words = string.replace(words, '\"', '')
             ngrams = string.split(string.lower(words), ' ')
-            # generate n-gram list
-            numwords = len(ngrams)
-            chars = 0
-            if numwords > 0 and chars < 400:
-                i = 0
-                while i < numwords:
-                    try:
-                        ngrams.append(ngrams[i] + ' ' + ngrams[i+1])
-                    except:
-                        pass
-                    try:
-                        ngrams.append(ngrams[i] + ' ' + ngrams[i+1] + ' ' + ngrams[i+2])
-                    except:
-                        pass
-                    try:
-                        ngrams.append(ngrams[i] + ' ' + ngrams[i+1] + ' ' + ngrams[i+2] + ' ' + ngrams[i+3])
-                    except:
-                        pass
-                    try:
-                        ngrams.append(ngrams[1] + ' ' + ngrams[i+1] + ' ' + ngrams[i+2] + ' ' + ngrams[i+3] + ' ' + ngrams[i+4])
-                    except:
-                        pass
-                    i = i + 1
-            #tdb.ngrams = ngrams
             tdb.put()
             if len(username) > 0:
                 if type(latitude) is float and type(longitude) is float:
@@ -2599,23 +2608,7 @@ class Translation(db.Model):
         else:
             results = memcache.get('translations|fetch|sl=' + sl + '|tl=' + tl + '|domain=' + domain + '|url=' + url)
         tt = ''
-        if len(lsp) > 0:
-            tt = LSP.get(sl,tl,st,domain=domain,url=url,lsp=lsp,lspusername=lspusername,lsppw=lsppw)
-            t = tx()
-            t.sl = sl
-            t.tl = tl
-            t.st = st
-            t.tt = tt
-            t.domain = domain
-            t.url = url
-            t.username = lsp
-            t.professional = True
-            t.spam = False
-            t.anonymous = False
-            results = list()
-            results.append(t)
-            if len(md5hash) > 0:
-                memcache.set('translations|fetch|sl=' + sl + '|tl=' + tl + '|md5hash=' + md5hash, results, 600)
+        if results is not None:
             return results
         if results is None and len(tt) < 1:
             sortdate = True
