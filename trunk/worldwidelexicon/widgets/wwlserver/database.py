@@ -926,7 +926,7 @@ class Queue(db.Model):
     @staticmethod
     def purge():
         qdb = db.Query(Queue)
-        gdb.order('createdon')
+        qdb.order('createdon')
         results = qdb.fetch(limit=100)
         if results is not None:
             for r in results:
