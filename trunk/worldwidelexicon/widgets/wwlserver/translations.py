@@ -75,6 +75,7 @@ from geo import geo
 from akismet import Akismet
 from transcoder import transcoder
 from database import Comment
+from database import Directory
 from database import Search
 from database import Translation
 from database import languages
@@ -155,6 +156,10 @@ class GetTranslations(webapp.RequestHandler):
         lspusername = self.request.get('lspusername')
         lsppw = self.request.get('lsppw')
         mtengine = self.request.get('mtengine')
+        ip = self.request.get('ip')
+        hostname = self.request.get('hostname')
+        if len(ip) > 0:
+            remote_addr = ip
         try:
             ttl = int(self.request.get('ttl'))
             if ttl < 1:
@@ -225,13 +230,15 @@ class GetTranslations(webapp.RequestHandler):
                 validquery = True
         if validquery:
             results = None
+            if len(hostname) > 0:
+                Directory.hostname(hostname, sl, tl, remote_addr=remote_addr)
             if len(lsp) > 0:
                 tt = LSP.get(sl,tl,st,domain=domain,url=url,lsp=lsp,lspusername=lspusername,lsppw=lsppw, ttl = ttl)
                 t = tx()
                 t.sl = sl
                 t.tl = tl
-                t.st = st
-                t.tt = tt
+                t.st = clean(st)
+                t.tt = clean(tt)
                 t.domain = domain
                 t.url = url
                 t.username = lsp
@@ -242,6 +249,8 @@ class GetTranslations(webapp.RequestHandler):
                 results.append(t)
                 if len(md5hash) > 0:
                     memcache.set('translations|fetch|sl=' + sl + '|tl=' + tl + '|md5hash=' + md5hash, results, 600)
+                if len(results) < 1:
+                    results = None
             if len(url) > 0:
                 p = dict()
                 p['remote_addr']=self.request.remote_addr
@@ -585,6 +594,8 @@ class SimpleTranslation(webapp.RequestHandler):
         except:
             ttl = 7200
         ip = self.request.get('ip')
+        if len(ip) < 1:
+            ip = self.request.remote_addr
         hostname = self.request.get('hostname')
         st = transcoder.clean(st)
         st = string.replace(st, '+', ' ')
@@ -621,6 +632,8 @@ class SimpleTranslation(webapp.RequestHandler):
                 self.response.headers['Content-Type']='text/plain'
             self.response.out.write(text)
             return
+        if len(hostname) > 0:
+            Directory.hostname(hostname, sl, tl, remote_addr=ip)
         if len(tl) > 0 and len(st) > 0:
             tt = ''
             if len(lsp) > 0:

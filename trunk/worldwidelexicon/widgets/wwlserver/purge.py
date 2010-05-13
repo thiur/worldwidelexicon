@@ -5,6 +5,7 @@ from google.appengine.ext import db
 from geo import geo
 from database import Search
 from database import Stats
+from database import Queue
 
 class Purge(webapp.RequestHandler):
     def get(self, name=''):
@@ -14,6 +15,8 @@ class Purge(webapp.RequestHandler):
             result = geo.purge(name='geodb')
         elif name == 'stats':
             result = Stats.purge()
+        elif name == 'queue':
+            result = Queue.purge()
         else:
             result = geo.purge()
         self.response.out.write('ok')

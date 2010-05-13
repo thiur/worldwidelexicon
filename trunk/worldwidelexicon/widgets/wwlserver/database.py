@@ -898,108 +898,6 @@ class languages():
                 t = t + '<option value="' + l + '">' + langlist.get(l, '') + '</option>'
         return t
 
-class LSPQueue(db.Model):
-    action = db.StringProperty(default='translate')
-    guid = db.StringProperty(default='')
-    sl = db.StringProperty(default='')
-    tl = db.StringProperty(default='')
-    st = db.TextProperty(default='')
-    tt = db.TextProperty(default='')
-    domain = db.StringProperty(default='')
-    url = db.StringProperty(default='')
-    priority = db.StringProperty(default='')
-    username = db.StringProperty(default='')
-    pw = db.StringProperty(default='')
-    sent = db.BooleanProperty(default=False)
-    createdon = db.DateTimeProperty(auto_now_add=True)
-    completed = db.BooleanProperty(default=False)
-    completedon = db.DateTimeProperty()
-    tries = db.IntegerProperty(default=0)
-    @staticmethod
-    def add(action,external_url,guid,sl,tl,st,tt,domain,url,priority,username,pw):
-        qdb = db.Query(LSPQueue)
-        qdb.filter('guid = ', guid)
-        item = qdb.get()
-        if item is None:
-            item = LSPQueue()
-            item.guid = guid
-            item.action = action
-            item.sl = sl
-            item.tl = tl
-            item.st = st
-            item.tt = tt
-            item.domain = domain
-            item.url = url
-            item.priority = priority
-            item.username = username
-            item.pw = pw
-            d = dict()
-            d['guid']=guid
-            d['action']=action
-            d['sl']=sl
-            d['tl']=tl
-            d['st']=st
-            d['tt']=tt
-            d['domain']=domain
-            d['url']=url
-            d['priority']=priority
-            d['username']=username
-            d['pw']=pw
-            form_data = urllib.urlencode(d)
-            try:
-                result = urlfetch.fetch(url=external_url,
-                                      payload=form_data,
-                                      method=urlfetch.POST,
-                                      headers={'Content-Type' : 'application/x-www-form-urlencoded','Accept-Charset' : 'utf-8'})
-                response = result.content
-                if string.count(response.lower(), 'ok') > 0:
-                    item.sent = True
-                    item.put()
-                    return True
-                else:
-                    return False
-            except:
-                return False
-        else:
-            return False
-    @staticmethod
-    def submit(apikey, guid, tt='', score=''):
-        if len(apikey) > 0 and len(guid) > 0 and len(tt) > 0:
-            username = APIKeys.getusername(apikey)
-            if len(username) > 0:
-                qdb = db.Query(LSPQueue)
-                qdb.filter('guid = ', guid)
-                item = qdb.get()
-                if item is not None:
-                    if item.action == 'translate':
-                        sl = item.sl
-                        tl = item.tl
-                        st = item.st
-                        url = item.url
-                        domain = item.domain
-                        item.pw = ''
-                        item.completed = True
-                        item.completedon = datetime.datetime.now()
-                        item.put()
-                        result = Translation.submit(sl=sl, tl=tl, st=st, tt=tt, url=url, domain=domain, apikey=apikey)
-                        return result
-                    elif item.action == 'score':
-                        guid = item.guid
-                        item.pw = ''
-                        item.completed = True
-                        item.completedon = datetime.datetime.now()
-                        item.put()
-                        result = Score.vote(guid, score=score)
-                        return result
-                    else:
-                        return False
-                else:
-                    return False
-            else:
-                return False
-        else:
-            return False
-    
 class Queue(db.Model):
     """
     This data store is used to store a queue of jobs waiting to be processed. It catalogs
@@ -1025,6 +923,15 @@ class Queue(db.Model):
     scoredby = db.ListProperty(str)
     scores = db.ListProperty(str)
     scored = db.BooleanProperty(default = False)
+    @staticmethod
+    def purge():
+        qdb = db.Query(Queue)
+        gdb.order('createdon')
+        results = qdb.fetch(limit=100)
+        if results is not None:
+            for r in results:
+                r.delete()
+        return True
     @staticmethod
     def add(sl, tl, st, domain='', url='', lsp=''):
         st = clean(st)
@@ -2170,64 +2077,7 @@ class Translation(db.Model):
         return tx
     @staticmethod
     def lsp(sl, tl, st, domain='', url='', lsp='', lspusername='', lsppw=''):
-        sl = string.lower(sl)
-        tl = string.lower(tl)
-        allow_translation = False
-        if lsp == 'speaklike' and sl != tl:
-            if lspusername != 'bsmcconnell@gmail.com' and len(lsppw) > 0:
-                allow_translation = True
-            elif lspusername == 'bsmcconnell@gmail.com' and sl == 'en' and (tl == 'es' or tl == 'pt' or tl=='ja' or tl=='de' or tl=='zh' or tl=='ru'):
-                allow_translation = True
-            if allow_translation:
-                st = clean(st)
-                st = string.replace(st,'<','&lt;')
-                st = string.replace(st,'>','&gt;')
-                st = string.replace(st,'\"','&quot;')
-                st = string.replace(st,'\'','&apos;')
-                queued = memcache.get('lsp_queue|sl=' + sl + '|tl=' + tl + '|st=' + st)
-                if queued is None:
-                    memcache.set('lsp_queue|sl=' + sl + '|tl=' + tl + '|st=' + st, 'queued', 7200)
-                    t = '<SLClientMsg><cmd type="Login" id="1"><u>' + lspusername + '</u><p>' + lsppw + '</p></cmd>'
-                    t = t + '<cmd type="SubmitDocument" id="2"><document><originalLangId>' + sl + '</originalLangId>'
-                    t = t + '<targetLanguages><langId>' + tl + '</langId></targetLanguages>'
-                    t = t + '<mimeType>text/plain</mimeType><encoding>none</encoding>'
-                    t = t + '<contents>' + st + '</contents></document>'
-                    t = t + '<callback type="translationComplete" method="FORM">'
-                    t = t + '<url>http://www.worldwidelexicon.org/submit</url>'
-                    t = t + '<formParams>'
-                    t = t + '<param name="sl" val="%SPEAKLIKE_SOURCE_LANG_ID%"/>'
-                    t = t + '<param name="tl" val="%SPEAKLIKE_TARGET_LANG_IDS%"/>'
-                    t = t + '<param name="st" val="%SPEAKLIKE_ORIGINAL_CONTENTS%"/>'
-                    t = t + '<param name="tt" val="%SPEAKLIKE_TRANSLATED_CONTENTS_' + tl + '%"/>'
-                    t = t + '<param name="username" val="speaklike"/>'
-                    t = t + '<param name="domain" val="' + domain + '"/>'
-                    t = t + '<param name="url" val="' + url + '"/>'
-                    t = t + '<param name="output" val="text"/>'
-                    t = t + '<param name="lsp" val="speaklike"/>'
-                    t = t + '</formParams>'
-                    t = t + '<expectedResponse>ok</expectedResponse>'
-                    t = t + '</callback>'
-                    t = t + '<affiliate>worldwidelexicon.org</affiliate>'
-                    t = t + '</cmd></SLClientMsg>'
-                    form_fields = {
-                        "msg" : t
-                    }
-                    sl_url = 'http://www.speaklike.com/REST/controller/formSend'
-                    form_data = urllib.urlencode(form_fields)
-                    p = dict()
-                    p['url'] = sl_url
-                    p['form_data'] = form_data
-                    p['lsp'] = 'speaklike'
-                    taskqueue.add(url = '/queue/send', params = p)
-                    return ''
-                else:
-                    return ''
-            else:
-                return ''
-        elif len(lsp) > 0:
-            return ''
-        else:
-            return ''
+        return ''
     @staticmethod
     def ngrams(limit=1):
         """
