@@ -11,41 +11,7 @@ indexes:
   properties:
   - name: tl
   - name: lastupdated
-    direction: desc
-    
-- kind: Queue
-  properties:
-  - name: completed
-  - name: sl
-  - name: tl
-  - name: lsp
-  - name: createdon
-    direction: desc
-    
-- kind: Queue
-  properties:
-  - name: completed
-  - name: sl
-  - name: tl
-  - name: domain
-  - name: lsp
-  - name: createdon
-    direction: desc
-
-- kind: Queue
-  properties:
-  - name: sl
-  - name: tl
-  - name: translated
-  - name: createdon
-
-- kind: Queue
-  properties:
-  - name: sl
-  - name: tl
-  - name: domain
-  - name: translated
-  - name: createdon
+    direction: desc    
 
 - kind: Score
   properties:
