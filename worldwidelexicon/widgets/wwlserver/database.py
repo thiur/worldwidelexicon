@@ -2205,8 +2205,8 @@ class Translation(db.Model):
             tdb.guid = guid
             tdb.sl = sl
             tdb.tl = tl
-            tdb.st = st.decode('utf-8')
-            tdb.tt = tt.decode('utf-8')
+            tdb.st = st
+            tdb.tt = tt
             tdb.domain = domain
             tdb.url = url
             tdb.username = username
@@ -2229,6 +2229,7 @@ class Translation(db.Model):
             if lsp == 'speaklike':
                 tdb.professional = True
                 tdb.reviewed = True
+                tdb.spam = False
             if latitude is not None and longitude is not None:
                 try:
                     tdb.latitude = latitude
@@ -2433,10 +2434,7 @@ class Translation(db.Model):
         if len(st) > 0 or len(md5hash) > 0:
             if len(st) > 0:
                 m = md5.new()
-                try:
-                    m.update(st.encode('utf-8'))
-                except:
-                    m.update(smart_str(st))
+                m.update(clean(st))
                 md5hash = str(m.hexdigest())
             results = memcache.get('translations|fetch|sl=' + sl + '|tl=' + tl + '|md5hash=' + md5hash)
         else:
@@ -2472,8 +2470,11 @@ class Translation(db.Model):
                 skiprecord=True
             if min_score > 0 and r.avgscore < min_score:
                 skiprecord=True
-            if r.spam:
-                skiprecord=True
+            try:
+                if r.spam:
+                    skiprecord=True
+            except:
+                pass
             if max_blocked_votes > 0 and r.blockedvotes > max_blocked_votes:
                 skiprecord=True
             if r.professional:

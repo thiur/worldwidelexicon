@@ -623,6 +623,12 @@ class SimpleTranslation(webapp.RequestHandler):
             output = 'text'
         text = memcache.get('/t/' + md5hash + '/' + output)
         self.response.headers['Accept-Charset'] = 'utf-8'
+        createdon = ''
+        username = ''
+        remote_addr = ''
+        city = ''
+        country = ''
+        timestamp = ''
         if text is not None:
             if output == 'xml' or output == 'rss':
                 self.response.headers['Content-Type']='text/xml'
@@ -641,6 +647,9 @@ class SimpleTranslation(webapp.RequestHandler):
                 if len(tt) > 0:
                     username = lsp
             if len(tt) < 1:
+                m = md5.new()
+                m.update(st)
+                md5hash = str(m.hexdigest())                
                 tdb = db.Query(Translation)
                 tdb.filter('sl = ', sl)
                 tdb.filter('tl = ', tl)
@@ -651,10 +660,10 @@ class SimpleTranslation(webapp.RequestHandler):
                     tt = item.tt
                     guid = item.guid
                     username = item.username
+                    city = item.city
+                    country = item.country
+                    timestamp = str(item.date)
             if len(tt) < 1:
-                m = md5.new()
-                m.update(st)
-                md5hash = str(m.hexdigest())
                 tdb = db.Query(Translation)
                 tdb.filter('sl = ', sl)
                 tdb.filter('tl = ', tl)
@@ -675,15 +684,25 @@ class SimpleTranslation(webapp.RequestHandler):
                                 tt = r.tt
                                 guid = r.guid
                                 username = r.username
+                                remote_addr = r.remote_addr
+                                city = r.city
+                                country = r.country
+                                timestamp = str(r.date)
                         elif allow_anonymous == 'n':
                             if r.anonymous == False:
                                 tt = r.tt
                                 guid = r.guid
                                 username = r.username
+                                city = r.city
+                                country = r.country
+                                timestamp = str(r.date)
                         else:
                             tt = r.tt
                             guid = r.guid
                             username = r.username
+                            city = r.city
+                            country = r.country
+                            timestamp = str(r.date)
             if len(tt) < 1 and allow_machine != 'n':
                 mt = MTWrapper()
                 mtengine = mt.pickEngine(sl,tl)
@@ -716,6 +735,10 @@ class SimpleTranslation(webapp.RequestHandler):
                 t.guid = guid
                 t.username = username
                 t.mtengine = mtengine
+                t.remote_addr = remote_addr
+                t.date = timestamp
+                t.city = city
+                t.country = country
                 results = list()
                 results.append(t)
                 if output == 'xml' or output == 'rss' or output == 'xliff':
