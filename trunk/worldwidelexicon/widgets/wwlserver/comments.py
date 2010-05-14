@@ -72,10 +72,11 @@ from google.appengine.ext.webapp.util import run_wsgi_app
 from google.appengine.ext import db
 from google.appengine.api import memcache
 # import standard Python libraries
-import md5
-import urllib
-import string
 import datetime
+import md5
+import string
+import traceback
+import urllib
 # import WWL and third party modules
 from deeppickle import DeepPickle
 from www import www
@@ -282,7 +283,15 @@ class SubmitComment(webapp.RequestHandler):
 
 class TestError(webapp.RequestHandler):
     def get(self):
-        self.response.out.write(1/0)
+        try:
+            result = 1/0
+        except:
+            self.error(500)
+            self.response.out.write('<h2>Whoopsie Daisy!</h2>')
+            self.response.out.write('<table>')
+            self.response.out.write('<tr valign=top><td><img src=/image/bug.jpg></td>')
+            self.response.out.write('<td>' + traceback.format_exc())
+            self.response.out.write('</td></tr></table>')
 
 debug_setting = Settings.get('debug')
 if debug_setting == 'True':

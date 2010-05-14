@@ -73,7 +73,8 @@ class TestLanguage(db.Model):
     @staticmethod
     def language(d='', text=''):
         if len(text) > 0 and len(d) < 1:
-            encodedtext = urllib.quote_plus(codecs.encode(text, 'utf-8'))
+            encodedtext = clean(text)
+            encodedtext = urllib.quote_plus(encodedtext)
             url = 'http://ajax.googleapis.com/ajax/services/language/detect?v=1.0&q=' + encodedtext
             response = urlfetch.fetch(url = url)
             if response.status_code == 200:
