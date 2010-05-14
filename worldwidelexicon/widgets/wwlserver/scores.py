@@ -14,6 +14,8 @@ scores for translations. This module defines two web API services:
 /scores/counter : to request a counter for the number of up/down votes a users has
                    received
 
+(test edit for SVN, test again)
+
 To submit scores:
 
 * Call the /scores/vote request handler to record a score for a specific
