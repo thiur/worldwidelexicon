@@ -128,6 +128,9 @@ handlers:
 - url: /sidebar
   script: firefox.py
   secure: optional
+
+- url: /status
+  script: admin.py
   
 - url: /stats/scores
   script: scores.py

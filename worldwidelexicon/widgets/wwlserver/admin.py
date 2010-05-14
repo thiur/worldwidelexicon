@@ -387,6 +387,10 @@ class Setup(webapp.RequestHandler):
         else:
             self.redirect('/admin')
 
+class Status(webapp.RequestHandler):
+    def get(self):
+        self.response.out.write(Settings.get('status'))
+
 application = webapp.WSGIApplication([('/admin', Login),
                                       ('/admin/addlanguage', AddLanguage),
                                       ('/admin/deletelanguage', DeleteLanguage),
@@ -400,6 +404,7 @@ application = webapp.WSGIApplication([('/admin', Login),
                                       ('/admin/setup', Setup),
                                       ('/admin/setvar', SetVariable),
                                       ('/headers', Headers),
+                                      ('/status', Status),
                                       ('/robots.txt', Robots)],
                                      debug=True)
 

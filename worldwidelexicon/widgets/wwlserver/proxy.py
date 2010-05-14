@@ -58,7 +58,6 @@ import codecs
 from webappcookie import Cookies
 # import WWL modules
 from database import Users
-from database import Urls
 
 def clean(text):
     try:
