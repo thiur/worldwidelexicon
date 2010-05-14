@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Worldwide Lexicon Project
-Main Module and Source Code Documentation (main.py)
+API Test Server and Source Code Documentation (home.py)
 by Brian S McConnell <brian@worldwidelexicon.org>
 
 The Worldwide Lexicon Translation Memory is a collection of open source tools that enable you to build

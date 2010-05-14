@@ -7,7 +7,7 @@ Brian S McConnell <brian@worldwidelexicon.org>
 This module defines persistent datastores and the functions used to fetch and
 submit data to them.
 
-Copyright (c) 1998-2009, Worldwide Lexicon Inc, Brian S McConnell. 
+Copyright (c) 1998-2010, Worldwide Lexicon Inc, Brian S McConnell. 
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification,
@@ -464,22 +464,6 @@ class Comment(db.Model):
             return ctr
         else:
             return 0
-
-class Hosts(db.Model):
-    domain = db.StringProperty(default='')
-    title = db.StringProperty(default='', multiline = True)
-    description = db.TextProperty(default='')
-    sl = db.StringProperty(default='')
-    lsp = db.StringProperty(default='')
-    lspusername = db.StringProperty(default='')
-    lsppw = db.StringProperty(default='')
-    machinelanguages = db.ListProperty(str)
-    communitylanguages = db.ListProperty(str)
-    prolanguages = db.ListProperty(str)
-    createdon = db.DateTimeProperty(auto_now_add = True)
-    planlevel = db.StringProperty(default='free')
-    username = db.StringProperty(default='')
-    lastupdated = db.DateTimeProperty(auto_now_add = True)
 
 class DirectoryIP(db.Model):
     """
@@ -2466,19 +2450,15 @@ class Translation(db.Model):
             tdb.filter('sl = ', sl)
             tdb.filter('tl = ', tl)
             if fuzzy == 'y':
-                if len(st) < 500:
-                    tdb.filter('ngrams = ', st)
-                else:
-                    st = st[0:400]
-                    tdb.filter('ngrams = ', st)
+                pass
+            if len(st) > 0 or len(md5hash) > 0:
+                tdb.filter('md5hash = ', md5hash)
             else:
-                if len(st) > 0 or len(md5hash) > 0:
-                    tdb.filter('md5hash = ', md5hash)
-                else:
-                    if len(domain) > 0:
-                        tdb.filter('domain = ', domain)
-                    if len(url) > 0:
-                        tdb.filter('url = ', url)
+                if len(domain) > 0:
+                    tdb.filter('domain = ', domain)
+                if len(url) > 0:
+                    tdb.filter('url = ', url)
+                    sortdate = False
             if sortdate:
                 tdb.order('-date')
             results = tdb.fetch(limit=100)
@@ -2498,8 +2478,6 @@ class Translation(db.Model):
                 skiprecord=True
             if r.professional:
                 professional_translation_found = True
-            if len(lsp) > 0 and not professional_translation_found:
-                response=Translation.lsp(sl, tl, st, domain=domain, url=url, lsp=lsp, lspusername=lspusername, lsppw=lsppw)
             if not skiprecord:
                 t = tx()
                 t.sl = r.sl
@@ -3026,70 +3004,3 @@ class Users(db.Model):
                 return False
         else:
             return False
-
-class Urls(db.Model):
-    domain = db.StringProperty(default='')
-    url = db.StringProperty(default='')
-    turl = db.StringProperty(default='')
-    timekey = db.StringProperty(default='')
-    stitle = db.StringProperty(default='')
-    ttitle = db.StringProperty(default='')
-    author = db.StringProperty(default='')
-    sl = db.StringProperty(default='')
-    st = db.TextProperty(default='')
-    tl = db.StringProperty(default='')
-    tt = db.TextProperty(default='')
-    swords = db.ListProperty(str)
-    twords = db.ListProperty(str)
-    views = db.IntegerProperty(default=1)
-    lastvisit = db.DateTimeProperty(auto_now_add = True)
-    remote_addr = db.StringProperty(default = '')
-    user_ip = db.StringProperty(default = '')
-    @staticmethod
-    def log(url, domain='', turl='', timekey='', stitle='', ttitle='', sl='', tl='', author='', st='', tt=''):
-        if len(tl) > 0 and len(sl) > 0 and len(url) > 0:
-            udb = db.Query(Urls)
-            udb.filter('sl = ', sl)
-            udb.filter('tl = ', tl)
-            udb.filter('url = ', url)
-            if len(turl) > 0:
-                udb.filter('turl = ', turl)
-            if len(timekey) > 0:
-                udb.filter('timekey = ', timekey)
-            item = udb.get()
-            if item is None:
-                item = Urls()
-                item.sl = sl
-                item.tl = tl
-                item.url = url
-                item.turl = turl
-                item.timekey = timekey
-            st = st.lower()
-            tt = tt.lower()
-            stitle = stitle.lower()
-            ttitle = ttitle.lower()
-            item.st = st
-            item.tt = tt
-            item.stitle = stitle
-            item.ttitle = ttitle
-            item.author = author
-            sw = string.split(st, ' ')
-            tw = string.split(tt, ' ')
-            for w in sw:
-                if len(w) < 3:
-                    sw.remove(w)
-            for w in tw:
-                if len(w) < 3:
-                    tw.remove(w)
-            views = item.views
-            views = views + 1
-            item.views = views
-            item.remote_addr = remote_addr
-            item.user_ip = user_ip
-            item.put()
-            return True
-        else:
-            return False
-    @staticmethod
-    def popular(sl, tl):
-        pass

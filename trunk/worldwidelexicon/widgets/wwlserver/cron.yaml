@@ -6,7 +6,7 @@ cron:
 
 - description: purge old geo logs
   url: /heartbeat
-  schedule: every 1 minutes
+  schedule: every 3 minutes
 
 - description: purge old translation logs (older than 90 days)
   url: /purge/search
@@ -18,4 +18,4 @@ cron:
 
 - description: purge old queue database
   url: /purge/queue
-  schedule: every 1 minutes
+  schedule: every 3 minutes
