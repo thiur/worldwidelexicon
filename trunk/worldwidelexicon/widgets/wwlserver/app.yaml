@@ -107,6 +107,9 @@ handlers:
 - url: /q
   script: translations.py
 
+- url: /r
+  script: translations.py
+
 - url: /ratelimit
   script: ip.py
 
@@ -157,6 +160,9 @@ handlers:
 
 - url: /transense
   script: transense.py
+
+- url: /u
+  script: translations.py
   
 - url: /unicode
   script: translations.py

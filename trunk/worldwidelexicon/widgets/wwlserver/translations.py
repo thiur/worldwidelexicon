@@ -245,12 +245,12 @@ class GetTranslations(webapp.RequestHandler):
                 t.professional = True
                 t.spam = False
                 t.anonymous = False
-                results = list()
-                results.append(t)
-                if len(md5hash) > 0:
-                    memcache.set('translations|fetch|sl=' + sl + '|tl=' + tl + '|md5hash=' + md5hash, results, 600)
-                if len(results) < 1:
+                translations = list()
+                translations.append(t)
+                if len(translations) < 1:
                     results = None
+                else:
+                    results = 'Found translations'
             if len(url) > 0:
                 p = dict()
                 p['remote_addr']=self.request.remote_addr
@@ -260,7 +260,28 @@ class GetTranslations(webapp.RequestHandler):
                 taskqueue.add(url='/log', params=p)
             if results is None:
                 results = Translation.fetch(sl=sl, st=st, tl=tl, domain='', url=url, userip=remote_addr, allow_machine=allow_machine, allow_anonymous=allow_anonymous, min_score=minimum_score, max_blocked_votes=max_blocked_votes, fuzzy=fuzzy, lsp=lsp, lspusername=lspusername, lsppw=lsppw)
-            if len(results) < 1 or fuzzy=='y':
+                translations = list()
+                for r in results:
+                    t = tx()
+                    t.sl = r.sl
+                    t.tl = r.tl
+                    t.st = codecs.encode(r.st, 'utf-8')
+                    t.tt = codecs.encode(r.tt, 'utf-8')
+                    t.domain = r.domain
+                    t.url = r.url
+                    t.anonymous = r.anonymous
+                    t.username = r.username
+                    t.remote_addr = r.remote_addr
+                    t.date = str(r.date)
+                    t.avgscore = r.avgscore
+                    t.scores = r.scores
+                    try:
+                        t.spam = r.spam
+                    except:
+                        t.spam = False
+                    t.professional = r.professional
+                    translations.append(t)
+            if len(results) < 1:
                 try:
                     st = urllib.unquote(st)
                 except:
@@ -282,7 +303,7 @@ class GetTranslations(webapp.RequestHandler):
                     t.tt=tt
                 t.username='robot'
                 t.mtengine=engine
-                results.append(t)
+                translations.append(t)
             d.autoheader = True
             self.response.headers['Accept-Charset']='utf-8'
             if output=='xml' or output=='rss':
@@ -291,7 +312,7 @@ class GetTranslations(webapp.RequestHandler):
                 self.response.headers['Content-Type']='text/plain'
             else:
                 self.response.headers['Content-Type']='text/html'
-            text = d.pickleTable(results, output)
+            text = d.pickleTable(translations, output)
             self.response.out.write(text)
         else:
             doc_text = self.__doc__
@@ -464,7 +485,7 @@ class SubmitTranslation(webapp.RequestHandler):
             p['action']='translate'
             p['remote_addr']=self.request.remote_addr
             taskqueue.add(url = '/log', params = p)
-        result = Translation.submit(sl=sl, st=st, tl=tl, tt=tt, username=username, remote_addr=remote_addr, domain=domain, url=url, city=city, state=state, country=country, latitude=latitude, longitude=longitude, lsp=lsp, spam = spam, proxy=proxy, apikey=apikey)
+        result = Translation.submit(sl=sl, st=st, tl=tl, tt=tt, username=username, remote_addr=remote_addr, domain=domain, url=url, city=city, state=state, country=country, latitude=latitude, longitude=longitude, lsp=lsp, spam=spam, proxy=proxy, apikey=apikey)
         if len(title) > 0 and len(url) > 0:
             p = dict()
             p['remote_addr'] = remote_addr
@@ -678,26 +699,17 @@ class SimpleTranslation(webapp.RequestHandler):
                 else:
                     min_score = None
                 for r in results:
-                    if len(tt) < 1:
-                        if min_score is not None:
-                            if r.avgscore >= min_score:
-                                tt = r.tt
-                                guid = r.guid
-                                username = r.username
-                                remote_addr = r.remote_addr
-                                city = r.city
-                                country = r.country
-                                timestamp = str(r.date)
-                        elif allow_anonymous == 'n':
-                            if r.anonymous == False:
-                                tt = r.tt
+                    if len(tt) < 1 and len(r.tt) > 0:
+                        if allow_anonymous == 'n':
+                            if r.anonymous == False or len(r.username) > 0:
+                                tt = codecs.encode(r.tt, 'utf-8')
                                 guid = r.guid
                                 username = r.username
                                 city = r.city
                                 country = r.country
                                 timestamp = str(r.date)
                         else:
-                            tt = r.tt
+                            tt = codecs.encode(r.tt, 'utf-8')
                             guid = r.guid
                             username = r.username
                             city = r.city
@@ -713,7 +725,6 @@ class SimpleTranslation(webapp.RequestHandler):
             # if len(tt) < 1:
             #    tt = Translation.lucky(sl=sl, tl=tl, st=st, allow_anonymous=allow_anonymous, allow_machine=allow_machine, min_score=min_score, output=output, lsp=lsp, lspusername=lspusername, lsppw = lsppw, mtengine=mtengine, queue=queue, ip=ip, userip=userip, hostname=hostname)
             #
-            tt = clean(tt)
             if output == 'text':
                 self.response.headers['Content-Type']='text/plain'
                 self.response.out.write(tt)
@@ -931,6 +942,180 @@ class IndexNgrams(webapp.RequestHandler):
         result = Translation.ngrams()
         self.response.out.write('ok')
 
+class RevisionHistory(webapp.RequestHandler):
+    """
+    /r
+
+    This request handler returns the revision history (newest-oldest) for
+    all translations associated with a particular source text. The results
+    can be filtered by source language, target language, or domain. It assumes
+    that other filtering criteria will be applied by the requester.
+
+    It expects the following parameters:
+
+    st = source text (utf8 encoding)
+    sl = optional source language code
+    tl = optional target language code
+    domain = optional domain to limit results too (e.g. foonews.com)
+    output = output format (json, xml, rss, po, xliff)
+    """
+    def get(self):
+        self.requesthandler()
+    def post(self):
+        self.requesthandler()
+    def requesthandler(self):
+        st = clean(self.request.get('st'))
+        sl = self.request.get('sl')
+        tl = self.request.get('tl')
+        domain = self.request.get('domain')
+        output = self.request.get('output')
+        m = md5.new()
+        m.update(st)
+        md5hash = str(m.hexdigest())
+        if len(output) < 1:
+            output = 'json'
+        if len(st) > 0:
+            text = memcache.get('/revisionhistory/' + md5hash + '/' + sl + '/' + tl + '/' + domain + '/' + output)
+            if text is not None:
+                self.response.out.write(text)
+            else:
+                tdb = db.Query(Translation)
+                tdb.filter('md5hash = ', md5hash)
+                if len(sl) > 0:
+                    tdb.filter('sl = ', sl)
+                if len(tl) > 0:
+                    tdb.filter('tl = ', tl)
+                if len(domain) > 0:
+                    tdb.filter('domain = ', domain)
+                tdb.order('-date')
+                results = tdb.fetch(limit=500)
+                translations = list()
+                for r in results:
+                    t = tx()
+                    t.guid = r.guid
+                    t.sl = r.sl
+                    t.tl = r.tl
+                    t.st = codecs.encode(r.st, 'utf-8')
+                    t.tt = codecs.encode(r.tt, 'utf-8')
+                    t.anonymous = r.anonymous
+                    t.avgscore = r.avgscore
+                    t.scores = r.scores
+                    t.city = r.city
+                    t.country = r.country
+                    t.username = r.username
+                    t.remote_addr = r.remote_addr
+                    t.professional = r.professional
+                    t.date = r.date
+                    t.reviewed = r.reviewed
+                    t.avgscore = r.avgscore
+                    t.date = r.date
+                    try:
+                        t.spam = r.spam
+                    except:
+                        t.spam = False
+                    t.domain = r.domain
+                    t.url = r.url
+                    translations.append(t)
+                d = DeepPickle()
+                d.autoheader = True
+                if output == 'xml' or output == 'rss' or output == 'xliff':
+                    self.response.headers['Content-Type']='text/xml'
+                elif output == 'json':
+                    self.response.headers['Content-Type']='text/javascript'
+                elif output == 'po':
+                    self.response.headers['Content-Type']='text/plain'
+                else:
+                    self.response.headers['Content-Type']='text/html'
+                self.response.out.write(d.pickleTable(translations,output))
+        else:
+            doc_text = self.__doc__
+            t = '<table><form action=/r method=get accept-charset=utf-8>'
+            t = t + '<tr><td>Source Text (UTF8)</td><td><input type=text name=st></td></tr>'
+            t = t + '<tr><td>Source Language (optional)</td><td><input type=text name=sl></td></tr>'
+            t = t + '<tr><td>Target Language (optional)</td><td><input type=text name=tl></td></tr>'
+            t = t + '<tr><td>Domain (optional)</td><td><input type=text name=domain></td></tr>'
+            t = t + '<tr><td>Output Format</td><td><input type=text name=output value=json></td></tr>'
+            t = t + '<tr><td colspan=2><input type=submit value=GO></td></tr>'
+            t = t + '</form></table>'
+            www.serve(self,t, sidebar = doc_text, title='/t')
+
+class URLHistory(webapp.RequestHandler):
+    """
+    /u
+
+    This request handler is used to quickly retrieve a list of translations
+    associated with a particular URL, optionally filtered by target language.
+    It assumes that the requester may filter the list further, for example
+    based on score data, or translation type. This is left up to the requester
+    to decide.
+    """
+    def get(self):
+        self.requesthandler()
+    def post(self):
+        self.requesthandler()
+    def requesthandler(self):
+        url = self.request.get('url')
+        tl = self.request.get('tl')
+        output = self.request.get('output')
+        if len(output) < 1:
+            output = 'json'
+        if len(url) > 0:
+            text = memcache.get('/urlhistory/' + url + '/' + tl + '/' + output)
+            if text is not None:
+                self.response.out.write(text)
+            else:
+                tdb = db.Query(Translation)
+                tdb.filter('url = ', url)
+                if len(tl) > 0:
+                    tdb.filter('tl = ', tl)
+                tdb.order('-date')
+                results = tdb.fetch(limit=500)
+                translations = list()
+                for r in results:
+                    t = tx()
+                    t.guid = r.guid
+                    t.sl = r.sl
+                    t.tl = r.tl
+                    t.st = codecs.encode(r.st, 'utf-8')
+                    t.tt = codecs.encode(r.tt, 'utf-8')
+                    t.anonymous = r.anonymous
+                    t.avgscore = r.avgscore
+                    t.scores = r.scores
+                    t.city = r.city
+                    t.country = r.country
+                    t.username = r.username
+                    t.remote_addr = r.remote_addr
+                    t.professional = r.professional
+                    t.date = r.date
+                    t.reviewed = r.reviewed
+                    t.avgscore = r.avgscore
+                    try:
+                        t.spam = r.spam
+                    except:
+                        t.spam = False
+                    t.domain = r.domain
+                    translations.append(t)
+                d = DeepPickle()
+                d.autoheader = True
+                if output == 'xml' or output == 'rss' or output == 'xliff':
+                    self.response.headers['Content-Type']='text/xml'
+                elif output == 'json':
+                    self.response.headers['Content-Type']='text/javascript'
+                elif output == 'po':
+                    self.response.headers['Content-Type']='text/plain'
+                else:
+                    self.response.headers['Content-Type']='text/html'
+                self.response.out.write(d.pickleTable(translations,output))
+        else:
+            doc_text = self.__doc__
+            t = '<table><form action=/u method=get accept-charset=utf-8>'
+            t = t + '<tr><td>URL</td><td><input type=text name=url></td></tr>'
+            t = t + '<tr><td>Target Language</td><td><input type=text name=tl></td></tr>'
+            t = t + '<tr><td>Output Format</td><td><input type=text name=output value=json></td></tr>'
+            t = t + '<tr><td colspan=2><input type=submit value=GO></td></tr>'
+            t = t + '</form></table>'
+            www.serve(self,t, sidebar = doc_text, title='/t')
+
 application = webapp.WSGIApplication([('/q', GetTranslations),
                                       ('/batch', BatchTranslation),
                                       ('/log', LogQueries),
@@ -938,6 +1123,8 @@ application = webapp.WSGIApplication([('/q', GetTranslations),
                                       (r'/t/(.*)/(.*)/(.*)', SimpleTranslation),
                                       (r'/t/(.*)/(.*)', SimpleTranslation),
                                       ('/t', SimpleTranslation),
+                                      ('/r', RevisionHistory),
+                                      ('/u', URLHistory),
                                       ('/submit', SubmitTranslation)],
                                      debug=True)
 
