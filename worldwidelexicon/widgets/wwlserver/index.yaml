@@ -140,10 +140,39 @@ indexes:
 - kind: Translation
   properties:
   - name: md5hash
+  - name: date
+    direction: desc
+
+- kind: Translation
+  properties:
+  - name: md5hash
+  - name: tl
+  - name: date
+    direction: desc
+
+- kind: Translation
+  properties:
+  - name: md5hash
   - name: sl
   - name: tl
   - name: date
     direction: desc
+
+- kind: Translation
+  properties:
+  - name: md5hash
+  - name: domain
+  - name: date
+    direction: desc
+
+- kind: Translation
+  properties:
+  - name: md5hash
+  - name: domain
+  - name: tl
+  - name: date
+    direction: desc
+
 
 - kind: Translation
   properties:
