@@ -15,8 +15,6 @@ class Purge(webapp.RequestHandler):
             result = geo.purge(name='geodb')
         elif name == 'stats':
             result = Stats.purge()
-        elif name == 'queue':
-            result = Queue.purge()
         else:
             result = geo.purge()
         self.response.out.write('ok')

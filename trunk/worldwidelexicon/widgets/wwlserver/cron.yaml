@@ -15,7 +15,3 @@ cron:
 - description: purge old stats data
   url: /purge/stats
   schedule: every 2 hours
-
-- description: purge old queue database
-  url: /purge/queue
-  schedule: every 3 minutes
