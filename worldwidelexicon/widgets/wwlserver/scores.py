@@ -1,20 +1,14 @@
 # -*- coding: utf-8 -*-
 """
 Worldwide Lexicon Project
-Comments (comments.py)
+Scoring System (scores.py)
 by Brian S McConnell <brian@worldwidelexicon.org>
 
 This module implements web services and database calls to retrieve and save
 scores for translations. This module defines two web API services:
 
-/scores/batch : to retrieve a batch of summary scores for all translators
-                associated with a specific URL and optional target language
 /scores/get : to retrieve a score history for a translation, username or url
 /scores/vote : to submit an up/down/block:ban vote 
-/scores/counter : to request a counter for the number of up/down votes a users has
-                   received
-
-(test edit for SVN, test again)
 
 To submit scores:
 
@@ -24,11 +18,6 @@ To submit scores:
 To fetch a detailed score history for a url, translation, etc:
 
 * Call the /scores/get request handler
-
-To fetch a batch of scores for all translators who have touched translations for
-a specific URL
-
-* Call the /scores/batch request handler for this (new)
 
 Copyright (c) 1998-2009, Worldwide Lexicon Inc.
 All rights reserved.
@@ -64,18 +53,14 @@ import wsgiref.handlers
 from google.appengine.ext import webapp
 from google.appengine.ext.webapp.util import run_wsgi_app
 from google.appengine.ext import db
-from google.appengine.api import urlfetch
 from google.appengine.api import memcache
-from google.appengine.api.labs import taskqueue
 # import standard Python libraries
 import md5
-import urllib
 import string
 import datetime
 # import WWL and third party modules
 from deeppickle import DeepPickle
 from www import www
-from webappcookie import Cookies
 from database import Score
 from database import Settings
 from database import Translation
@@ -92,65 +77,6 @@ class stat():
 class vote():
     favorite = ''
     
-class UserScores(webapp.RequestHandler):
-    """
-    This worker task recalculates the summary scores for a user. This part of the
-    system will be upgraded with a background process that continually recalculates
-    summary statistics for the system. It is best not to use this in production
-    applications as the interface may change or be deprecated.
-    """
-    def get(self):
-        self.requesthandler()
-    def post(self):
-        self.requesthandler()
-    def requesthandler(self):
-        username = self.request.get('username')
-        if len(username) > 0:
-            # find all scores for user
-            sdb = db.Query(Score)
-            sdb.filter('username = ', username)
-            results = sdb.fetch(limit=100)
-            upvotes = 0
-            downvotes = 0
-            blockedvotes = 0
-            avgscore = float(0)
-            scores = 0
-            for r in results:
-                scores = scores + 1
-                if r.score == 5:
-                    upvotes = upvotes + 1
-                elif r.blocked:
-                    blockedvotes = blockedvotes + 1
-                else:
-                    downvotes = downvotes + 1
-            rawscore = upvotes * 5
-            if scores > 0:
-                avgscore = float(rawscore / scores)
-            # update user profile
-            udb = db.Query(Users)
-            udb.filter('username = ', username)
-            item = udb.get()
-            if item is not None:
-                item.upvotes = upvotes
-                item.downvotes = downvotes
-                item.blockedvotes = blockedvotes
-                item.avgscore = avgscore
-                item.rawscore = rawscore
-                item.scores = scores
-                item.put()
-            # update userscore stats for translations edited by user
-            tdb = db.Query(Translation)
-            tdb.filter('username = ', username)
-            results = tdb.fetch(limit = 100)
-            for r in results:
-                r.userupvotes = upvotes
-                r.userdownvotes = downvotes
-                r.userblockedvotes = blockedvotes
-                r.useravgscore = avgscore
-                r.userscores = scores
-                r.put()
-        self.response.out.write('ok"')
-
 class GetScores(webapp.RequestHandler):
     """
     <h3>/scores/get</h3>
@@ -208,219 +134,132 @@ class GetScores(webapp.RequestHandler):
             t = t + '</table></form>'
             www.serve(self,t, sidebar=self.__doc__, title = '/scores/get')
 
-class Vote(webapp.RequestHandler):
+class SaveScore(webapp.RequestHandler):
     """
     <h3>/scores/vote</h3>
 
-    This request handler implements the up/down/block voting system to complement the 5 star
-    subjective scoring system. This request handler checks to see if the submitting IP address
-    is rate limited, and if not, schedules a worker task to log the vote and recalculate
-    associated user scores, etc.<p>
+    This request handler processes scores submitted for translations. This is a fairly simple
+    request handler that expects the following:<p>
 
-    You can submit scores using two methods. The best method is to use the GUID (globally unique
-    indentifier) associated with a specific translation. You can also submit the source language,
-    target language, text and translation, and the system will attempt to locate matching records
-    and record the score for them. Where possible, you should key scores to the GUID as this will
-    be more precise, because the system will know which version of which translation the score is
-    for.<p>
+    <ul><li>guid : unique ID of the translation being scored (required)</li>
+    <li>score : the quality score (0..5, 0 = spam/flag)</li>
+    <li>username : the scorer's username (optional)</li>
+    <li>pw : the scorer's password (optional)</li)
+    <li>comment : comment about the translation (optional)</li>
+    </ul>
 
-    It expects the following parameters:<p>
-
-    <ul><li>guid = the GUID of the translation being scored</li>
-    <li>sl = source language code (if scoring without guid)</li>
-    <li>tl = target language code (if scoring without guid)</li>
-    <li>st = source text (if scoring without guid)</li>
-    <li>tt = translated text (if scoring without guid)</li>
-    <li>score = integer score from 0..5 (0=bad/spam, 5 = excellent/native)</li>
-    <li>comment = comment about translation</li>
-    <li>cl = comment language code</li>
-    <li>session (cookie) = session cookie, sent automatically if user is logged in to WWL server</li>
-    <li>proxy = y/n (y if vote is submitted via proxy server/agent</li>
-    <li>ip = user IP address (if proxy=y)</li>
-    <li>username = optional WWL username (can be used to authenticate user on submitting score)</li>
-    <li>pw = WWL password</li>
-    <li>lsp = optional LSP name (for testing, it will relay scores for translations posted by an LSP automatically.</li>
-    <ul>
-    
-    It returns a simple 'ok' or 'error' message
+    It returns an ok or error message. 
     """
     def get(self):
         self.requesthandler()
     def post(self):
         self.requesthandler()
     def requesthandler(self):
-        rate_limited = memcache.get('ratelimit|vote|' + self.request.remote_addr)
-        if rate_limited is None:
-            memcache.set('ratelimit|vote|' + self.request.remote_addr, True, 1)
-            guid = self.request.get('guid')
-            sl = self.request.get('sl')
-            tl = self.request.get('tl')
-            st = clean(self.request.get('st'))
-            tt = clean(self.request.get('tt'))
-            votetype = self.request.get('votetype')
-            score = self.request.get('score')
-            proxy = self.request.get('proxy')
-            username = ''
-            professional = ''
-            comment = self.request.get('comment')
-            cl = self.request.get('cl')
-            if proxy == 'y':
-                remote_addr = self.request.get('ip')
-                if len(remote_addr) < 1:
-                    remote_addr = self.request.remote_addr
-            else:
-                remote_addr = self.request.remote_addr
-            cookies = Cookies(self, max_age=7200)
-            try:
-                session = cookies['session']
-            except:
-                session = ''
-            username = ''
-            pw = ''
-            loggedin = False
-            if len(session) > 0:
-                username = memcache.get('sessions|' + session)
-                if username is None:
-                    username = self.request.get('username')
-                    pw = self.request.get('pw')
-                else:
-                    loggedin = True
-            else:
-                username = self.request.get('username')
-                pw = self.request.get('pw')
-            if not loggedin and len(username) > 0:
-                sessinfo = Users.auth(username, pw, '', remote_addr)
-                if type(sessinfo) is dict:
-                    loggedin=True
-                    cookies['session']=sessinfo['session']
-                    memcache.set('sessions|' + sessinfo['session'], username, 7200)
-                else:
-                    username = ''
-                    loggedin = False
-            if len(guid) < 1:
-                # find the most recent matching translation using sl, tl, st, and tt
-                results = Translation.fetch(sl, tl, st)
-                complete = False
-                for r in results:
-                    if clean(r.st) == st and clean(r.tt) == tt and not complete:
-                        guid = r.guid
-                        sl = r.sl
-                        tl = r.tl
-                        st = clean(r.st)
-                        tt = clean(t.tt)
-                        username = r.username
-                        professional = r.professional
-                        complete = True
-            if len(guid) > 0 and len(username) > 0 and professional:
-                LSP.score(guid, score, lsp=username, sl=sl, tl=tl, st=st, tt=tt, domain=domain, url=url, remote_addr=remote_addr)
-            if len(guid) > 0 or len(st) > 0:
-                location = geo.get(remote_addr)
-                p = dict()
-                p['guid']=guid
-                p['sl']=sl
-                p['tl']=tl
-                p['st']=st
-                p['tt']=tt
-                #p['votetype']=votetype
-                p['score']=score
-                p['remote_addr']=remote_addr
-                p['username']=username
-                if type(location) is dict:
-                    p['city'] = location['city']
-                    p['state'] = location['state']
-                    p['country'] = location['country']
-                    p['latitude'] = str(location['latitude'])
-                    p['longitude'] = str(location['longitude'])
-                taskqueue.add(url='/scores/worker', params=p)
-                if len(comment) > 0:
-                    p = dict()
-                    p['guid']
-                    p['sl']=sl
-                    p['tl']=tl
-                    p['st']=st
-                    p['tt']=tt
-                    p['domain']=domain
-                    p['url']=url
-                    p['remote_addr']=remote_addr
-                    p['proxy']='y'
-                    p['username']=username
-                    p['comment']=comment
-                    p['cl']=cl
-                    taskqueue.add(url='/comments/submit', params=p)
-                self.response.out.write('ok')
-            else:
-                t = '<table><form action=/scores/vote method=get>'
-                t = t + '<tr><td>GUID of translation</td><td><input type=text name=guid></td></tr>'
-                t = t + '<tr><td>Source Language (optional)</td><td><input type=text name=sl></td></tr>'
-                t = t + '<tr><td>Target Language (optional)</td><td><input type=text name=tl></td></tr>'
-                t = t + '<tr><td>Source Text (optional)</td><td><input type=text name=st></td></tr>'
-                t = t + '<tr><td>Translated Text (optional)</td><td><input type=text name=tt></td></tr>'
-                t = t + '<tr><td>WWL Username (optional)</td><td><input type=text name=username></td></tr>'
-                t = t + '<tr><td>WWL Password (optional)</td><td><input type=text name=pw></td></tr>'
-                t = t + '<tr><td>Integer Score (0..5)</td><td><input type=text name=score maxlength=1></td></tr>'
-                t = t + '<tr><td>Comment (optional)</td><td><input type=text name=comment></td></tr>'
-                t = t + '<tr><td>Comment Language (optional)</td><td><input type=text name=cl></td></tr>'
-                t = t + '<tr><td>LSP Name (for testing)</td><td><input type=text name=lsp></td></tr>'
-                t = t + '<tr><td colspan=2><input type=submit value=OK></td></tr>'
-                t = t + '</table></form>'
-                www.serve(self,t,sidebar=self.__doc__,title = '/scores/vote (Score a Translation)')
-        else:
-            self.response.out.write('error')
-
-class ScoreSubmitWorker(webapp.RequestHandler):
-    """
-    /scores/worker
-
-    This request handler is called via the task queue, which serializes votes to minimize
-    issues with data store contention, record locking, etc. This task records and updates average
-    scores for a translation, and for the user who created that translation.
-    """
-    def get(self):
-        self.requesthandler()
-    def post(self):
-        self.requesthandler()
-    def requesthandler(self):
-        votetype = self.request.get('votetype')
-        score = self.request.get('score')
         guid = self.request.get('guid')
-        sl = self.request.get('sl')
-        tl = self.request.get('tl')
-        st = clean(self.request.get('st'))
-        tt = clean(self.request.get('tt'))
+        score = self.request.get('score')
         username = self.request.get('username')
-        remote_addr = self.request.get('remote_addr')
-        city = self.request.get('city')
-        state = self.request.get('state')
-        country = self.request.get('country')
-        latitude = self.request.get('latitude')
-        longitude = self.request.get('longitude')
-        if len(guid) > 0:
-            exists = Score.exists(guid, remote_addr)
-            if not exists:
-                try:
-                    author = Translation.author(guid)
-                except:
-                    author = ''
-                try:
-                    result = Score.save(guid, sl=sl, tl=tl, st=st, tt=tt, votetype=votetype, score=score, username=username, remote_addr=remote_addr, city=city, state=state, country=country, latitude=latitude, longitude=longitude)
-                except:
-                    result = False
-                try:
-                    result = Users.savescore(author, votetype, remote_addr, score=score)
-                except:
-                    result = False
+        pw = self.request.get('pw')
+        comment = clean(self.request.get('comment'))
+        remote_addr = self.request.remote_addr
+        ip = self.request.get('ip')
+        try:
+            score = int(score)
+            validquery = True
+        except:
+            validquery = False
+        if len(ip) > 0:
+            remote_addr = ip
+        proxy = self.request.get('proxy')
+        if len(guid) > 0 and validquery:
+            if not Score.exists(guid, remote_addr):
+                tdb = db.Query(Translation)
+                tdb.filter('guid = ', guid)
+                item = tdb.get()
+                if item is not None:
+                    author = item.username
+                    authorip = item.remote_addr
+                    sl = item.sl
+                    tl = item.tl
+                    st = item.st
+                    tt = item.tt
+                    domain = item.domain
+                    url = item.url
+                    rawscore = item.rawscore
+                    spamvotes = item.spamvotes
+                    scores = item.scores
+                    scores = scores + 1
+                    rawscore = rawscore + score
+                    avgscore = float(rawscore/scores)
+                    item.scores = scores
+                    item.rawscore = rawscore
+                    item.avgscore = avgscore
+                    if score < 1:
+                        try:
+                            spamvotes = spamvotes + 1
+                            item.spamvotes = spamvotes
+                        except:
+                            item.spamvotes = 1
+                    item.put()
+                    if len(author) > 0:
+                        username = author
+                    else:
+                        username = authorip
+                    udb = db.Query(Users)
+                    udb.filter('username = ', username)
+                    item = udb.get()
+                    if item is None and len(author) < 1:
+                        item = Users()
+                        item.username = username
+                        item.remote_addr = remote_addr
+                        item.anonymous = True
+                    scores = item.scores
+                    rawscore = item.rawscore
+                    scores = scores + 1
+                    rawscore = rawscore + score
+                    blockedvotes = item.blockedvotes
+                    item.avgscore = float(rawscore/scores)
+                    if score < 1:
+                        item.blockedvotes = blockedvotes + 1
+                    item.put()
+                    item = Score()
+                    item.guid = guid
+                    item.sl = sl
+                    item.tl = tl
+                    item.st = st
+                    item.tt = tt
+                    item.domain = domain
+                    item.url = url
+                    item.score = score
+                    item.username = author
+                    item.remote_addr = authorip
+                    item.scoredby = username
+                    item.scoredby_remote_addr = remote_addr
+                    item.put()
+                    self.response.out.write('ok')
+                else:
+                    self.error(500)
+                    self.response.out.write('error : translation not found')
             else:
-                result = False
+                self.error(500)
+                self.response.out.write('error : duplicate score')
         else:
-            result = False
-        if result:
-            self.response.out.write('ok')
-        else:
-            self.response.out.write('error')
-
-class TestError(webapp.RequestHandler):
-    def get(self):
-        self.response.out.write(1/0)
+            tdb = db.Query(Translation)
+            tdb.order('-date')
+            item = tdb.get()
+            if item is not None:
+                guid = item.guid
+            else:
+                guid = ''
+            t = '<table><form action=/scores/vote method=get>'
+            t = t + '<tr><td>GUID</td><td><input type=text name=guid value="' + guid + '"></td></tr>'
+            t = t + '<tr><td>Score (0..5)</td><td><input type=text name=score></td></tr>'
+            t = t + '<tr><td>Username (optional)</td><td><input type=text name=username></td></tr>'
+            t = t + '<tr><td>Password (optional)</td><td><input type=text name=pw></td></tr>'
+            t = t + '<tr><td>Comment (optional)</td><td><input type=text name=comment></td></tr>'
+            t = t + '<tr><td>Submitter IP Address (proxy mode)</td><td><input type=text name=ip></td></tr>'
+            t = t + '<tr><td colspan=2><input type=submit value=OK></td></tr>'
+            t = t + '</table></form>'
+            www.serve(self, t, sidebar=self.__doc__, title = '/scores/vote')
 
 debug_setting = Settings.get('debug')
 if debug_setting == 'True':
@@ -431,9 +270,7 @@ else:
     debug_setting = True            
 
 application = webapp.WSGIApplication([('/scores/get', GetScores),
-                                      ('/scores/vote', Vote),
-                                      ('/scores/worker', ScoreSubmitWorker),
-                                      ('/scores/user', UserScores)], 
+                                      ('/scores/vote', SaveScore)], 
                                      debug=debug_setting)
 
 def main():

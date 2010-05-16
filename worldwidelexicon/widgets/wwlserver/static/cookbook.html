@@ -1,14 +1,59 @@
 <h2>The Translation Cookbook</h2>
 <i>by Brian McConnell</i><p>
+
 This tutorial will be part of an upcoming book about building translatable websites and services with WWL and other open translation tools. This quick how-to guide is written for four audiences: ordinary web users, website owners, software developers, and professional translation agencies, with "getting started" sections for each.<p>
+
 Until recently, building a multilingual website was expensive, difficult and time consuming, and something that only large corporations could really afford to do. The Worldwide Lexicon system makes high quality, best effort translation easy to incorporate into virtually any type of website or computer program. Our goal is to make translation an invisible service that is simply embedded in most of the systems that people think of as the Internet. We're not there yet, but already, it is very easy to add human/machine translation to many types of websites and applications.<p>
+
 <h3>For Web Users</h3>
-The worldwide web may be global in its physical reach, but most web content remains isolated by language. A few interesting web pages are translated into other languages, but the web really behaves more like a hundred smaller networks than one global network. We have been developing tools that make best effort translation accessible to ordinary users, and eventually, part of the web browser itself. Last Fall, we built a preview of what this multilingual web will look it. It is a translation add-on, or plugin, for the Firefox web browser.<p>
-Unlike other translation tools, which simply download machine translations from services like &lt;a href=http://www.google.com/translate&gt;Google Translate&lt;/a&gt; and &lt;a href=http://babelfish.yahoo.com&gt;Babelfish&lt;/a&gt;, the WWL translator also enables users to edit and score translations, and makes translating websites a collaborative process. Imagine what the web will be like when every web user is also able to contribute and comment on translations, when hundreds of millions of people are part of a volunteer network to translate the most interesting pages and websites.<p>
-<h3>For Website Owners</h3>
-...<p>
+
+The worldwide web may be global in its physical reach, but most web content remains isolated by language. A few interesting web pages are translated into other languages, but the web really behaves more like a hundred smaller networks than one global network. We have been developing tools that make best effort translation accessible to ordinary users, and eventually, part of the web browser itself. Last Fall, we built a preview of what this multilingual web will look it. It is a <a href=https://addons.mozilla.org/en-US/firefox/addon/13897>translation add-on for the Firefox web browser.</a><p>
+
+Unlike other translation tools, which simply download machine translations from services like <a href=http://www.google.com/translate>Google Translate</a> and <a href=http://babelfish.yahoo.com>Babelfish</a>, the WWL translator also enables users to edit and score translations, and makes translating websites a collaborative process. Imagine what the web will be like when every web user is also able to contribute and comment on translations, when hundreds of millions of people are part of a volunteer network to translate the most interesting pages and websites.<p>
+
+So, if you frequently browse the web in other languages, or are curious about foreign language websites, get the <a href=https://addons.mozilla.org/en-US/firefox/addon/13897>Firefox translator</a> today to see a preview of what the multilingual web will look like.
+
+<h3>For Website Owners and Publishers</h3>
+
+WWL makes it easy to create a multilingual website, using any combination of machine translation, community translations by your own readers, and professional translations from leading translation agencies. Here's how you can get started.<p>
+
+<h4>WWL For Word Press</h4>
+
+If you host a Word Press website, you can make your site multilingual with our <a href=http://wordpress.org/extend/plugins/speaklike-worldwide-lexicon-translator/>Word Press translator</a>. This easy to install module enables you to publish in any number of languages. It supports several machine translation services, professional translation via <a href=http://www.speaklike.com>SpeakLike</a> and, if allowed, community translations submitted by your readers. It takes just a few minutes to install, and works on Word Press version 2.9 or later. (If your blog is hosted on WordPress.com, you can use our translation proxy server to translate your site instead).<p>
+
+<h4>WWL For Drupal</h4>
+
+We have also built a human/machine translator for <a href=http://www.drupal.org>Drupal</a>, another popular web publishing platform. The <a href=/drupal>Drupal translator</a> offers the same functionality as the Word Press extension, and enables you to translate your website using any combination of machine, community and professional translations.<p>
+
+<h4>Translation Proxy Server</h4>
+
+Our <a href=/proxy>translation proxy server</a>, released in May 2010, enables you to make any website or web service translatable. You simple create special domains, such as fr.yoursite.com (for French), and map these in DNS to the proxy server. You can download and host the proxy server yourself, or you can use one of our test servers. The proxy server simply loads content from www.yoursite.com and inserts the best available translations as pages are delivered to the user. You don't need to upgrade your original web server, so this will work with almost any website, including systems that run on old software.<p>
+
 <h3>For Software Developers</h3>
-...<p>
+
+WWL was built by software developers for software developers. Our goal is to make it easy for developers to embed human and machine translation in any type of application, from mobile software to websites.
+
+<h4>TransKit</h4>
+
+<a href=/transkit>TransKit</a> is a family of SDKs for popular programming languages. These libraries make it easy to embed translation in your application, and hide the complexity of communicating with language services. TransKit is currently available for PHP and Python, with modules for Java, C/C++ and Ruby coming soon.<p>
+
+<h4>Web API</h4>
+
+You can also communicate directly with our <a href=/api>open web API.</a> This fully documented interface makes it easy to build translation services of all types. With it, you can:
+
+<ul><li>Request and submit translations from machine translation services, as well as amateur and professional translators.</li>
+<li>View translation revision histories.</li>
+<li>Score translations submitted by users.</li>
+<li>Request and get comments about translations.</li>
+<lI>Use any combination of machine, community and professional translation services.</li>
+<li>Connect to professional translation agencies, or add your translation agency to the WWL network.</li>
+</ul>
+
+The web API is easy to use, and is fully documented. So, if you don't see the tool you need on this page, you can build your own by using our API.<p>
+
 <h3>For Professional Translation Companies</h3>
-...<p>
+
+WWL makes professional translation agencies look like an automated translation system. This is similar to what Amazon's <a href=https://www.mturk.com/mturk/welcome>Mechanical Turk</a> system does, except it is designed specifically for translation. We have built an <a href=/lsps>open interface for language service providers.</a> This web API makes it easy for users to request translations from participating translation agencies via WWL. Users call WWL in the same way as for a machine translation, except the request is processed by people (if requested, WWL provides a temporary machine translation until the professional translation is completed).<p>
+
+By joining WWL, your translation agency will be accessible via all of the tools we have developed. Thus, a developer who is using TransKit to build a multilingual application can easily request professional translations from your service without writing additional software. Building the necessary interface to your system is easy, and typically takes just a few hours to build and test. If you would like to join WWL as a professional translation provider, contact Brian McConnell (bsmcconnell at gmail) for more information. 
 
