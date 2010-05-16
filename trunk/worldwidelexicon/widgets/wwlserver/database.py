@@ -993,6 +993,7 @@ class Score(db.Model):
     lsp = db.BooleanProperty(default=False)
     lspname = db.StringProperty(default='')
     jobid = db.StringProperty(default='')
+    comment = db.TextProperty(default='')
     @staticmethod
     def get(remote_addr, username=''):
         data = memcache.get('/scores/' + remote_addr + '/' + username)
@@ -1022,57 +1023,10 @@ class Score(db.Model):
         return data            
     @staticmethod
     def batch(authors):
-        if type(authors) is list:
-            for a in authors:
-                records = list()
-                if string.count(a, '.') > 1:
-                    sc = Score.stats(remote_addr = a)
-                elif len(a) > 0:
-                    sc = Score.stats(username = a)
-                else:
-                    sc = None
-                if type(sc) is dict:
-                    r = rec()
-                    if string.count(a, '.') > 1:
-                        r.remote_addr = a
-                    else:
-                        r.username = a
-                    r.upvotes = sc.get('upvotes')
-                    r.downvotes = sc.get('downvotes')
-                    r.blockedvotes = sc.get('blockedvotes')
-                    records.append(r)
-                return records
+        pass
     @staticmethod
     def lsp(guid='', jobid='', fields=dict()):
-        if len(guid) > 0 and len(jobid) > 0 and type(fields) is dict:
-            sdb = db.Query(Score)
-            sdb.filter('guid = ', guid)
-            sdb.filter('jobid = ',jobid)
-            item = sdb.get()
-            if item is None:
-                item = Score()
-                item.jobid = jobid
-                item.guid = guid
-                item.lsp = True
-                item.lspname = fields.get('lsp','')
-            item.scoredby = fields.get('translator','')
-            item.scoredby_remote_addr = fields.get('remote_addr','')
-            item.sl = fields.get('sl','')
-            item.tl = fields.get('tl','')
-            item.spam = fields.get('spam','')
-            item.city = fields.get('city','')
-            item.state = fields.get('state','')
-            item.country = fields.get('country','')
-            try:
-                item.latitude = float(fields.get('latitude'))
-                item.longitude = float(fields.get('longitude'))
-            except:
-                pass
-            item.score = fields.get('score')
-            item.put()
-            return True
-        else:
-            return False
+        pass
     @staticmethod
     def exists(guid, remote_addr):
         if len(guid) > 0 and len(remote_addr) > 0:
@@ -1089,33 +1043,38 @@ class Score(db.Model):
     @staticmethod
     def fetch(guid='', username='', url='', remote_addr=''):
         if len(guid) > 0 or len(username) > 0 or len(url) > 0 or len(remote_addr) > 0:
-            sdb = db.Query(Score)
-            if len(guid) > 0:
-                sdb.filter('guid = ', guid)
-            elif len(username) > 0:
-                sdb.filter('username = ', username)
-            elif len(remote_addr) > 0:
-                sdb.filter('remote_addr = ', remote_addr)
-            elif len(url) > 0:
-                sdb.filter('url = ', url)
+            records = memcache.get('/scores/records/' + guid + username + url + remote_addr)
+            if records is not None:
+                return records
             else:
-                return
-            results = sdb.fetch(limit=200)
-            records = list()
-            for r in results:
-                score = rec()
-                score.guid = r.guid
-                if r.score == 5:
-                    score.votetype = 'up'
-                    score.score = 5
-                elif r.blocked:
-                    score.votetype = 'block'
-                    score.score = 0
+                sdb = db.Query(Score)
+                if len(guid) > 0:
+                    sdb.filter('guid = ', guid)
+                elif len(username) > 0:
+                    sdb.filter('username = ', username)
+                elif len(remote_addr) > 0:
+                    sdb.filter('remote_addr = ', remote_addr)
+                elif len(url) > 0:
+                    sdb.filter('url = ', url)
                 else:
-                    score.votetype = 'down'
-                    score.score = 0
-                records.append(score)
-            return records
+                    return
+                results = sdb.fetch(limit=500)
+                records = list()
+                for r in results:
+                    score = rec()
+                    score.guid = r.guid
+                    if r.score == 5:
+                        score.votetype = 'up'
+                        score.score = 5
+                    elif r.blocked:
+                        score.votetype = 'block'
+                        score.score = 0
+                    else:
+                        score.votetype = 'down'
+                        score.score = 0
+                    records.append(score)
+                records = memcache.set('/scores/records/' + guid + username + url + remote_addr, records, 600)
+                return records
         else:
             return
     @staticmethod
@@ -1189,67 +1148,10 @@ class Score(db.Model):
             return False
     @staticmethod
     def stats(guid='', md5hash='', username='', remote_addr ='', sl='', tl='', domain='', url='',city='', country=''):
-        if len(guid) > 0 or len(md5hash) > 0 or len(username) > 0 or len(remote_addr) > 0 or len(sl) > 0 or len(tl) > 0 or len(domain) > 0 or len(url) > 0 or len(city) > 0 or len(country) > 0:
-            upvotes=0
-            downvotes=0
-            blockedvotes=0
-            rawscore=0
-            scores=0
-            sdb = db.Query(Score)
-            if len(guid) > 0:
-                sdb.filter('guid = ', guid)
-            elif len(md5hash) > 0:
-                sdb.filter('md5hash = ', md5hash)
-            elif len(username) > 0:
-                sdb.filter('username = ', username)
-            elif len(remote_addr) > 0:
-                sdb.filter('remote_addr = ', remote_addr)
-            elif len(sl) > 0:
-                sdb.filter('sl = ', sl)
-            elif len(tl) > 0:
-                sdb.filter('tl = ', tl)
-            elif len(domain) > 0:
-                sdb.filter('domain = ', domain)
-            elif len(url) > 0:
-                sdb.filter('url = ', url)
-            elif len(city) > 0:
-                sdb.filter('city = ', city)
-            elif len(country) > 0:
-                sdb.filter('country = ', country)
-            else:
-                sdb.filter('sl = ', 'XYZ')
-            results = sdb.fetch(limit=1000)
-            for r in results:
-                scores = scores + 1
-                if r.score == 5:
-                    upvotes = upvotes + 1
-                elif r.blocked:
-                    blockedvotes = blockedvotes + 1
-                elif r.score == 0:
-                    downvotes = downvotes + 1
-                else:
-                    pass
-            rawscore = upvotes * 5
-            if scores > 0:
-                avgscore = float(rawscore/scores)
-            else:
-                avgscore = float(0)
-            scorestats = dict()
-            scorestats['upvotes']=upvotes
-            scorestats['downvotes']=downvotes
-            scorestats['blockedvotes']=blockedvotes
-            scorestats['avgscore']=avgscore
-            scorestats['rawscore']=rawscore
-            scorestats['scores']=scores
-            return scorestats
-        else:
-            return dict()
+        pass
     @staticmethod
     def updateuser(username, remote_addr):
-        if len(username) > 0 or len(remote_addr) > 0:
-            return False
-        else:
-            return False
+        pass
         
 class Search(db.Model):
     domain = db.StringProperty(default='')
@@ -1739,6 +1641,7 @@ class Translation(db.Model):
     professional = db.BooleanProperty(default=False)
     locked = db.BooleanProperty(default = True)
     ngrams = db.ListProperty(str)
+    spamvotes = db.IntegerProperty(default = 0)
     @staticmethod
     def author(guid):
         if len(guid) > 0:
@@ -2269,6 +2172,7 @@ class Translation(db.Model):
 class Users(db.Model):
     username = db.StringProperty(default='')
     remote_addr = db.StringProperty(default='')
+    anonymous = db.BooleanProperty(default=False)
     email = db.StringProperty(default='')
     pwhash = db.StringProperty(default='')
     session = db.StringProperty(default='')

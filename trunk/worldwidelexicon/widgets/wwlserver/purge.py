@@ -5,7 +5,6 @@ from google.appengine.ext import db
 from geo import geo
 from database import Search
 from database import Stats
-from database import Queue
 
 class Purge(webapp.RequestHandler):
     def get(self, name=''):
