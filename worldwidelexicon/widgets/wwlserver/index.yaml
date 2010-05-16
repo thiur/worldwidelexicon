@@ -111,6 +111,16 @@ indexes:
   - name: keywords
   - name: date
     direction: desc
+
+- kind: Translation
+  properties:
+  - name: spam
+  - name: blockedvotes
+
+- kind: Translation
+  properties:
+  - name: spam
+  - name: avgscore
     
 - kind: Translation
   properties:
