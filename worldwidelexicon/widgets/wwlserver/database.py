@@ -2136,28 +2136,18 @@ class Translation(db.Model):
             return 0
     @staticmethod
     def purgebadtranslations():
-        min_votes = Settings.get('min_votes')
-        min_score = Settings.get('min_avg_score')
-        if len(min_votes) > 0:
-            min_votes = int(min_votes)
-        else:
-            min_votes = 3
-        if len(min_score) > 0:
-            min_score = float(min_score)
-        else:
-            min_score = 2.5
         tdb = db.Query(Translation)
-        tdb.filter('spam = ', False)
-        tdb.filter('avgscore <= ', min_score)
-        results = tdb.fetch(limit = 50)
-        if len(results) > 0:
-            for r in results:
-                if r.scores >= min_votes:
-                    r.spam = True
-                    r.put()
-            return len(results)
-        else:
-            return 0
+        tdb.order('-date')
+        results = tdb.fetch(limit = 500)
+        flagged = 0
+        for r in results:
+            if not r.spam:
+                if r.scores >= 3:
+                    if r.avgscore < 2.5:
+                        r.spam = True
+                        r.put()
+                        flagged = flagged + 1
+        return flagged
     
 class Users(db.Model):
     username = db.StringProperty(default='')
