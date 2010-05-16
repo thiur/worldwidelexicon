@@ -132,6 +132,9 @@ handlers:
   script: firefox.py
   secure: optional
 
+- url: /spam
+  script: translations.py
+
 - url: /status
   script: admin.py
   

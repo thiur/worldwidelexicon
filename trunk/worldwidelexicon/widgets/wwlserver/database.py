@@ -1932,62 +1932,10 @@ class Translation(db.Model):
             return False
     @staticmethod
     def updatescores(guid):
-        if len(guid) > 0:
-            results = Score.fetch(guid=guid)
-            upvotes = 0
-            downvotes = 0
-            blockedvotes = 0
-            scores = 0
-            for r in results:
-                scores = scores + 1
-                if r.blocked:
-                    blockedvotes = blockedvotes + 1
-                elif r.score == 0:
-                    downvotes = downvotes + 1
-                elif r.score == 5:
-                    upvotes = upvotes + 1
-                else:
-                    pass
-            rawscore = upvotes * 5
-            avgscore = float(rawscore/scores)
-            tdb = db.Query(Translation)
-            tdb.filter('guid = ', guid)
-            item = tdb.get()
-            if item is not None:
-                item.upvotes = upvotes
-                item.downvotes = downvotes
-                item.blockedvotes = blockedvotes
-                item.scores = scores
-                item.rawscore = rawscore
-                item.avgscore = avgscore
-                item.put()
-                return True
-            else:
-                return False
-        else:
-            return False
+        pass
     @staticmethod
     def userscore(remote_addr, username, upvotes, downvotes, blockedvotes, rawscore, scores):
-        if len(remote_addr) > 0 and scores > 0:
-            avgscore = float(rawscore/scores)
-            tdb = db.Query(Translation)
-            if len(username) > 0:
-                tdb.filter('username = ', username)
-            else:
-                tdb.filter('remote_addr = ', remote_addr)
-            tdb.order('-date')
-            results = tdb.fetch(limit=100)
-            for r in results:
-                r.userupvotes = upvotes
-                r.userdownvotes = downvotes
-                r.userblockedvotes = blockedvotes
-                r.userrawscore = rawscore
-                r.userscores = scores
-                r.useravgscore = avgscore
-                r.put()
-            return True
-        else:
-            return False
+        pass
     @staticmethod
     def wordcount(username, tl='', startdate=None, enddate=None):
         if len(username) > 0:
@@ -2168,6 +2116,48 @@ class Translation(db.Model):
             else:
                 memcache.set('translations|fetch|sl=' + sl + '|tl=' + tl + '|domain=' + domain + '|url=' + url, results, 120)
         return filtered_results
+    @staticmethod
+    def purgespam():
+        threshold = Settings.get('min_spam_votes')
+        if len(threshold) > 0:
+            min_spam_votes = int(threshold)
+        else:
+            min_spam_votes = 1
+        tdb = db.Query(Translation)
+        tdb.filter('spam = ', False)
+        tdb.filter('blockedvotes >= ', min_spam_votes)
+        results = tdb.fetch(limit=50)
+        if len(results) > 0:
+            for r in results:
+                r.spam = True
+                r.put()
+            return len(results)
+        else:
+            return 0
+    @staticmethod
+    def purgebadtranslations():
+        min_votes = Settings.get('min_votes')
+        min_score = Settings.get('min_avg_score')
+        if len(min_votes) > 0:
+            min_votes = int(min_votes)
+        else:
+            min_votes = 3
+        if len(min_score) > 0:
+            min_score = float(min_score)
+        else:
+            min_score = 2.5
+        tdb = db.Query(Translation)
+        tdb.filter('spam = ', False)
+        tdb.filter('avgscore <= ', min_score)
+        results = tdb.fetch(limit = 50)
+        if len(results) > 0:
+            for r in results:
+                if r.scores >= min_votes:
+                    r.spam = True
+                    r.put()
+            return len(results)
+        else:
+            return 0
     
 class Users(db.Model):
     username = db.StringProperty(default='')

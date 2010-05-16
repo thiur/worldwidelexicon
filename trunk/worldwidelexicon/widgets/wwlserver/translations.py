@@ -14,7 +14,7 @@ version of the WWL source code, via the PyDoc service. Because of the way App
 Engine works, the hyperlinks in these files will not work, so your best option
 is to print the documentation for offline review.
 
-Copyright (c) 1998-2009, Worldwide Lexicon Inc.
+Copyright (c) 1998-2010, Worldwide Lexicon Inc, Brian S McConnell.
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification,
@@ -1116,6 +1116,25 @@ class URLHistory(webapp.RequestHandler):
             t = t + '</form></table>'
             www.serve(self,t, sidebar = doc_text, title='/t')
 
+class SpamTranslations(webapp.RequestHandler):
+    """
+    /spam
+
+    This request handler is triggered by a frequent cron job. It looks for translations that
+    have been flagged as spam more than N times, or that have an average score < X with more
+    than Y votes logged. It will mark these translations as spam, so they will cease being
+    returned in search results.
+    """
+    def get(self):
+        self.requesthandler()
+    def post(self):
+        self.requesthandler()
+    def requesthandler(self):
+        spamcount = Translation.purgespam()
+        lowvotecount = Translation.purgebadtranslations()
+        self.response.out.write('ok<p>purged ' + str(spamcount) + ' spam translations and ')
+        self.response.out.write(str(lowvotecount) + ' low quality translations.')
+
 application = webapp.WSGIApplication([('/q', GetTranslations),
                                       ('/batch', BatchTranslation),
                                       ('/log', LogQueries),
@@ -1125,6 +1144,7 @@ application = webapp.WSGIApplication([('/q', GetTranslations),
                                       ('/t', SimpleTranslation),
                                       ('/r', RevisionHistory),
                                       ('/u', URLHistory),
+                                      ('/spam', SpamTranslations),
                                       ('/submit', SubmitTranslation)],
                                      debug=True)
 
