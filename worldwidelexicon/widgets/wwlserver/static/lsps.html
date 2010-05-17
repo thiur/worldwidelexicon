@@ -1,4 +1,4 @@
-﻿<h2>WWL For Language Service Providers</h2>
+<h2>WWL For Language Service Providers</h2>
 
 We have developed an open API for professional translation service bureaus. If you are an LSP, and would like to join the Worldwide Lexicon system, all you need to do is to build a few simple web scripts to receive translation requests from the system. WWL is a hybrid system that combines human translators with machine translation services such as Google Translate. It is also highly automated. Human translators work behind the scenes to improve or to replace machine translations.
 
@@ -41,15 +41,32 @@ WWL will call a URL on your server that processes a simple HTML form. The form w
 <li>lsppw – password or API key for person or account on your system</li>
 <li>priority – priority level (optional)</li>
 <li>price - per word price (optional, used in "name your price" transactions)</li>
+<li>output - output format (text or JSON, for structured response). 
 </ul>
 
-Your script will process this form, and will reply with one of the following responses (plain text, utf-8 encoding):<p>
+Your script will process this form, and will reply with one of the following responses (plain text, utf-8 encoding, unless output=json):<p>
 
 <ul>
 <li>The completed or most recent approved translation for the source text</li>
 <li>A blank text, if the request was valid, but no translation has been completed yet (WWL will assume the translation is in progress, and use a placeholder or machine translation for a while)</li>
 <li>An HTTP error code (e.g. if the login credentials are invalid)</li>
 </ul>
+
+If the requester specifies output=json, you should respond with a single JSON record with the following parameters:
+
+<ul>
+<li>guid : globally unique identifier for the translation, in your system (blank if no translation is available yet</li>
+<li>sl : source language code</li>
+<li>tl : target language code</li>
+<li>st : source text</li>
+<li>tt : translated text</li>
+<li>domain : optional domain</li>
+<li>url : optional url of source document</li>
+<li>username : optional username/email of the translator</li>
+<li>remote_addr : optional IP address of the translator</li>
+</ul>
+
+NOTE: if the request is invalid, you return an HTTP error in the case of either plain text or JSON response.<p>
 
 The WWL server will cache this response and store it in the global translation memory, with a time to live of 1 to 2 hours. Once the cache expires, it will call you again to request the translation, so if it has been edited in that time, you can update your response. If not, you return the same translation as before from your translation memory. This is a simple way to keep WWL in sync with your system, and is also a very easy API to implement.<p>
 
