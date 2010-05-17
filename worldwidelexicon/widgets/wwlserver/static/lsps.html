@@ -85,3 +85,27 @@ Normally, you can just wait for WWL to call your system with requests to the /t 
 </ul>
 
 The system will validate your API key. It replies with ok or error, and will update the data store and cache immediately so the updated translation is visible to other applications almost immediately.<p>
+
+<h4>Accepting Scores and Comments From End Users</h4>
+
+You can optionally accept quality scores and comments about translations. To support this functionality, you should implement JSON output for the /t webservice (so WWL obtains a unique record locator for translations and can track scores and comments when they are submitted to the system). All you need to so is to implement two simple APIs that receive scores and comments as follows.<p>
+
+To accept scores, you should build a form that answers as baseurl/scores/vote, and expects these parameters:<p>
+
+<ul>
+<li>guid : unique record locator in your system</li>
+<li>score : score from 0..5 (0=spam, 5=native speaker quality)</li>
+<li>comment : optional comment for translator</li>
+<li>remote_addr : IP address of person submitting the score</li>
+</ul>
+
+To accept comments from users, you should build a form that answers as baseurl/comments/submit and expects these parameters:<p>
+
+<ul>
+<li>guid : unique record locator</li>
+<li>cl : comment language (ISO code)</li>
+<li>comment : comment text</li>
+<li>username : optional user name or email address of commenter</li>
+<li>remote_addr : IP address of commenter</li>
+</ul>
+
