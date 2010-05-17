@@ -262,25 +262,28 @@ class GetTranslations(webapp.RequestHandler):
                 results = Translation.fetch(sl=sl, st=st, tl=tl, domain='', url=url, userip=remote_addr, allow_machine=allow_machine, allow_anonymous=allow_anonymous, min_score=minimum_score, max_blocked_votes=max_blocked_votes, fuzzy=fuzzy, lsp=lsp, lspusername=lspusername, lsppw=lsppw)
                 translations = list()
                 for r in results:
-                    t = tx()
-                    t.sl = r.sl
-                    t.tl = r.tl
-                    t.st = codecs.encode(r.st, 'utf-8')
-                    t.tt = codecs.encode(r.tt, 'utf-8')
-                    t.domain = r.domain
-                    t.url = r.url
-                    t.anonymous = r.anonymous
-                    t.username = r.username
-                    t.remote_addr = r.remote_addr
-                    t.date = str(r.date)
-                    t.avgscore = r.avgscore
-                    t.scores = r.scores
                     try:
-                        t.spam = r.spam
+                        t = tx()
+                        t.sl = r.sl
+                        t.tl = r.tl
+                        t.st = codecs.encode(r.st, 'utf-8')
+                        t.tt = codecs.encode(r.tt, 'utf-8')
+                        t.domain = r.domain
+                        t.url = r.url
+                        t.anonymous = r.anonymous
+                        t.username = r.username
+                        t.remote_addr = r.remote_addr
+                        t.date = str(r.date)
+                        t.avgscore = r.avgscore
+                        t.scores = r.scores
+                        try:
+                            t.spam = r.spam
+                        except:
+                            t.spam = False
+                        t.professional = r.professional
+                        translations.append(t)
                     except:
-                        t.spam = False
-                    t.professional = r.professional
-                    translations.append(t)
+                        pass
             if len(results) < 1:
                 try:
                     st = urllib.unquote(st)
