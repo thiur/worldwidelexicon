@@ -279,6 +279,7 @@ class WWLController {
 	var $chunksCache = array();
 	var $logProgress = true;
 	var $lastError = "";
+	var $contentItemId = 0; // id of the content item currently translated such as postId or nodeId
 	
 	var $config = array(
 		'mt' => false,
@@ -380,12 +381,13 @@ class WWLController {
 				// 5 -- mtengine
 				$this->meta = array(
 					"username" => isset($res[4]) ? $res[4] : "",
-					"mtengine" => isset($res[5]) ? $res[5] : ""
+					"mtengine" => isset($res[5]) ? $res[5] : "",
+					"id" => $this->contentItemId
 				);
 				return $res[0];
 			}
 		}
-		$this->meta = array("mtengine" => "google", "username" => "");
+		$this->meta = array("mtengine" => "google", "username" => "", "id" => $this->contentItemId);
 		return "";
 	}	
 	function translate($st){
@@ -395,19 +397,22 @@ class WWLController {
 		foreach ($this->translationProviders as $translator){
 			if ($translator["worker"]->canTranslate($this->config)) {
 				$this->log("Trying ".get_class($translator["worker"]));
-			}
-			$res = $translator["worker"]->get($st, $this->config);
-			$this->meta = $translator["worker"]->meta;
-			$this->log("url: ".$translator["worker"]->lastUrl);
-			
-			if ($res){
-				$this->saveToCache($st, $res);
-				$this->log("res/".get_class($translator["worker"])."/ = ".$res);
+				$res = $translator["worker"]->get($st, $this->config);
+				$this->meta = $translator["worker"]->meta;
+				$this->meta["id"] = $this->contentItemId;
+				$this->log("url: ".$translator["worker"]->lastUrl);
 				$this->log("username: ".$translator["worker"]->meta["username"]);
 				$this->log("mtengine: ".$translator["worker"]->meta["mtengine"]);
-				return $res;
+				if ($res){
+					$this->saveToCache($st, $res);
+					$this->log("res/".get_class($translator["worker"])."/ = ".$res);
+					$this->log("username: ".$translator["worker"]->meta["username"]);
+					$this->log("mtengine: ".$translator["worker"]->meta["mtengine"]);
+					return $res;
+				}
 			}
 		}
+		
 		$this->saveToCache($st, $st);
 		$this->log("res/not-translated/ = ".$st);
 		return "";
@@ -425,10 +430,14 @@ class WWLController {
 			if (!method_exists($translator["worker"], "submit")){
 				continue;
 			}
-			$translator["worker"]->submit($st, $tt, $this->config);
-			$this->log("url: ".$translator["worker"]->lastUrl);
+			$res = $translator["worker"]->submit($st, $tt, $this->config);
+			$this->log("url: ".$translator["worker"]->lastUrl." ".$translator["worker"]->error);
 		}
-	}	
+		return $res;
+	}
+	function setContentId($id) {
+		$this->contentItemId = $id;	
+	}
 	function setSourceLanguage($lang){
 		$lang = explode("-", $lang);
 		$lang = $lang[0];
@@ -516,6 +525,8 @@ class WWLController {
 			return $str;
 		}
 		// Is it safe to trim here?
+		preg_match("/^\s+/", $str, $prefix);
+		preg_match("/\s+$/", $str, $suffix);
 		$str = trim($str);
 		
 		// if we run out of time return local results only
@@ -530,6 +541,12 @@ class WWLController {
 			$res = $this->translate($str);
 		}
 		$res = (strlen($res) > 0) ? $res : $str;
+		if ($prefix) {
+			$res = $prefix[0].$res;
+		}
+		if ($suffix) {
+			$res = $res.$suffix[0];
+		}
 		if ($decorate) {
 			$chunkId = $this->makeId();
 		
@@ -540,6 +557,7 @@ class WWLController {
 		} else {
 			$out = $res;
 		}
+		
 		return $out;
 	}
 	function translateContent($str, $decorate = false) {
@@ -572,7 +590,7 @@ class WWLController {
 			} else {
 				//split by words
 				//echo("<!--".$str."-->");
-				$splitted = preg_split('/(\s+|[.!?]+)/', $str, -1, PREG_SPLIT_NO_EMPTY | PREG_SPLIT_DELIM_CAPTURE);
+				$splitted = preg_split('/(\s+|[.!?]+\s?)/', $str, -1, PREG_SPLIT_NO_EMPTY | PREG_SPLIT_DELIM_CAPTURE);
 				if (sizeof($splitted) > 2) {
 					
 					$out = "";
@@ -603,16 +621,16 @@ class WWLController {
 		// Group A: a, em, strong, b, i, span, img, sub, sup  -- inline tags
 		$ATags = array("a", "em", "strong", "i", "b", "img", "sub", "sup", "span");
 		// Group B: style, script -- should be excluded with all content inside
-		$BTags = array("style", "script");
+		$BTags = array("style", "script", "pre", "code");
 		// Group C: p, div, h* -- all other tags
 
 		// 1. Save Group B, and replace it with markers (~)
 		// 2. Save Group A, and replace it with markers (^)
 		// 3. Save Group C, replace with markers (#)
 		// 4. Explode result using # markers
-		$reA = '/(<(?:'.implode('|', $ATags).').*?>|<\/(?:'.implode('|', $ATags).').*?>)/i';
-		$reB = '/<(?:'.implode('|', $BTags).').*?>.*<\/(?:'.implode('|', $BTags).').*?>/i';
-		$reC = '/<.*?>/i';
+		$reA = '/(<(?:'.implode('|', $ATags).').*?>|<\/(?:'.implode('|', $ATags).').*?>)/ism';
+		$reB = '/<(?:'.implode('|', $BTags).').*?>.*?<\/(?:'.implode('|', $BTags).').*?>/ism';
+		$reC = '/<.*?>/ism';
 		//1. Replace each source string with translated
 		//2. Replace # markers with Group C
 		//3. Replace ^ markers with Group A
@@ -620,12 +638,12 @@ class WWLController {
 		$matches = array();
 		$matches["B"] = array();
 		$numMatches = preg_match_all($reB, $s, $matches["B"]);
-		$s = preg_replace($reB, "~", $s);
+		$s = preg_replace($reB, "~~", $s);
 		$matches["B"] = $matches["B"][0];
 		
 		$matches["A"] = array();
 		$numMatches = preg_match_all($reA, $s, $matches["A"]);
-		$s = preg_replace($reA, "^", $s);
+		$s = preg_replace($reA, "^^", $s);
 		$matches["A"] = $matches["A"][0];
 		
 		$matches["C"] = array();
@@ -634,20 +652,23 @@ class WWLController {
 		
 		$s = preg_replace($reC, "##", $s);
 		$ssave = $s;
-		$s = preg_split('/(##)+/', $s, -1, PREG_SPLIT_NO_EMPTY);
+		$s = preg_split('/((##)+|(~~)+)/', $s, -1, PREG_SPLIT_NO_EMPTY);
 		$count = 0;
 		foreach ($s as $index=>$value) {
-			if (($pos = strpos($value, "^")) === false) {
+			if (($pos = strpos($value, "^^")) === false) {
+				$s[$index] = trim($s[$index]);
 				continue;
 			}
-			$value = explode("^", $value);
+			$value = explode("^^", $value);
 			$s[$index] = "";
 			for ($i = 0; $i < sizeof($value) - 1; $i++) {
 				$s[$index].= $value[$i].$matches["A"][$count];
 				$count++;
 			}
 			$s[$index].= $value[sizeof($value) - 1];
+			$s[$index] = trim($s[$index]);
 		}
+		//print_r($s);
 		$out = array();
 		foreach ($s as $index=>$value) {
 			if (trim(strip_tags($s[$index])) != "") {
@@ -658,11 +679,13 @@ class WWLController {
 				// Replace inline tags with shortened versions
 				$value = preg_replace('/<([a-z]+)(.*?)>/i', "<$1>", $value);
 				// Translate modified text
-				$out[$index] = $this->translateText($value);
+				$out[$index] = $this->translateText(trim($value));
 				// Any tags were saved
 				if ($cnt) {
 					// Put them back now
+					//echo(":::".$out[$index]."\n");
 					$out[$index] = preg_replace_callback('/<([a-z]+)>/i', "gwwl_replace_inline_tags", $out[$index]);
+					//echo(":::".$out[$index]."\n");
 				}
 			} else {
 				unset($s[$index]);
@@ -749,5 +772,6 @@ function gwwl_replace_inline_tags($matches) {
 			return $res;
 		}
 	}
+	return $matches[0];
 }
 ?>

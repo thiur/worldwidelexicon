@@ -12,6 +12,9 @@
 	border-right: 0.3em solid green;
 	border-left: 0.3em solid red;
 }
+.wwl-highlight {
+	background: #AEFFAE;
+}
 #wwl-inline-editor {
 	right: 0;
 	bottom: 0;
@@ -34,10 +37,12 @@
 	border: 1px black solid;
 }
 #wwl-inline-editor div {
-	background: #eeeeee;
 	padding: 5px;
 	font-size: 12px;
 	text-align: left;
+}
+#wwl-inline-editor-mt {
+	background: #c0c0FF;
 }
 #wwl-inline-editor-title {
 	font-size: 14px !important;

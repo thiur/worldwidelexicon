@@ -24,7 +24,7 @@ class DrupalCache {
 	}
 	
 	function clear() {
-		cache_clear_all($this->prefix."*", 'cache', TRUE);
+		cache_clear_all($this->prefix, 'cache', TRUE);
 	}
 }
 ?>
