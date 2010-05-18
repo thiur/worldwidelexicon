@@ -124,9 +124,11 @@ class LSP():
     def score(guid, score, lsp='', sl='', tl='', st='', tt='', domain='', url='', remote_addr=''):
         if lsp == 'speaklike':
             lsp = 'speaklikeapi'
-        if len(guid) > 0 and len(username) > 0:
-            baseurl = APIKeys.geturl(lsp=username)
-            apikey = APIKeys.getapikey(username)
+        baseurl = ''
+        apikey = ''
+        if len(guid) > 0:
+            baseurl = APIKeys.geturl(lsp=lsp)
+            apikey = APIKeys.getapikey(lsp)
             if len(baseurl) > 0:
                 fullurl = baseurl + '/scores/vote'
                 p = dict()
@@ -150,6 +152,34 @@ class LSP():
                 except:
                     return False
         return False
+    @staticmethod
+    def comment(guid, comment, lsp='', username='', remote_addr=''):
+        if lsp == 'speaklike':
+            lsp = 'speaklikeapi'
+        baseurl = ''
+        apikey = ''
+        if len(guid) > 0:
+            baseurl = APIKeys.geturl(lsp=lsp)
+            apikey = APIKeys.getapikey(lsp)
+        if len(baseurl) > 0:
+            fullurl = baseurl + '/comments/submit'
+            p = dict()
+            p['guid']=guid
+            p['comment']=comment
+            p['username']=username
+            p['remote_addr']=remote_addr
+            p['apikey']=apikey
+            form_data = urllib.urlencode(p)
+            try:
+                result = urlfetch.fetch(url=fullurl, payload=form_data, method = urlfetch.POST, headers = {'Content-Type' : 'application/x-www-form-urlencoded' , 'Accept-Charset' : 'utf-8'})
+                if result.status_code == 200:
+                    return True
+                else:
+                    return False
+            except:
+                return False
+        else:
+            return False
 
 class TestTranslation(webapp.RequestHandler):
     """
@@ -197,6 +227,89 @@ class TestTranslation(webapp.RequestHandler):
             t = t + '<tr><td colspan=2><input type=submit value=OK></td></tr>'
             t = t + '</form></table>'
             www.serve(self, t, sidebar = doc_text, title = '/lsp/test (LSP Interface Test Form)')
+
+class TestScore(webapp.RequestHandler):
+    """
+    <h3>/lsp/testscore</h3>
+
+    This is a test form you can use to submit a score to your translation management system, to
+    simulate end user scores being submitted from WWL based translation viewers and editors. The
+    system will submit a score to a form handler at {baseurl}/scores/vote on your system with the
+    following parameters:<p>
+
+    <ul>
+    <li>guid : a unique record locator in your system</li>
+    <li>score : a quality score from 0..5 where 0=spam</li>
+    <li>lsp : LSP nickname (e.g. speaklikeapi)</li>
+    <li>username : optional username or email of the score submitter</li>
+    <li>remote_addr : IP address of submitter</li>
+    <li>comment : optional comment for translator</li>
+    </ul>
+
+    It will reply with ok or an error message, and if successful, you should see this form repost
+    to your system.
+    """
+    def get(self):
+        guid = self.request.get('guid')
+        lsp = self.request.get('lsp')
+        score = self.request.get('score')
+        username = self.request.get('username')
+        remote_addr = self.request.get('remote_addr')
+        comment = clean(self.request.get('clean'))
+        if len(guid) > 0:
+            if LSP.score(guid, score, lsp = lsp, username = username, remote_addr = remote_addr, comment = comment):
+                self.response.out.write('ok')
+            else:
+                self.error(500)
+                self.response.out.write('error')
+        else:
+            t = '<table><form action=/lsp/testscore method=get>'
+            t = t + '<tr><td>GUID</td><td><input type=text name=guid></td></tr>'
+            t = t + '<tr><td>LSP</td><td><input type=text name=lsp></td></tr>'
+            t = t + '<tr><td>Score (0..5)</td><td><input type=text name=score></td></tr>'
+            t = t + '<tr><td>Username</td><td><input type=text name=username></td></tr>'
+            t = t + '<tr><td>User IP</td><td><input type=text name=remote_addr></td></tr>'
+            t = t + '</table></form>'
+            www.serve(self, t, sidebar = self.__doc__, title = '/lsp/testscore')
+
+class TestComment(webapp.RequestHandler):
+    """
+    <h3>/lsp/testcomment</h3>
+
+    This is a test form you can use to submit comments back to your translation management system.
+    It expects the following parameters, and will report this form to your system at:
+    {baseurl}/comments/submit:<p>
+
+    <ul>
+    <li>guid : unique record locator (from your system)</li>
+    <li>lsp : LSP nickname (e.g. speaklikeapi)</li>
+    <li>comment : comment text</li>
+    <li>username : optional submitter username or email</li>
+    <li>remote_addr : submitter IP address</li>
+    </ul>
+    """
+    def get(self):
+        guid = self.request.get('guid')
+        lsp = self.request.get('lsp')
+        comment = self.request.get('comment')
+        username = self.request.get('username')
+        remote_addr = self.request.get('remote_addr')
+        if len(guid) > 0:
+            if LSP.comment(guid, comment, lsp = lsp, username = username, remote_addr = remote_addr):
+                self.response.out.write('ok')
+            else:
+                self.error(500)
+                self.response.out.write('error')
+        else:
+            t = '<table><form action=/lsp/testcomment method=get>'
+            t = t + '<tr><td>GUID</td><td><input type=text name=guid></td></tr>'
+            t = t + '<tr><td>LSP</td><td><input type=text name=lsp></td></tr>'
+            t = t + '<tr><td>Comment</td><td><input type=text name=comment></td></tr>'
+            t = t + '<tr><td>Username</td><td><input type=text name=username></td></tr>'
+            t = t + '<tr><td>User IP</td><td><input type=text name=remote_addr></td></tr>'
+            t = t + '<tr><td colspan=2><input type=submit value=OK></td></tr>'
+            t = t + '</table></form>'
+            www.serve(self, t, sidebar = self.__doc__, title = '/lsp/testcomment')
 
 class SubmitTranslation(webapp.RequestHandler):
     """
@@ -290,6 +403,8 @@ class SubmitTranslation(webapp.RequestHandler):
             www.serve(self, t, sidebar = doc_text, title='/lsp/submit (LSP Submit Interface)')
 
 application = webapp.WSGIApplication([('/lsp/submit', SubmitTranslation),
+                                      ('/lsp/testscore', TestScore),
+                                      ('/lsp/testcomment', TestComment),
                                       ('/lsp/test', TestTranslation)],
                                      debug=True)
 
