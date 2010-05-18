@@ -15,7 +15,7 @@ class Purge(webapp.RequestHandler):
         elif name == 'stats':
             result = Stats.purge()
         else:
-            result = geo.purge()
+            result = True
         self.response.out.write('ok')
 
 application = webapp.WSGIApplication([('/purge', Purge),
