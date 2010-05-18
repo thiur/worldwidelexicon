@@ -1855,7 +1855,10 @@ class Translation(db.Model):
             m.update(str(datetime.datetime.now()))
             guid = str(m.hexdigest())
             n = md5.new()
-            n.update(st)
+            try:
+                n.update(st.decode('utf-8'))
+            except:
+                n.update(st)
             md5hash = str(n.hexdigest())
             tdb = Translation()
             tdb.md5hash = md5hash
