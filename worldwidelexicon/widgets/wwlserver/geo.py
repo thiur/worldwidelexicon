@@ -50,26 +50,6 @@ class GeoDB(db.Model):
     longitude = db.FloatProperty()
     lastupdated = db.DateTimeProperty(auto_now_add = True)
 
-class GeoLog(db.Model):
-    """
-    This data store contains a time based log of requests to the system and their location.
-    The system retains these logs for approximately 90 days, and uses this information
-    to determine what countries people are visiting from, likely language preferences, etc.
-    We also use Google Analytics for website traffic reports and other services. 
-    """
-    date = db.DateTimeProperty(auto_now_add = True)
-    remote_addr = db.StringProperty(default = '')
-    website = db.StringProperty(default = '')
-    country = db.StringProperty(default = '')
-    state = db.StringProperty(default = '')
-    city = db.StringProperty(default = '')
-    latitude = db.FloatProperty()
-    longitude = db.FloatProperty()
-    action = db.StringProperty(default = '')
-    username = db.StringProperty(default = '')
-    sl = db.StringProperty(default = '')
-    tl = db.StringProperty(default = '')
-
 class geo():
     """
     This class encapsulates methods to provide a variety of location services, to call out to
@@ -85,20 +65,6 @@ class geo():
     def countries():
         clist = dict()
         return clist
-    @staticmethod
-    def purge(name=''):
-        """
-        Purges GeoLog entries that are older than 60 days from the data store.
-        This is called via a cron job every hour or so.
-        """
-        gdb = db.Query(GeoLog)
-        gdb.order('-date')
-        results = gdb.fetch(limit=250)
-        if len(results) > 0:
-            db.delete(results)
-            return True
-        else:
-            return False
     @staticmethod
     def query(remote_addr, website=''):
         """

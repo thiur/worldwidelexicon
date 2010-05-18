@@ -1862,8 +1862,20 @@ class Translation(db.Model):
             tdb.guid = guid
             tdb.sl = sl
             tdb.tl = tl
-            tdb.st = st.encode('utf-8')
-            tdb.tt = tt.encode('utf-8')
+            try:
+                tdb.st = st.encode('utf-8')
+            except:
+                try:
+                    tdb.st = clean(st)
+                except:
+                    tdb.st = st
+            try:
+                tdb.tt = tt.encode('utf-8')
+            except:
+                try:
+                    tdb.tt = clean(tt)
+                except:
+                    tdb.tt = tt
             tdb.domain = domain
             tdb.url = url
             tdb.username = username
