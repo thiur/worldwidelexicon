@@ -2,7 +2,7 @@
 class GoogleTranslator extends BaseTranslator {
 
 	var $methods = array('mt');
-	var $meta = array("mtengine" => "google", "username" => "");
+	var $meta = array("mtengine" => "google", "username" => "robot");
 
 	function get($st, $config){
 		if (!$this->canTranslate($config)){

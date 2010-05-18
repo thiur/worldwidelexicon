@@ -18,7 +18,7 @@
  */
 class WWLAPI extends BaseTranslator {
 	
-	var $wwl_servers = array('3.latest.worldwidelexicon.appspot.com');//array('www.worldwidelexicon.org');
+	var $wwl_servers = array('www.worldwidelexicon.org'); //array('3.latest.worldwidelexicon.appspot.com');
 	var $secure_wwl_servers = array('worldwidelexicon.appspot.com');
 	
 
@@ -197,7 +197,7 @@ class WWLAPI extends BaseTranslator {
 			$request['mtengine'] = $mtengine;
 			$request['output'] = 'json';
 			
-			$url = $this->server() . "/q"; 
+			$url = $this->server() . "/t"; //was /q
 			$response = $this->sendRequest($url, $request);	
 			if ($response) {
 				$response = $this->jsonDecode($response);
@@ -205,7 +205,13 @@ class WWLAPI extends BaseTranslator {
 					
 					$this->meta["mtengine"] = $response["records"][0]["tx"]["mtengine"];
 					$this->meta["username"] = $response["records"][0]["tx"]["username"];
-					
+					if (!$this->meta["username"] && $response["records"][0]["tx"]["tt"]) {
+						$this->meta["username"] = "unknown";
+					}
+					// Empty translated text -> metadata may not be correct so reset them
+					if (!$response["records"][0]["tx"]["tt"]) {
+						$this->meta = array("mtengine" => "", "username" => "");
+					}
 					return $response["records"][0]["tx"]["tt"];
 				}
 				$this->error = "Can't parse server response";
@@ -241,11 +247,13 @@ class WWLAPI extends BaseTranslator {
 		$request['url'] = $url;
 		$request['username'] = $username;
 		$request['pw'] = $pw;
+		$request['ip'] = $_SERVER["REMOTE_ADDR"];
+		$request['proxy'] = 'y';
 		
 		// Build the URL for the REST submission
 		$url = $this->server() . "/submit";
 		$response = $this->sendRequest($url, $request);
-		return ($response == 'ok');
+		return $response;
 	}
 
 	/**
@@ -258,24 +266,24 @@ class WWLAPI extends BaseTranslator {
 	 *	@param string $votetype 
 	 *  @param string $username
 	 *  @param string $pw
-	 *  @param string $proxy
 	 *	@return bool
 	 */
-	function score( $st, $tt, $votetype='', $username='', $pw='', $proxy='n') {
+	function score( $st, $tt, $score=0, $username='', $pw='') {
 
 		$guid = MD5( $this->sourceLanguage . $this->targetLanguage . $st . $tt );
 		
 		// Score a translation and save it to the WWL server
 		$request['guid'] = $guid;
-		$request['votetype'] = $votetype;
+		$request['score'] = $score;
 		$request['username'] = $username;
 		$request['pw'] = $pw;
-		$request['proxy'] = $proxy;
+		$request['ip'] = $_SERVER["REMOTE_ADDR"];
+		$request['proxy'] = 'y';
 		
 		// Build the URL used in submitting this score.  Get the secure server.
 		$url = $this->server(true) . '/scores/vote';
 		$response = $this->sendRequest($url, $request);
-		return ($response == 'ok');		
+		return $response;		
 	}
 
 } /* end Class wwl */

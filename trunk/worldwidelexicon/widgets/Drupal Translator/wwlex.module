@@ -27,21 +27,31 @@ function wwlex_init() {
 	if ($timeout = variable_get('wwl_translation_timeout', 10)) {
 		$wwlex->timeout = $timeout;
 	}
-	drupal_add_js(drupal_get_path('module', 'wwlex') . '/wwlex.js');
+	drupal_add_js(drupal_get_path('module', 'wwlex') . '/wwl.libs/wwlex.js');
+	drupal_add_js(drupal_get_path('module', 'wwlex') . '/drupal.wwlex.js');
 	drupal_add_css(drupal_get_path('module', 'wwlex') . '/wwl.libs/wwlex.css');
 }
 
 function wwlex_footer() {
 	global $wwlex;
-	$out = '<script type="text/javascript">';
+	$out  = '<script type="text/javascript" src="http://www.google.com/jsapi"></script>';
+	$out .= '<script type="text/javascript">';
+	$out .= "\n".'google.load("language", "1");';
+	$out .= "\n".'google.load("jquery", "1");';
 	$out .= "\n".'wwl.chunks = '.$wwlex->chunksJSON().';';
 	$out .= "\n".'wwl.sourceLanguageName = "'.$wwlex->sourceLanguageName().'";';
 	$out .= "\n".'wwl.targetLanguageName = "'.$wwlex->targetLanguageName().'";';
+	$out .= "\n".'wwl.sourceLanguage = "'.$wwlex->sourceLanguage.'";';
 	$out .= "\n".'wwl.targetLanguage = "'.$wwlex->targetLanguage.'";';
+	$out .= "\n".'wwl.ajaxurl = "/wwlex/post";';	
+	$out .= "\n".'wwl.clr_ajaxurl = "/wwlex/clearcache";';
 	$out .= "\n".'</script>';
 	$out .= "\n".'<div id="wwl-inline-editor" class="wwl-hide" dir="'.($wwlex->isTargetRtl() ? 'rtl':'ltr').'" lang="'.$wwlex->targetLanguage.'">';
 	$out .= "\n".'	<div id="wwl-inline-editor-title">'.t('Edit translation').'</div>';
 	$out .= "\n".'	<div id="wwl-inline-editor-original"></div>';
+	$out .= "\n".'	<div id="wwl-inline-editor-mt-title">'.t('Machine translation (Google)').':</div>';
+	$out .= "\n".'	<div id="wwl-inline-editor-mt">'.t('Loading...').'</div>';
+	$out .= "\n".' 	<div><a href="#" onclick="return wwl.useMT();">'.t('Copy to editor').'</a></div>';
 	$out .= "\n".'	<textarea id="wwl-inline-editor-translated"></textarea>';
 	$out .= "\n".'	<input id="wwl-inline-editor-update" type="button" value="'.t('Update translation').'" onclick="return wwl.submitTranslation();"/>';
 	$out .= "\n".'	or <a href="#" onclick="return wwl.hideTranslatorWindow();">'.t('Cancel').'</a>';
@@ -210,12 +220,16 @@ function wwlex_nodeapi(&$node, $op, $a3 = NULL, $a4 = NULL) {
 	if (!$wwlex->needTranslation) {
 		return;
 	}
+	
+	$wwlex->setContentId($node->nid);
+	
   	switch ($op) {
     	case 'view':
     		//echo "<pre>";
 			//print_r($node);
 			//echo "</pre>";
     		$nid = wwlex_current_nid();
+    		
     		$oTitle = html_entity_decode($node->title, ENT_COMPAT, "UTF-8");
     		$tTitle = $wwlex->translateSentence($oTitle, true);
     		$tTitleClean = $wwlex->translateSentence($oTitle);
@@ -228,6 +242,7 @@ function wwlex_nodeapi(&$node, $op, $a3 = NULL, $a4 = NULL) {
 			
 			// Build and clue in title metadata
 			$decorated = "";
+			
 			if ($wwlex->decorateOutput || $wwlex->canTranslate()) {
 				$idt = "wwl-title-".$node->nid;
 				$decorated.= '<span id="wrap-'.$idt.'" class="wwl-hide">';
@@ -242,15 +257,18 @@ function wwlex_nodeapi(&$node, $op, $a3 = NULL, $a4 = NULL) {
 
 function wwl_translate_content($str, $id = "") {
 	global $wwlex;
+	$wwlex->setContentId($id);
 	$str = html_entity_decode($str, ENT_COMPAT, "UTF-8");
 	if ($wwlex->decorateOutput || $wwlex->canTranslate()) {
 		$idt = "wwl-title-".$id;
 		$idw = "wwl-content-".$id;
+		$idtr = "wwl-translators-".$id;
 		$out = "<span id=\"".$idw."\"><blockquote class=\"wwl-decorations\">(".$wwlex->sourceLanguageName()." &rarr; ".$wwlex->targetLanguageName().") ";
 		$out.= "<a href\"#\" onclick=\"wwl.showOriginal('".$id."'); return false;\">".t('View original')."</a>";
 		if ($wwlex->canTranslate()) {
 			$out.= ' [<a href="#" onclick="return wwl.edit(\''.$id.'\');">'.t('Edit translation').'</a>]';
 		}
+		$out.= "<div>".t('Translators').": <span id=\"".$idtr."\"></span></div>";
 		$out.= "</blockquote>";
 		$out.= '<span dir="'.($wwlex->isTargetRtl() ? 'rtl':'ltr').'" lang="'.$wwlex->targetLanguage.'">';
 		$out.= $wwlex->translateContent($str, true);

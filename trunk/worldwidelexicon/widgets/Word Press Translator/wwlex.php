@@ -3,7 +3,7 @@
 Plugin Name: Worldwide Lexicon Translator
 Plugin URI: http://worldwidelexicon.org/
 Description: Add community-powered, professional or automatic translations to your WordPress blog.
-Version: 0.98
+Version: 1.00
 Author: Worldwide Lexicon Inc
 Author URI: http://www.worldwidelexicon.org/
 */
@@ -17,14 +17,16 @@ if ( ! defined( 'WP_PLUGIN_URL' ) )
 if ( ! defined( 'WP_PLUGIN_DIR' ) )
       define( 'WP_PLUGIN_DIR', WP_CONTENT_DIR . '/plugins' );
 
-require (dirname(__FILE__)."/wwl.libs/services_json.class.php");
-require (dirname(__FILE__)."/wwl.libs/filecache.class.php");
-require (dirname(__FILE__)."/wwl.libs/base_translator.class.php");
-require (dirname(__FILE__)."/wwl.libs/wwl_api.class.php");
-require (dirname(__FILE__)."/wwl.libs/wwl_translator.class.php");
-require (dirname(__FILE__)."/wwl.libs/google_translator.class.php");
-require (dirname(__FILE__)."/wwl.libs/wwl_controller.class.php");
-require (dirname(__FILE__)."/wordpress_wwl.class.php");
+if (!class_exists("Services_JSON")) { 
+	require_once (dirname(__FILE__)."/wwl.libs/services_json.class.php");
+}
+require_once (dirname(__FILE__)."/wwl.libs/filecache.class.php");
+require_once (dirname(__FILE__)."/wwl.libs/base_translator.class.php");
+require_once (dirname(__FILE__)."/wwl.libs/wwl_api.class.php");
+require_once (dirname(__FILE__)."/wwl.libs/wwl_translator.class.php");
+require_once (dirname(__FILE__)."/wwl.libs/google_translator.class.php");
+require_once (dirname(__FILE__)."/wwl.libs/wwl_controller.class.php");
+require_once (dirname(__FILE__)."/wordpress_wwl.class.php");
 
 $wwlex = new WordpressWWLController(WP_PLUGIN_DIR);
 $wwlex->addCacheProvider(new FileCache(WP_PLUGIN_DIR."/wwlex-cache/"));
@@ -52,25 +54,33 @@ function wwl_admin_init() {
 	}
 }
 function wwl_inject_script() {
-	wp_print_scripts( array( 'sack' ));
+	//wp_print_scripts( array( 'sack' ));
 	$parts = preg_split("/(\\\\|\/)/", dirname(__FILE__), -1, PREG_SPLIT_NO_EMPTY);
 	$plugin_url = array_pop($parts);
 	
-	echo '<!--wwl script--><script src="'.WP_PLUGIN_URL.'/'.$plugin_url.'/wwlex.js" type="text/javascript"></script>';
+	echo '<!--wwl script--><script src="'.WP_PLUGIN_URL.'/'.$plugin_url.'/wwl.libs/wwlex.js" type="text/javascript"></script>';
 	echo '<!--wwl css--><link rel="stylesheet" href="'.WP_PLUGIN_URL.'/'.$plugin_url.'/wwl.libs/wwlex.css" type="text/css" media="screen" />';
 }
 function wwl_footer() {
 	global $wwlex;
+	echo '<script type="text/javascript" src="http://www.google.com/jsapi"></script>';
 	echo '<script type="text/javascript">';
+	echo 'google.load("language", "1");';
+	echo 'google.load("jquery", "1");';
 	echo 'wwl.chunks = '.$wwlex->chunksJSON().';';
 	echo 'wwl.sourceLanguageName = "'.$wwlex->sourceLanguageName().'";';
 	echo 'wwl.targetLanguageName = "'.$wwlex->targetLanguageName().'";';
+	echo 'wwl.sourceLanguage = "'.$wwlex->sourceLanguage.'";';
 	echo 'wwl.targetLanguage = "'.$wwlex->targetLanguage.'";';
 	echo 'wwl.ajaxurl = "'.get_option('siteurl').'/wp-admin/admin-ajax.php";';
+	echo 'wwl.clr_ajaxurl = typeof ajaxurl != "undefined" ? ajaxurl : "";';
 	echo '</script>';
 	echo '<div id="wwl-inline-editor" class="wwl-hide" dir="'.($wwlex->isTargetRtl() ? 'rtl':'ltr').'" lang="'.$wwlex->targetLanguage.'">';
 	echo '	<div id="wwl-inline-editor-title">'.__('Edit translation').'</div>';
 	echo '	<div id="wwl-inline-editor-original"></div>';
+	echo '	<div id="wwl-inline-editor-mt-title">'.__('Machine translation (Google)').':</div>';
+	echo '	<div id="wwl-inline-editor-mt">'.__('Loading...').'</div>';
+	echo ' 	<div><a href="#" onclick="return wwl.useMT();">'.__('Copy to editor').'</a></div>';
 	echo '	<textarea id="wwl-inline-editor-translated"></textarea>';
 	echo '	<input id="wwl-inline-editor-update" type="button" value="'.__('Update translation').'" onclick="return wwl.submitTranslation();"/>';
 	echo '	or <a href="#" onclick="return wwl.hideTranslatorWindow();">'.__('Cancel').'</a>';
@@ -113,6 +123,7 @@ function wwl_sidebar_widget($args) {
 // title doesn't need splitting into chunks
 function wwl_translate_title($str) {
 	global $wwlex, $id, $post;
+	$wwlex->setContentId($id);
 	$str = html_entity_decode($str, ENT_COMPAT, "UTF-8");
 	if (($post->post_title == $str) && ($wwlex->decorateOutput || $wwlex->canTranslate())) {
 		$idt = "wwl-title-".$id;
@@ -124,15 +135,18 @@ function wwl_translate_title($str) {
 }
 function wwl_translate_content($str) {
 	global $wwlex, $id;
+	$wwlex->setContentId($id);
 	$str = html_entity_decode($str, ENT_COMPAT, "UTF-8");
 	if ($wwlex->decorateOutput || $wwlex->canTranslate()) {
 		$idt = "wwl-title-".$id;
 		$idw = "wwl-content-".$id;
+		$idtr = "wwl-translators-".$id;
 		$out = "<span id=\"".$idw."\"><blockquote class=\"wwl-decorations\">(".$wwlex->sourceLanguageName()." &rarr; ".$wwlex->targetLanguageName().") ";
 		$out.= "<a href\"#\" onclick=\"wwl.swap('".$id."_tr', '".$id."'); return false;\">".__('View original')."</a>";
 		if ($wwlex->canTranslate()) {
 			$out.= ' [<a href="#" onclick="return wwl.edit(\''.$id.'\');">'.__('Edit').'</a>]';
 		}
+		$out.= "<div>".__('Translators').": <span id=\"".$idtr."\"></span></div>";
 		$out.= "</blockquote>";
 		$out.= '<span dir="'.($wwlex->isTargetRtl() ? 'rtl':'ltr').'" lang="'.$wwlex->targetLanguage.'">';
 		$out.= $wwlex->translateContent($str, true);
