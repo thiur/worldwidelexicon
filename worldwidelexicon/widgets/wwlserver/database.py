@@ -1863,14 +1863,14 @@ class Translation(db.Model):
             tdb.sl = sl
             tdb.tl = tl
             try:
-                tdb.st = st.encode('utf-8')
+                tdb.st = st.decode('utf-8')
             except:
                 try:
                     tdb.st = clean(st)
                 except:
                     tdb.st = st
             try:
-                tdb.tt = tt.encode('utf-8')
+                tdb.tt = tt.decode('utf-8')
             except:
                 try:
                     tdb.tt = clean(tt)
