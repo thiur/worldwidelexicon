@@ -113,6 +113,9 @@ class TestLanguage(db.Model):
                 return 'ru'
             else:
                 return ''
+    @staticmethod
+    def browserlanguage(header):
+        return 'es'
             
 class lx():
     code = ''

@@ -214,15 +214,16 @@ class SaveScore(webapp.RequestHandler):
                         item.username = username
                         item.remote_addr = remote_addr
                         item.anonymous = True
-                    scores = item.scores
-                    rawscore = item.rawscore
-                    scores = scores + 1
-                    rawscore = rawscore + score
-                    blockedvotes = item.blockedvotes
-                    item.avgscore = float(rawscore/scores)
-                    if score < 1:
-                        item.blockedvotes = blockedvotes + 1
-                    item.put()
+                    if item is not None:
+                        scores = item.scores
+                        rawscore = item.rawscore
+                        scores = scores + 1
+                        rawscore = rawscore + score
+                        blockedvotes = item.blockedvotes
+                        item.avgscore = float(rawscore/scores)
+                        if score < 1:
+                            item.blockedvotes = blockedvotes + 1
+                        item.put()
                     item = Score()
                     item.guid = guid
                     item.sl = sl
@@ -239,7 +240,8 @@ class SaveScore(webapp.RequestHandler):
                     item.put()
                     if professional and len(author) > 0:
                         LSP.score(guid, score, lsp=author)
-                    result = PeerReview.save(guid, username, remote_addr, sl, tl, score, domain=domain)
+                    if not professional:
+                        result = PeerReview.save(guid, username, remote_addr, sl, tl, score, domain=domain)
                     self.response.out.write('ok')
                 else:
                     self.error(500)
