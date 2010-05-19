@@ -509,8 +509,8 @@ class SubmitTranslation(webapp.RequestHandler):
         if len(callback) > 0:
             self.redirect(callback)
         else:
-            if result:
-                self.response.out.write('ok')
+            if len(result) > 0:
+                self.response.out.write('ok\n' + result)
             elif not emptyform:
                 self.response.out.write('error : invalid user')
             else:
