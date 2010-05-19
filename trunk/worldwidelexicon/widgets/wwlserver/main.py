@@ -95,6 +95,7 @@ pageTracker._trackPageview();\
 # Define default settings for Blueprint CSS framework, included with this package as the default style sheet
 
 template = 'http://www.worldwidelexicon.org/css/template.html'
+template1col = 'http://3.latest.worldwidelexicon.appspot.com/css/template1col.html'
 downloads = 'http://www.worldwidelexicon.org/static/downloads.html'
 
 proxy_settings = '<meta name="allow_edit" content="y" />'
@@ -153,9 +154,10 @@ class WebServer(webapp.RequestHandler):
             self.error(404)
             self.response.out.write('<h2>Page Not Found</h2>')
         elif p1 == 'review':
-            t = '<h3>Review New Translators</h3>'
+            t = '<h2>Review New Translators</h2>'
             t = t + 'Help make the Worldwide Lexicon better by reviewing these translations which were '
             t = t + 'submitted by new volunteer translators.<p>'
+            t = t + '<table><form action=/p/submit method=get>'
             results = PeerReview.fetch(limit = 5)
             for r in results:
                 tdb = db.Query(Translation)
@@ -164,23 +166,36 @@ class WebServer(webapp.RequestHandler):
                 else:
                     tdb.filter('remote_addr = ', r.remote_addr)
                 translations = tdb.fetch(limit=5)
+                ctr = 0
                 if len(translations) > 0:
                     for tx in translations:
+                        ctr = ctr+1
+                        t = t + '<tr valign=top><td width=75%>'
                         t = t + tx.st
                         t = t + '<blockquote>' + tx.tt + '</blockquote>'
+                        t = t + '</td><td>'
+                        t = t + '<input type=hidden name=guid' + str(ctr) + ' value=' + tx.guid + '>'
+                        t = t + '<select name=score' + str(ctr) + '>'
+                        t = t + '<option selected value="">---</option>'
+                        t = t + '<option value=5>5</option>'
+                        t = t + '<option value=4>4</option>'
+                        t = t + '<option value=3>3</option>'
+                        t = t + '<option value=2>2</option>'
+                        t = t + '<option value=1>1</option>'
+                        t = t + '<option value=0>0/spam</option>'
+                        t = t + '</select></td></tr>'
+            t = t + '<tr><td colspan=2><input type=submit value="Submit Scores"></td></tr>'
+            t = t + '</table></form>'
             w = web()
-            w.get(template)
-            w.replace(template,'[google_analytics]',google_analytics_header)
+            w.get(template1col)
+            w.replace(template1col,'[google_analytics]',google_analytics_header)
             p1 = 'Worldwide Lexicon : Review New Translators'
-            w.replace(template,'[title]',p1)
-            w.replace(template,'[meta]', proxy_settings)
-            w.replace(template,'[footer]',standard_footer)
-            w.replace(template,'[menu]',menus)
-            w.replace(template,'[left_column]',t)
-            r = sidebar_about
-            r = r + Feeds.get('http://blog.worldwidelexicon.org/?feed=rss2')
-            w.replace(template,'[right_column]', r)
-            self.response.out.write(w.out(template))            
+            w.replace(template1col,'[title]',p1)
+            w.replace(template1col,'[meta]', proxy_settings)
+            w.replace(template1col,'[footer]',standard_footer)
+            w.replace(template1col,'[menu]',menus)
+            w.replace(template1col,'[left_column]',t)
+            self.response.out.write(w.out(template1col))
         elif len(p1) > 0:
             page = 'http://www.worldwidelexicon.org/static/' + p1 + '.html'
             w = web()

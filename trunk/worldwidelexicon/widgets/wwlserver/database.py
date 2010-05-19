@@ -924,30 +924,35 @@ class PeerReview(db.Model):
             item.domain = domain
         if type(score) is str:
             score = int(score)
-        rawscore = item.rawscore
-        scores = item.scores + 1
-        rawscore = rawscore + score
-        avgscore = float(rawscore/scores)
-        item.rawscore = rawscore
-        item.scores = scores
-        item.avgscore = avgscore
-        reviewers = item.reviewers
-        if remote_addr not in reviewers:
-            reviewers.append(remote_addr)
-        item.reviewers = reviewers
+        if score is not None:
+            rawscore = item.rawscore
+            scores = item.scores + 1
+            rawscore = rawscore + score
+            avgscore = float(rawscore/scores)
+            item.rawscore = rawscore
+            item.scores = scores
+            item.avgscore = avgscore
+            reviewers = item.reviewers
+            if remote_addr not in reviewers:
+                reviewers.append(remote_addr)
+            item.reviewers = reviewers
+        else:
+            item.rawscore = 0
+            item.scores = 0
         guids = item.guids
         if guid not in guids:
             guids.append(guid)
             item.guids = guids
-        rawdata = item.rawdata
-        if len(rawdata) < 200:
-            rawdata.append(score)
-            item.rawdata = rawdata
-        squares = 0
-        for r in rawdata:
-            squares = squares + pow((float(r)-avgscore),2)
-        stdev = pow(squares, 0.5)
-        item.stdev = stdev
+        if score is not None:
+            rawdata = item.rawdata
+            if len(rawdata) < 200:
+                rawdata.append(score)
+                item.rawdata = rawdata
+            squares = 0
+            for r in rawdata:
+                squares = squares + pow((float(r)-avgscore),2)
+            stdev = pow(squares, 0.5)
+            item.stdev = stdev
         item.put()
         return True
     @staticmethod
@@ -2009,6 +2014,7 @@ class Translation(db.Model):
             words = string.replace(words, '\"', '')
             ngrams = string.split(string.lower(words), ' ')
             tdb.put()
+            result = PeerReview.save(guid, username, remote_addr, sl, tl, None, domain=domain)
             if len(username) > 0:
                 if type(latitude) is float and type(longitude) is float:
                     Users.translate(username, len(twords), city=city, state=state, country=country, latitude=latitude, longitude=longitude)

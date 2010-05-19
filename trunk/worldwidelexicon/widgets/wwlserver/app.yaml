@@ -103,6 +103,12 @@ handlers:
 
 - url: /purge/(.*)
   script: purge.py
+
+- url: /p/(.*)
+  script: translations.py
+
+- url: /p
+  script: translations.py
   
 - url: /q
   script: translations.py
