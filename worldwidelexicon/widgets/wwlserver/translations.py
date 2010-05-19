@@ -76,6 +76,7 @@ from akismet import Akismet
 from transcoder import transcoder
 from database import Comment
 from database import Directory
+from database import PeerReview
 from database import Search
 from database import Translation
 from database import languages
@@ -512,7 +513,8 @@ class SubmitTranslation(webapp.RequestHandler):
             if len(result) > 0:
                 self.response.out.write('ok\n' + result)
             elif not emptyform:
-                self.response.out.write('error : invalid user')
+                self.error(500)
+                self.response.out.write('error\ninvalid user')
             else:
                 pass
             if emptyform:
@@ -1138,10 +1140,98 @@ class SpamTranslations(webapp.RequestHandler):
         self.response.out.write('ok<p>purged ' + str(spamcount) + ' spam translations and ')
         self.response.out.write(str(lowvotecount) + ' low quality translations.')
 
+class PeerReviewServer(webapp.RequestHandler):
+    """
+    /p
+
+    This web service returns a list of translations from new or unknown translators. Developers
+    can use this service to build peer review tools that encourage users to score translations, and
+    to teach the system who the good and bad translators are. 
+    """
+    def get(self):
+        sl = self.request.get('sl')
+        tl = self.request.get('tl')
+        domain = self.request.get('domain')
+        min_scores = self.request.get('min_scores')
+        output = self.request.get('output')
+        if len(output) > 0 and len(tl) > 0:
+            try:
+                min_scores = int(min_scores)
+            except:
+                pass
+            if min_scores < 1:
+                min_scores = 20
+            results = PeerReview.fetch(sl=sl, tl=tl, domain=domain, scores=min_scores)
+            translations = list()
+            for r in results:
+                tdb = db.Query(Translation)
+                if len(r.username) > 0:
+                    tdb.filter('username = ', r.username)
+                else:
+                    tdb.filter('remote_addr = ', r.remote_addr)
+                if len(sl) > 0:
+                    tdb.filter('sl = ', sl)
+                if len(tl) > 0:
+                    tdb.filter('tl = ', tl)
+                if len(domain) > 0:
+                    tdb.filter('domain')
+                tdb.order('-date')
+                xl = tdb.fetch(limit=5)
+                if len(records) > 0:
+                    for x in xl:
+                        t = tx()
+                        t.sl = x.sl
+                        t.st = x.st
+                        t.tl = x.tl
+                        t.tt = x.tt
+                        t.domain = x.domain
+                        t.guid = x.guid
+                        translations.append(t)
+            if output == 'xml':
+                self.response.headers['Content-Type']='text/xml'
+            elif output == 'jason':
+                self.response.headers['Content-Type']='text/javascript'
+            else:
+                self.response.headers['Content-Type']='text/html'
+            d = DeepPickle()
+            d.autoheaders = True
+            self.response.out.write(d.pickleTable(translations,output))
+        else:
+            t = '<table><form action=/p method=get>'
+            t = t + '<tr><td>Source Language (sl)</td><td><input type=text name=sl></td></tr>'
+            t = t + '<tr><td>Target Language (tl)</td><td><input type=text name=tl></td></tr>'
+            t = t + '<tr><td>Domain (domain)</td><td><input type=text name=domain></td></tr>'
+            t = t + '<tr><td>Output Format (output)</td><td><input type=text name=output value=json></td></tr>'
+            t = t + '<tr><td colspan=2><input type=submit value=OK></td></tr>'
+            t = t + '</form></table>'
+            www.serve(self, t, sidebar=self.__doc__, title = '/p')
+
+class SubmitPeerReviewScores(webapp.RequestHandler):
+    def get(self):
+        ctr = 0
+        remote_addr = self.request.remote_addr
+        ip = self.request.get('ip')
+        if len(ip) > 0:
+            remote_addr = ip
+        while ctr < 50:
+            ctr = ctr + 1
+            guid = self.request.get('guid' + str(ctr))
+            score = self.request.get('score' + str(ctr))
+            if len(guid) > 0 and len(score) > 0:
+                p = dict()
+                p['guid']=guid
+                p['score']=score
+                p['ip']=remote_addr
+                p['proxy']='y'
+                taskqueue.add(url = '/scores/vote', params=p)
+        self.response.out.write('ok')
+                
 application = webapp.WSGIApplication([('/q', GetTranslations),
                                       ('/batch', BatchTranslation),
                                       ('/log', LogQueries),
                                       ('/ngrams', IndexNgrams),
+                                      ('/p/submit', SubmitPeerReviewScores),
+                                      ('/p', PeerReviewServer),
                                       (r'/t/(.*)/(.*)/(.*)', SimpleTranslation),
                                       (r'/t/(.*)/(.*)', SimpleTranslation),
                                       ('/t', SimpleTranslation),

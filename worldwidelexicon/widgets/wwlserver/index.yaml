@@ -11,7 +11,25 @@ indexes:
   properties:
   - name: tl
   - name: lastupdated
-    direction: desc    
+    direction: desc
+
+- kind: PeerReview
+  properties:
+  - name: tl
+  - name: scores
+
+- kind: PeerReview
+  properties:
+  - name: sl
+  - name: tl
+  - name: scores
+
+- kind: PeerReview
+  properties:
+  - name: sl
+  - name: tl
+  - name: domain
+  - name: scores
 
 - kind: Score
   properties:
@@ -127,6 +145,30 @@ indexes:
   - name: username
   - name: date
     direction: desc
+
+- kind: Translation
+  properties:
+  - name: username
+  - name: tl
+  - name: date
+    direction: desc
+
+- kind: Translation
+  properties:
+  - name: username
+  - name: sl
+  - name: tl
+  - name: date
+    direction: desc
+
+- kind: Translation
+  properties:
+  - name: username
+  - name: sl
+  - name: tl
+  - name: domain
+  - name: date
+    direction: desc
     
 - kind: Translation
   properties:
@@ -215,3 +257,26 @@ indexes:
   - name: date
     direction: desc
     
+- kind: Translation
+  properties:
+  - name: remote_addr
+  - name: tl
+  - name: date
+    direction: desc
+
+- kind: Translation
+  properties:
+  - name: remote_addr
+  - name: sl
+  - name: tl
+  - name: date
+    direction: desc
+
+- kind: Translation
+  properties:
+  - name: remote_addr
+  - name: sl
+  - name: tl
+  - name: domain
+  - name: date
+    direction: desc
