@@ -61,6 +61,7 @@ import datetime
 # import WWL and third party modules
 from deeppickle import DeepPickle
 from www import www
+from database import PeerReview
 from database import Score
 from database import Settings
 from database import Translation
@@ -238,6 +239,7 @@ class SaveScore(webapp.RequestHandler):
                     item.put()
                     if professional and len(author) > 0:
                         LSP.score(guid, score, lsp=author)
+                    result = PeerReview.save(guid, username, remote_addr, sl, tl, score, domain=domain)
                     self.response.out.write('ok')
                 else:
                     self.error(500)

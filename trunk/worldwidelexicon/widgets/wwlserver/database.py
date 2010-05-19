@@ -885,6 +885,86 @@ class languages():
 class rec():
     sl = 'en'
 
+class PeerReview(db.Model):
+    username = db.StringProperty(default='')
+    remote_addr = db.StringProperty(default='')
+    sl = db.StringProperty(default='')
+    tl = db.StringProperty(default='')
+    domain = db.StringProperty(default='')
+    createdon = db.DateTimeProperty(auto_now_add=True)
+    translations = db.IntegerProperty(default=0)
+    scores = db.IntegerProperty(default=0)
+    rawscore = db.IntegerProperty(default=0)
+    avgscore = db.FloatProperty()
+    stdev = db.FloatProperty()
+    reviewers = db.ListProperty(str)
+    rawdata = db.ListProperty(int)
+    guids = db.ListProperty(str)
+    @staticmethod
+    def save(guid, username, remote_addr, sl, tl, score, domain=''):
+        if len(guid) < 1:
+            return False
+        if len(username) > 0:
+            pdb = db.Query(PeerReview)
+            pdb.filter('username = ', username)
+            pdb.filter('sl = ', sl)
+            pdb.filter('tl = ', tl)
+        else:
+            pdb = db.Query(PeerReview)
+            pdb.filter('username = ', remote_addr)
+            pdb.filter('sl = ', sl)
+            pdb.filter('tl = ', tl)
+        item = pdb.get()
+        if item is None:
+            item = PeerReview()
+            item.remote_addr = remote_addr
+            if len(username) > 0:
+                item.username = username
+            else:
+                item.username = remote_addr
+            item.sl = sl
+            item.tl = tl
+            item.domain = domain
+        if type(score) is str:
+            score = int(score)
+        rawscore = item.rawscore
+        scores = item.scores + 1
+        rawscore = rawscore + score
+        avgscore = float(rawscore/scores)
+        item.rawscore = rawscore
+        item.scores = scores
+        item.avgscore = avgscore
+        reviewers = item.reviewers
+            if remote_addr not in reviewers:
+        reviewers.append(remote_addr)
+        item.reviewers = reviewers
+        guids = item.guids
+        if guid not in guids:
+            guids.append(guid)
+            item.guids = guids
+        rawdata = item.rawdata
+        if len(rawdata) < 200:
+            rawdata.append(score)
+            item.rawdata = rawdata
+        squares = 0
+        for r in rawdata:
+            squares = squares + pow((float(r)-avgscore),2)
+        stdev = pow(squares, 0.5)
+        item.stdev = stdev
+        item.put()
+        return True
+    @staticmethod
+    def fetch(tl, sl='', domain='', scores=20, limit=100):
+        pdb = db.Query(PeerReview)
+        pdb.filter('tl = ', tl)
+        if len(sl) > 0:
+            pdb.filter('sl = ', sl)
+        if len(domain) > 0:
+            pdb.filter('domain = ', domain)
+        pdb.filter('scores <= ', scores)
+        results = pdb.fetch(limit=limit)
+        return results
+                    
 class Permissions(db.Model):
     domain = db.StringProperty(default='')
     username = db.StringProperty(default='')
