@@ -53,7 +53,10 @@ from google.appengine.api import urlfetch
 import feedparser
 from database import APIKeys
 from database import Directory
+from database import PeerReview
 from database import Settings
+from database import Translation
+from language import TestLanguage
 from transcoder import transcoder
 from www import web
 from www import www
@@ -122,6 +125,7 @@ standard_footer = 'Content management system and collaborative translation memor
 
 class WebServer(webapp.RequestHandler):
     def get(self, p1='', p2='', p3=''):
+        user_language = TestLanguage.browserlanguage(self.request.headers['Accept-Language'])
         proxy_settings = '<meta name="allow_edit" content="y" />'        
         lsp = ''
         lspusername = ''
@@ -148,6 +152,35 @@ class WebServer(webapp.RequestHandler):
         elif p1 == 's':
             self.error(404)
             self.response.out.write('<h2>Page Not Found</h2>')
+        elif p1 == 'review':
+            t = '<h3>Review New Translators</h3>'
+            t = t + 'Help make the Worldwide Lexicon better by reviewing these translations which were '
+            t = t + 'submitted by new volunteer translators.<p>'
+            results = PeerReview.fetch(limit = 5)
+            for r in results:
+                tdb = db.Query(Translation)
+                if len(r.username) > 0:
+                    tdb.filter('username = ', r.username)
+                else:
+                    tdb.filter('remote_addr = ', r.remote_addr)
+                translations = tdb.fetch(limit=5)
+                if len(translations) > 0:
+                    for tx in translations:
+                        t = t + tx.st
+                        t = t + '<blockquote>' + tx.tt + '</blockquote>'
+            w = web()
+            w.get(template)
+            w.replace(template,'[google_analytics]',google_analytics_header)
+            p1 = 'Worldwide Lexicon : Review New Translators'
+            w.replace(template,'[title]',p1)
+            w.replace(template,'[meta]', proxy_settings)
+            w.replace(template,'[footer]',standard_footer)
+            w.replace(template,'[menu]',menus)
+            w.replace(template,'[left_column]',t)
+            r = sidebar_about
+            r = r + Feeds.get('http://blog.worldwidelexicon.org/?feed=rss2')
+            w.replace(template,'[right_column]', r)
+            self.response.out.write(w.out(template))            
         elif len(p1) > 0:
             page = 'http://www.worldwidelexicon.org/static/' + p1 + '.html'
             w = web()

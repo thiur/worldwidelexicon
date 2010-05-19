@@ -911,17 +911,14 @@ class PeerReview(db.Model):
             pdb.filter('tl = ', tl)
         else:
             pdb = db.Query(PeerReview)
-            pdb.filter('username = ', remote_addr)
+            pdb.filter('remote_addr = ', remote_addr)
             pdb.filter('sl = ', sl)
             pdb.filter('tl = ', tl)
         item = pdb.get()
         if item is None:
             item = PeerReview()
             item.remote_addr = remote_addr
-            if len(username) > 0:
-                item.username = username
-            else:
-                item.username = remote_addr
+            item.username = username
             item.sl = sl
             item.tl = tl
             item.domain = domain
@@ -935,8 +932,8 @@ class PeerReview(db.Model):
         item.scores = scores
         item.avgscore = avgscore
         reviewers = item.reviewers
-            if remote_addr not in reviewers:
-        reviewers.append(remote_addr)
+        if remote_addr not in reviewers:
+            reviewers.append(remote_addr)
         item.reviewers = reviewers
         guids = item.guids
         if guid not in guids:
@@ -954,14 +951,16 @@ class PeerReview(db.Model):
         item.put()
         return True
     @staticmethod
-    def fetch(tl, sl='', domain='', scores=20, limit=100):
+    def fetch(tl='', sl='', domain='', scores=20, limit=100):
         pdb = db.Query(PeerReview)
-        pdb.filter('tl = ', tl)
+        if len(tl) > 0:
+            pdb.filter('tl = ', tl)
         if len(sl) > 0:
             pdb.filter('sl = ', sl)
         if len(domain) > 0:
             pdb.filter('domain = ', domain)
         pdb.filter('scores <= ', scores)
+        pdb.order('scores')
         results = pdb.fetch(limit=limit)
         return results
                     
