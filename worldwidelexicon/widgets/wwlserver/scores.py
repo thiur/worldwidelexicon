@@ -178,6 +178,7 @@ class SaveScore(webapp.RequestHandler):
                 if item is not None:
                     author = item.username
                     authorip = item.remote_addr
+                    professional = item.professional
                     sl = item.sl
                     tl = item.tl
                     st = item.st
@@ -235,6 +236,8 @@ class SaveScore(webapp.RequestHandler):
                     item.scoredby = username
                     item.scoredby_remote_addr = remote_addr
                     item.put()
+                    if professional and len(author) > 0:
+                        LSP.score(guid, score, lsp=author)
                     self.response.out.write('ok')
                 else:
                     self.error(500)

@@ -1942,9 +1942,9 @@ class Translation(db.Model):
                         longitude = None
                     Users.translate(username, len(twords), city=city, state=state, country=country, latitude=latitude, longitude=longitude)
             p = dict()
-            return True
+            return guid
         else:
-            return False
+            return ''
     @staticmethod
     def updatescores(guid):
         pass
@@ -2335,11 +2335,6 @@ class Users(db.Model):
                     sessioninfo['session']=session
                     memcache.set('sessions|' + session, sessioninfo, 900)
                     loggedin=memcache.get('login|' + username)
-                    if loggedin is None:
-                        p = dict()
-                        p['username']=username
-                        taskqueue.add(url = '/scores/user', params=p)
-                        memcache.set('login|' + username, sessioninfo, 7200)
                     return sessioninfo
                 else:
                     return

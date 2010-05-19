@@ -100,6 +100,7 @@ class LSP():
                 if text is not None:
                     return text
                 else:
+                    # generate and send HTTP query to language service provider
                     fullurl = baseurl + '/t'
                     parms = dict()
                     parms['sl']=sl
@@ -113,8 +114,47 @@ class LSP():
                     form_data = urllib.urlencode(parms)
                     result = urlfetch.fetch(url=fullurl, payload = form_data, method = urlfetch.POST, headers = {'Content-Type' : 'application/x-www-form-urlencoded' , 'Accept-Charset' : 'utf-8'})
                     tt = result.content
+                    # check to see if response is in JSON format and contains
+                    # a guid field.
+                    try:
+                        results = demjson.decode(tt)
+                        tt = results['tt']
+                    except:
+                        results = dict()
+                        results['guid']=''
+                        results['tt']=tt
+                        results['st']=st
+                        results['sl']=sl
+                        results['tl']tl
                     if len(tt) > 0 and result.status_code == 200:
                         memcache.set('/lsp/' + lsp + '/' + guid, tt, ttl)
+                        memcache.set('/lspd/' + lsp + '/' + guid, results, ttl)
+                    # if guid is found, check Translation() data store to see
+                    # if a record exists, if no, create one.
+                    try:
+                        if len(results['guid']) > 0:
+                            tdb = db.Query(Translation)
+                            tdb.filter('guid = ', guid)
+                            tdb.filter('sl = ', sl)
+                            tdb.filter('tl = ', tl)
+                            item = tdb.get()
+                            if item is None:
+                                m = md5.new()
+                                m.update(st)
+                                md5hash = str(m.hexdigest())
+                                item = Translation()
+                                item.guid = results['guid']
+                                item.md5hash = md5hash
+                                item.sl = sl
+                                item.tl = tl
+                                item.st = st
+                                item.tt = results['tt']
+                                item.professional = True
+                                item.username = lsp
+                                item.put()
+                    except:
+                        pass
+                    # return the translation
                     return tt
             else:
                     return ''
@@ -133,7 +173,7 @@ class LSP():
                 fullurl = baseurl + '/scores/vote'
                 p = dict()
                 p['guid'] = guid
-                p['score']=score
+                p['score']=str(score)
                 p['sl']=sl
                 p['tl']=tl
                 p['st']=st

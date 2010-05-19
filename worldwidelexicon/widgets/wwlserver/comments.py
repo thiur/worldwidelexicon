@@ -170,70 +170,47 @@ class SubmitComment(webapp.RequestHandler):
     
     The API handler expects the following parameters<p>
      
-    <ul><li>md5hash : the md5hash generated from the source text, required</li>
+    <ul>
     <li>guid : the globally unique identifier for a specific edit to the translation, optional</li>
-    <li>domain : the parent website's domain or API key, optional</li>
-    <li>tl : the translation language (ISO language code), required</li>
     <li>cl : the language the comment is written in (ISO language code), optional (defaults to same as tl if omitted)</li>
     <li>comment : the text of the comment itself (Unicode, UTF 8 encoding)</li>
-    <li>session : session key (cookie)</li></ul>
+    <li>username : WWL username (optional)</li>
+    <li>pw : WWL password (optional)</li>
+    <li>session : session key (cookie or form field)</li></ul>
+    <li>ip : user's IP address (if in proxy mode)</li></ul>
     """
     def requesthandler(self):
+        guid = self.request.get('guid')
+        cl = self.request.get('cl')
+        comment = clean(self.request.get('comment'))
         remote_addr = self.request.remote_addr
+        ip = self.request.get('ip')
+        if len(ip) > 0:
+            remote_addr = ip
         username = self.request.get('username')
-        callback = self.request.get('callback')
         pw = self.request.get('pw')
         cookies = Cookies(self,max_age=3600)
-        doc = self.request.get('doc')
-        fields = dict()
-        domain=self.request.get('domain')
-        fields['domain'] = domain
-        url=self.request.get('url')
-        fields['url'] = url
-        tl=self.request.get('tl')
-        fields['tl'] = tl
-        cl=self.request.get('cl')
-        if len(cl) > 1:
-            fields['cl'] = cl
-        else:
-            fields['cl'] = tl
-        guid=self.request.get('guid')
-        fields['guid'] = guid
-        md5hash = self.request.get('md5hash')
-        fields['md5hash'] = md5hash
-        comment=clean(self.request.get('comment'))
-        fields['comment'] = comment
         try:
             session = cookies['session']
         except:
-            session = ''
-        fields['session'] = session
-        if username is None:
-            sessinfo = Users.auth(username, pw, '', remote_addr)
-            if type(sessinfo) is dict:
-                username = sessinfo['username']
-                cookies['session'] = sessinfo['session']
-                fields['username'] = username
-            else:
-                fields['username']=''
-        remote_addr=self.request.remote_addr
-        fields['remote_addr'] = remote_addr
-        output=self.request.get('output')
-        fields['spam']=False
+            session = self.request.get('session')
         location = geo.get(remote_addr)
         if type(location) is dict:
             try:
-                fields['city'] = location['city']
-                fields['state']= location['state']
-                fields['country']= location['country']
+                city = location['city']
+                state= location['state']
+                country= location['country']
             except:
-                pass
+                city = ''
+                state = ''
+                country = ''
             try:
-                fields['latitude']=location['latitude']
-                fields['longitude']=location['longitude']
+                latitude=location['latitude']
+                longitude=location['longitude']
             except:
-                pass
-        if len(comment) > 5 and (len(guid) > 7 or len(url) > 0):
+                latitude = None
+                longitude = None
+        if len(comment) > 5 and len(guid) > 7:
             emptyform=False
         else:
             emptyform=True
@@ -250,22 +227,47 @@ class SubmitComment(webapp.RequestHandler):
                 data['user_ip']=remote_addr
                 data['user_agent']=self.request.headers['User-Agent']
                 if a.comment_check(comment, data):
-                    fields['spam']=True
+                    spam=True
                 else:
-                    fields['spam']=False
-                fields['spamchecked']=True
+                    spam=False
+                spamchecked=True
             else:
-                fields['spam']=False
-                fields['spamchecked']=False
-            result = Comment.save(guid,fields, url=url)
+                spam=False
+                spamchecked=False
+            result = False
+            if not spam:
+                tdb = db.Query(Translation)
+                tdb.filter('guid = ', guid)
+                item = tdb.get()
+                if item is not None:
+                    sl = item.sl
+                    tl = item.tl
+                    st = item.st
+                    tt = item.tt
+                    domain = item.domain
+                    url = item.url
+                    professional = item.professional
+                    author = item.username
+                    cdb = db.Query(Comment)
+                    cdb.filter('guid = ', guid)
+                    cdb.filter('remote_addr = ', remote_addr)
+                    item = cdb.get()
+                    if item is None:
+                        item = Comment()
+                        item.guid = guid
+                        item.cl = cl
+                        item.comment = comment
+                        item.username = username
+                        item.remote_addr = remote_addr
+                        item.put()
+                        if professional and len(author) > 0:
+                            LSP.comment(guid, comment, lsp=author, username=username, remote_addr=remote_addr)
+                        result = True
             self.response.headers['Content-Type']='text/plain'
-            if len(callback) > 0:
-                self.redirect(callback)
+            if result:
+                self.response.out.write('ok')
             else:
-                if result:
-                    self.response.out.write('ok')
-                else:
-                    self.response.out.write('error : invalid user')
+                self.response.out.write('error : invalid user')
         else:
             t = '<table><form action=/comments/submit method=post accept-charset=utf-8>'
             t = t + '<tr><td>MD5 Hash of Original Text</td><td><input type=text name=md5hash></td></tr>'
@@ -281,18 +283,6 @@ class SubmitComment(webapp.RequestHandler):
     def post(self):
         self.requesthandler()
 
-class TestError(webapp.RequestHandler):
-    def get(self):
-        try:
-            result = 1/0
-        except:
-            self.error(500)
-            self.response.out.write('<h2>Whoopsie Daisy!</h2>')
-            self.response.out.write('<table>')
-            self.response.out.write('<tr valign=top><td><img src=/image/bug.jpg></td>')
-            self.response.out.write('<td>' + traceback.format_exc())
-            self.response.out.write('</td></tr></table>')
-
 debug_setting = Settings.get('debug')
 if debug_setting == 'True':
     debug_setting = True
@@ -302,7 +292,6 @@ else:
     debug_setting = True
             
 application = webapp.WSGIApplication([('/comments/get', GetComments),
-                                      ('/comments/error', TestError),
                                       ('/comments/submit', SubmitComment)],
                                      debug=debug_setting)
 
