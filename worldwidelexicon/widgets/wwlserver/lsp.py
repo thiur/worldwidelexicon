@@ -125,7 +125,7 @@ class LSP():
                         results['tt']=tt
                         results['st']=st
                         results['sl']=sl
-                        results['tl']tl
+                        results['tl']=tl
                     if len(tt) > 0 and result.status_code == 200:
                         memcache.set('/lsp/' + lsp + '/' + guid, tt, ttl)
                         memcache.set('/lspd/' + lsp + '/' + guid, results, ttl)

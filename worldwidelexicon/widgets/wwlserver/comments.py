@@ -87,6 +87,9 @@ from akismet import Akismet
 from database import Users
 from database import Comment
 from database import Settings
+from database import Translation
+from database import Users
+from language import TestLanguage
 
 def clean(text):
     return transcoder.clean(text)
@@ -183,17 +186,15 @@ class SubmitComment(webapp.RequestHandler):
         guid = self.request.get('guid')
         cl = self.request.get('cl')
         comment = clean(self.request.get('comment'))
+        if len(cl) < 1 and len(comment) > 4:
+            cl = TestLanguage.language(text=comment)
         remote_addr = self.request.remote_addr
         ip = self.request.get('ip')
         if len(ip) > 0:
             remote_addr = ip
         username = self.request.get('username')
         pw = self.request.get('pw')
-        cookies = Cookies(self,max_age=3600)
-        try:
-            session = cookies['session']
-        except:
-            session = self.request.get('session')
+        session=''
         location = geo.get(remote_addr)
         if type(location) is dict:
             try:
@@ -235,11 +236,16 @@ class SubmitComment(webapp.RequestHandler):
                 spam=False
                 spamchecked=False
             result = False
+            if len(username) > 0:
+                session = Users.auth(username=username, pw=pw, session='')
+                if len(session) < 8:
+                    username=''
             if not spam:
                 tdb = db.Query(Translation)
                 tdb.filter('guid = ', guid)
                 item = tdb.get()
                 if item is not None:
+                    md5hash = item.md5hash
                     sl = item.sl
                     tl = item.tl
                     st = item.st
@@ -255,10 +261,30 @@ class SubmitComment(webapp.RequestHandler):
                     if item is None:
                         item = Comment()
                         item.guid = guid
+                        item.md5hash = md5hash
+                        item.tl = tl
                         item.cl = cl
                         item.comment = comment
                         item.username = username
+                        item.spamchecked = spamchecked
+                        item.spam = spam
                         item.remote_addr = remote_addr
+                        timestamp = datetime.datetime.now()
+                        item.minute = timestamp.minute
+                        item.hour = timestamp.hour
+                        item.day = timestamp.day
+                        item.month = timestamp.month
+                        item.year = timestamp.year
+                        item.domain = domain
+                        item.url = url
+                        item.city = city
+                        item.state = state
+                        item.country = country
+                        try:
+                            item.latitude = latitude
+                            item.longitude = longitude
+                        except:
+                            pass
                         item.put()
                         if professional and len(author) > 0:
                             LSP.comment(guid, comment, lsp=author, username=username, remote_addr=remote_addr)
@@ -267,21 +293,42 @@ class SubmitComment(webapp.RequestHandler):
             if result:
                 self.response.out.write('ok')
             else:
-                self.response.out.write('error : invalid user')
+                self.error(500)
+                self.response.out.write('error')
         else:
+            tdb = db.Query(Translation)
+            tdb.order('-date')
+            item = tdb.get()
+            if item is not None:
+                guid = item.guid
+            else:
+                guid = ''
             t = '<table><form action=/comments/submit method=post accept-charset=utf-8>'
-            t = t + '<tr><td>MD5 Hash of Original Text</td><td><input type=text name=md5hash></td></tr>'
-            t = t + '<tr><td>GUID of Translation</td><td><input type=text name=guid></td></tr>'
-            t = t + '<tr><td>URL of source document (for general comments)</td><td><input type=text name=url></td></tr>'
-            t = t + '<tr><td>Translation Language</td><td><input type=text name=tl></td></tr>'
-            t = t + '<tr><td>Comment Language</td><td><input type=text name=cl></td></tr>'
-            t = t + '<tr><td>Comment</td<td><textarea name=comment cols=40 rows=4></textarea></td></tr>'
+            t = t + '<tr><td>GUID of Translation (guid)</td><td><input type=text name=guid value="' + guid + '"></td></tr>'
+            t = t + '<tr><td>Comment (comment)</td<td><input type=text name=comment></td></tr>'
+            t = t + '<tr><td>Username (username, optional)</td><td><input type=text name=username></td></tr>'
+            t = t + '<tr><td>Password (pw, optional)</td><td><input type=text name=pw></td></tr>'
             t = t + '<tr><td colspan=2><input type=submit value=SUBMIT></td></tr></table></form>'
             www.serve(self,t,sidebar=self.__doc__, title = '/comments/submit')
     def get(self):
         self.requesthandler()
     def post(self):
         self.requesthandler()
+
+class PurgeSpamComments(webapp.RequestHandler):
+    """
+    <h3>/comments/spam</h3>
+
+    This task is called as a cron job to purge comments marked as spam by Akismet or
+    other methods.
+    """
+    def get(self):
+        cdb = db.Query(Comment)
+        cdb.filter('spam = ', True)
+        results = cdb.fetch(limit=100)
+        if len(results) > 0:
+            db.delete(results)
+        self.response.out.write('ok')
 
 debug_setting = Settings.get('debug')
 if debug_setting == 'True':
@@ -292,6 +339,7 @@ else:
     debug_setting = True
             
 application = webapp.WSGIApplication([('/comments/get', GetComments),
+                                      ('/comments/spam', PurgeSpamComments),
                                       ('/comments/submit', SubmitComment)],
                                      debug=debug_setting)
 
