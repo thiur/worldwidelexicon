@@ -61,8 +61,10 @@ import pydoc
 from webappcookie import Cookies
 from www import www
 from geo import geo
+from deeppickle import DeepPickle
 from transcoder import transcoder
 from database import Users
+from database import UserScores
 
 #
 # Define Callback URLs for User Validation Success or Failure
@@ -723,6 +725,66 @@ class wwwProxyUserTest(webapp.RequestHandler):
         else:
             self.response.out.write('Invalid username or password.')
 
+class sc():
+    username=''
+
+class wwwUserScores(webapp.RequestHandler):
+    """
+    <h3>/users/scores</h3>
+
+    Looks up the score history for an IP address or username/email.<p>
+
+    Returns a record with the following fields:<p>
+
+    <ul>
+    <li>scores : number of scores submitted</li>
+    <li>rawscore : raw score total</li>
+    <li>avgscore : average score</li>
+    <li>rawdata : list of individual scores</li>
+    <li>domains : list of domains user has translated</li>
+    <li>languages : list of languages user has translated</li>
+    </ul>
+    """
+    def get(self):
+        username = self.request.get('username')
+        remote_addr = self.request.get('remote_addr')
+        output = self.request.get('output')
+        if len(output) < 1:
+            output='xml'
+        if len(username) > 0 or len(remote_addr) > 0:
+            result = UserScores.getscore(username=username, remote_addr=remote_addr)
+            d = DeepPickle()
+            d.autoheader = True
+            if output == 'xml':
+                self.response.headers['Content-Type']='text/xml'
+            elif output == 'json':
+                self.response.headers['Content-Type']='text/javascript'
+            else:
+                self.response.headers['Content-Type']='text/html'
+            scores = list()
+            if type(result) is dict:
+                s = sc()
+                s.username = result.get('username','')
+                s.remote_addr = result.get('remote_addr','')
+                s.guid = result.get('guid')
+                s.scores = str(result.get('scores'))
+                s.avgscore = str(result.get('avgscore'))
+                s.rawscore = str(result.get('rawscore'))
+                s.stdev = str(result.get('stdev'))
+                s.createdon = str(result.get('createdon'))
+                s.updatedon = str(result.get('updatedon'))
+                scores.append(s)
+            self.response.out.write(d.pickleTable(scores, output))
+        else:
+            t = '<table><form action=/users/scores method=get>'
+            t = t + '<tr><td>Username/Email</td><td><input type=text name=username></td></tr>'
+            t = t + '<tr><td>User IP Address</td><td><input type=text name=remote_addr></td></tr>'
+            t = t + '<tr><td>Output format</td><td><input type=text name=output value=xml></td></tr>'
+            t = t + '<tr><td colspan=2><input type=submit value=OK></td></tr>'
+            t = t + '</table></form>'
+            www.serve(self, t, sidebar = self.__doc__, title = '/users/scores')
+
+
 application = webapp.WSGIApplication([('/users/auth', wwwAuth),
                                       ('/users/check', wwwCheckUser),
                                       ('/users/currentuser', wwwCurrentUser),
@@ -731,6 +793,7 @@ application = webapp.WSGIApplication([('/users/auth', wwwAuth),
                                       ('/users/new', wwwNewUser),
                                       ('/users/proxy', wwwProxyUserTest),
                                       ('/users/get', wwwGetParm),
+                                      ('/users/scores', wwwUserScores),
                                       ('/users/set', wwwSetParm),
                                       ('/users/setlanguage',wwwSetLanguage),
                                       ('/users/setoptions',wwwSetLanguage),

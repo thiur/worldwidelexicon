@@ -642,58 +642,6 @@ class Directory(db.Model):
                 return False
         else:
             return False
-class Domains(db.Model):
-    domain = db.StringProperty(default='')
-    description = db.TextProperty(default='')
-    email = db.StringProperty(default='')
-    isowner = db.BooleanProperty(default=False)
-    isadmin = db.BooleanProperty(default=False)
-    createdon = db.DateTimeProperty(auto_now_add = True)
-    updatedon = db.DateTimeProperty()
-    @staticmethod
-    def create(domain, email):
-        if len(domain) > 0 and len(owner) > 0:
-            ddb = db.Query(Domains)
-            ddb.filter('domain = ', domain)
-            item = ddb.get()
-            if item is None:
-                item = Domains()
-                item.domain = domain
-                item.email = email
-                item.isadmin = True
-                item.isowner = True
-                item.updatedon = datetime.datetime.now()
-                item.put()
-                return True
-        return False
-    @staticmethod
-    def add(domain, email, isadmin = False):
-        if len(domain) > 0 and len(email) > 0:
-            ddb = db.Query(Domains)
-            ddb.filter('domain = ', domain)
-            ddb.filter('email = ', email)
-            item = ddb.get()
-            if item is None:
-                item = Domains()
-                item.domain = domain
-                item.email = email
-                item.isadmin = isadmin
-                item.isowner = False
-                item.updatedon = datetime.datetime.now()
-                item.put()
-                return True
-        return False
-    @staticmethod
-    def remove(domain, email):
-        if len(domain) > 0 and len(email) > 0:
-            ddb = db.Query(Domains)
-            ddb.filter('domain = ', domain)
-            ddb.filter('email = ', email)
-            item = ddb.get()
-            if item is not None:
-                item.delete()
-                return True
-        return False
 
 class Languages(db.Model):
     code = db.StringProperty(default='')
@@ -885,71 +833,6 @@ class languages():
 class rec():
     sl = 'en'
                     
-class Permissions(db.Model):
-    domain = db.StringProperty(default='')
-    username = db.StringProperty(default='')
-    email = db.StringProperty(default='')
-    languages = db.StringProperty(default='')
-    banned = db.BooleanProperty(default=False)
-    professional = db.BooleanProperty(default=False)
-    allowed = db.BooleanProperty(default=False)
-    lastedit = db.DateTimeProperty()
-    edits = db.IntegerProperty(default=0)
-    @staticmethod
-    def add(domain, email, username='', languages='all', banned=False, professional=False, allowed=True):
-        if len(domain) > 0 and len(email) > 0:
-            udb = db.Query(Permissions)
-            udb.filter('domain = ', domain)
-            udb.filter('email = ', email)
-            item = udb.get()
-            if item is not None:
-                item = Permissions()
-                item.domain = domain
-                item.email = email
-                item.username = username
-                item.languages = languages
-                item.banned = banned
-                item.professional = professional
-                item.allowed = allowed
-                item.put()
-                return True
-        return False
-    @staticmethod
-    def update(domain, email, username=None, languages=None, banned=None, professional=None, allowed=None):
-        if len(domain) > 0 and len(email) > 0:
-            udb = db.Query(Permissions)
-            udb.filter('domain = ', domain)
-            udb.filter('email = ', email)
-            item = udb.get()
-            if item is not None:
-                try:
-                    if username is not None:
-                        item.username = username
-                    if languages is not None:
-                        item.languages = languages
-                    if banned is not None:
-                        item.banned = banned
-                    if professional is not None:
-                        item.professional = professional
-                    if allowed is not None:
-                        item.allowed = allowed
-                    item.put()
-                    return True
-                except:
-                    return False
-        return False
-    @staticmethod
-    def delete(domain, email):
-        if len(domain) > 0 and len(email) > 0:
-            udb = db.Query(Permissions)
-            udb.filter('domain = ', domain)
-            udb.filter('email = ', email)
-            item = udb.get()
-            if item is not None:
-                item.delete()
-                return True
-        return False
-        
 class Score(db.Model):
     """
     Google Data Store for translation quality scores.
@@ -2677,6 +2560,30 @@ class UserScores(db.Model):
     createdon = db.DateTimeProperty(auto_now_add=True)
     updatedon = db.DateTimeProperty()
     @staticmethod
+    def getscore(username='', remote_addr=''):
+        udb = db.Query(UserScores)
+        if len(username) > 0:
+            udb.filter('username = ', username)
+        else:
+            udb.filter('remote_addr = ', remote_addr)
+        item = udb.get()
+        if item is not None:
+            result = dict()
+            result['guid']=item.guid
+            result['translations']=item.translations
+            result['scores']=item.scores
+            result['rawscore']=item.rawscore
+            result['avgscore']=item.avgscore
+            result['stdev']=item.stdev
+            result['rawdata']=item.rawdata
+            result['languages']=item.languages
+            result['domains']=item.domains
+            result['createdon']=item.createdon
+            result['updatedon']=item.updatedon
+            return result
+        else:
+            return
+    @staticmethod
     def peerreview(min_scores=20, sl='', tl='', domain='', limit=25):
         udb = db.Query(UserScores)
         udb.filter('translator = ', True)
@@ -2694,21 +2601,32 @@ class UserScores(db.Model):
         results = udb.fetch(limit=limit)
         return results
     @staticmethod
-    def score(username='', remote_addr='', sl='', tl = '', score=None, domain=''):
+    def score(username='', remote_addr='', sl='', tl='', score=None, domain=''):
+        if len(username) > 0 and string.count(username,'.') < 2:
+            UserScores.save(username=username, remote_addr=remote_addr, sl=sl, tl=tl, score=score, domain=domain)
+        if len(remote_addr) > 0:
+            UserScores.save(username='', remote_addr=remote_addr, sl=sl, tl=tl, score=score, domain=domain)
+    @staticmethod
+    def save(username='', remote_addr='', sl='', tl = '', score=None, domain=''):
         if len(username) > 0 or len(remote_addr) > 0 and score is not None:
             try:
                 score = int(score)
             except:
                 return False
             udb = db.Query(UserScores)
-            if len(username) > 0 and string.count(username,'.') < 2:
+            if len(username) > 0:
                 udb.filter('username = ', username)
             else:
                 username = ''
                 udb.filter('remote_addr = ', remote_addr)
             item = udb.get()
             if item is None:
+                m = md5.new()
+                m.update(remote_addr)
+                m.update(datetime.datetime.now())
+                md5hash = str(m.hexdigest())
                 item = UserScores()
+                item.guid = md5hash
                 item.username = username
                 item.remote_addr = remote_addr
                 if len(username) > 0:
@@ -2755,7 +2673,12 @@ class UserScores(db.Model):
                 udb.filter('remote_addr = ', remote_addr)
             item = udb.get()
             if item is None:
+                m = md5.new()
+                m.update(remote_addr)
+                m.update(datetime.datetime.now())
+                md5hash = str(m.hexdigest())                
                 item = UserScores()
+                item.guid = md5hash
                 item.username = username
                 item.remote_addr = remote_addr
                 if len(username) > 0:

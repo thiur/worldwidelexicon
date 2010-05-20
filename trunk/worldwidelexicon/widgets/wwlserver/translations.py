@@ -233,8 +233,15 @@ class GetTranslations(webapp.RequestHandler):
             if len(hostname) > 0:
                 Directory.hostname(hostname, sl, tl, remote_addr=remote_addr)
             if len(lsp) > 0:
-                tt = LSP.get(sl,tl,st,domain=domain,url=url,lsp=lsp,lspusername=lspusername,lsppw=lsppw, ttl = ttl)
+                result = LSP.get(sl,tl,st,domain=domain,url=url,lsp=lsp,lspusername=lspusername,lsppw=lsppw, ttl = ttl)
+                if type(result) is str:
+                    tt = result
+                    guid = ''
+                else:
+                    tt = result.get('tt','')
+                    guid = result.get('guid','')
                 t = tx()
+                t.guid = guid
                 t.sl = sl
                 t.tl = tl
                 t.st = clean(st)
@@ -266,8 +273,14 @@ class GetTranslations(webapp.RequestHandler):
                         t = tx()
                         t.sl = r.sl
                         t.tl = r.tl
-                        t.st = codecs.encode(r.st, 'utf-8')
-                        t.tt = codecs.encode(r.tt, 'utf-8')
+                        try:
+                            t.st = codecs.encode(r.st, 'utf-8')
+                        except:
+                            t.st = clean(r.st)
+                        try:
+                            t.tt = codecs.encode(r.tt, 'utf-8')
+                        except:
+                            t.tt = clean(r.tt)
                         t.domain = r.domain
                         t.url = r.url
                         t.anonymous = r.anonymous
@@ -378,6 +391,10 @@ class SubmitTranslation(webapp.RequestHandler):
     use language specific character sets. </blockquote>
     
     """
+    def get(self):
+        self.requesthandler()
+    def post(self):
+        self.requesthandler()
     def requesthandler(self):
         """Combined GET and POST request handler """
         validquery = True
@@ -535,12 +552,6 @@ class SubmitTranslation(webapp.RequestHandler):
                 t = t + '<tr><td colspan=2><input type=submit value=OK></td></tr>'
                 t = t + '</table></form>'
                 www.serve(self,t, sidebar=doc_text, title = '/submit')
-    def post(self):
-        """ Processes HTTP POST calls """
-        self.requesthandler()
-    def get(self):
-        """ Processes HTTP GET calls """
-        self.requesthandler()
     
 class SimpleTranslation(webapp.RequestHandler):
     """
@@ -1004,8 +1015,14 @@ class RevisionHistory(webapp.RequestHandler):
                     t.guid = r.guid
                     t.sl = r.sl
                     t.tl = r.tl
-                    t.st = codecs.encode(r.st, 'utf-8')
-                    t.tt = codecs.encode(r.tt, 'utf-8')
+                    try:
+                        t.st = codecs.encode(r.st, 'utf-8')
+                    except:
+                        t.st = clean(r.st)
+                    try:
+                        t.tt = codecs.encode(r.tt, 'utf-8')
+                    except:
+                        t.tt = clean(r.tt)
                     t.anonymous = r.anonymous
                     t.avgscore = r.avgscore
                     t.scores = r.scores
@@ -1085,8 +1102,14 @@ class URLHistory(webapp.RequestHandler):
                     t.guid = r.guid
                     t.sl = r.sl
                     t.tl = r.tl
-                    t.st = codecs.encode(r.st, 'utf-8')
-                    t.tt = codecs.encode(r.tt, 'utf-8')
+                    try:
+                        t.st = codecs.encode(r.st, 'utf-8')
+                    except:
+                        t.st = clean(r.st)
+                    try:
+                        t.tt = codecs.encode(r.tt, 'utf-8')
+                    except:
+                        t.tt = clean(r.tt)
                     t.anonymous = r.anonymous
                     t.avgscore = r.avgscore
                     t.scores = r.scores
