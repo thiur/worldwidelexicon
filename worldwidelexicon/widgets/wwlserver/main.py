@@ -165,6 +165,7 @@ class WebServer(webapp.RequestHandler):
                     tdb.filter('username = ', r.username)
                 else:
                     tdb.filter('remote_addr = ', r.remote_addr)
+                tdb.order('-date')
                 translations = tdb.fetch(limit=5)
                 ctr = 0
                 if len(translations) > 0:
