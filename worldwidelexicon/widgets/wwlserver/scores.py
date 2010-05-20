@@ -60,12 +60,13 @@ import string
 import datetime
 # import WWL and third party modules
 from deeppickle import DeepPickle
+from lsp import LSP
 from www import www
-from database import PeerReview
 from database import Score
 from database import Settings
 from database import Translation
 from database import Users
+from database import UserScores
 from geo import geo
 from transcoder import transcoder
 
@@ -171,6 +172,28 @@ class SaveScore(webapp.RequestHandler):
         if len(ip) > 0:
             remote_addr = ip
         proxy = self.request.get('proxy')
+        location = geo.get(remote_addr)
+        if type(location) is dict:
+            try:
+                city = location['city']
+                state = location['state']
+                country = location['country']
+            except:
+                city = ''
+                state = ''
+                country = ''
+            try:
+                latitude = location['latitude']
+                longitude = location['longitude']
+            except:
+                latitude = None
+                longitude = None
+        else:
+            city = ''
+            state = ''
+            country = ''
+            latitude = None
+            longitude = None
         if len(guid) > 0 and validquery:
             if not Score.exists(guid, remote_addr):
                 tdb = db.Query(Translation)
@@ -191,7 +214,7 @@ class SaveScore(webapp.RequestHandler):
                     scores = item.scores
                     scores = scores + 1
                     rawscore = rawscore + score
-                    avgscore = float(rawscore/scores)
+                    avgscore = float(float(rawscore)/scores)
                     item.scores = scores
                     item.rawscore = rawscore
                     item.avgscore = avgscore
@@ -206,24 +229,6 @@ class SaveScore(webapp.RequestHandler):
                         username = author
                     else:
                         username = authorip
-                    udb = db.Query(Users)
-                    udb.filter('username = ', username)
-                    item = udb.get()
-                    if item is None and len(author) < 1:
-                        item = Users()
-                        item.username = username
-                        item.remote_addr = remote_addr
-                        item.anonymous = True
-                    if item is not None:
-                        scores = item.scores
-                        rawscore = item.rawscore
-                        scores = scores + 1
-                        rawscore = rawscore + score
-                        blockedvotes = item.blockedvotes
-                        item.avgscore = float(rawscore/scores)
-                        if score < 1:
-                            item.blockedvotes = blockedvotes + 1
-                        item.put()
                     item = Score()
                     item.guid = guid
                     item.sl = sl
@@ -235,19 +240,23 @@ class SaveScore(webapp.RequestHandler):
                     item.score = score
                     item.username = author
                     item.remote_addr = authorip
-                    item.scoredby = username
+                    item.scoredby = remote_addr
                     item.scoredby_remote_addr = remote_addr
+                    item.city = city
+                    item.state = state
+                    item.country = country
+                    if latitude is not None and longitude is not None:
+                        item.latitude = latitude
+                        item.longitude = longitude
                     item.put()
                     if professional and len(author) > 0:
                         LSP.score(guid, score, lsp=author)
                     if not professional:
-                        result = PeerReview.save(guid, username, remote_addr, sl, tl, score, domain=domain)
+                        result = UserScores.score(username=username, remote_addr=authorip, sl=sl, tl=tl, score=score, domain=domain)
                     self.response.out.write('ok')
                 else:
-                    self.error(500)
                     self.response.out.write('error : translation not found')
             else:
-                self.error(500)
                 self.response.out.write('error : duplicate score')
         else:
             tdb = db.Query(Translation)
@@ -268,6 +277,45 @@ class SaveScore(webapp.RequestHandler):
             t = t + '</table></form>'
             www.serve(self, t, sidebar=self.__doc__, title = '/scores/vote')
 
+class SetUserScores(webapp.RequestHandler):
+    def get(self):
+        self.requesthandler()
+    def post(self):
+        self.requesthandler()
+    def requesthandler(self):
+        username = self.request.get('username')
+        remote_addr = self.request.get('remote_addr')
+        avgscore = self.request.get('avgscore')
+        rawscore = self.request.get('rawscore')
+        scores = self.request.get('scores')
+        blockedvotes = self.request.get('blockedvotes')
+        self.response.out.write('ok')
+
+class ResetScores(webapp.RequestHandler):
+    def get(self):
+        udb = db.Query(Users)
+        udb.filter('scores > ', 0)
+        results = udb.fetch(limit=250)
+        for r in results:
+            r.scores = 0
+            r.rawscores = list()
+            r.rawscore = 0
+            r.put()
+        sdb = db.Query(Score)
+        results = sdb.fetch(limit=250)
+        if len(results) > 0:
+            db.delete(results)
+        tdb = db.Query(Translation)
+        tdb.filter('scores > ', 0)
+        results = tdb.fetch(limit=250)
+        for r in results:
+            r.scores = 0
+            r.rawscore = 0
+            r.userscores = 0
+            r.userrawscore = 0
+            r.put()
+        self.response.out.write('ok')
+
 debug_setting = Settings.get('debug')
 if debug_setting == 'True':
     debug_setting = True
@@ -277,7 +325,9 @@ else:
     debug_setting = True            
 
 application = webapp.WSGIApplication([('/scores/get', GetScores),
-                                      ('/scores/vote', SaveScore)], 
+                                      ('/scores/reset', ResetScores),
+                                      ('/scores/vote', SaveScore),
+                                      ('/scores/user', SetUserScores)], 
                                      debug=debug_setting)
 
 def main():

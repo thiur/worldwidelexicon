@@ -76,7 +76,6 @@ from akismet import Akismet
 from transcoder import transcoder
 from database import Comment
 from database import Directory
-from database import PeerReview
 from database import Search
 from database import Translation
 from database import languages
@@ -669,9 +668,14 @@ class SimpleTranslation(webapp.RequestHandler):
         if len(tl) > 0 and len(st) > 0:
             tt = ''
             if len(lsp) > 0:
-                tt = LSP.get(sl, tl, st, domain=domain, url=url, lsp=lsp, lspusername=lspusername, lsppw=lsppw, ttl=ttl)
-                if len(tt) > 0:
-                    username = lsp
+                translation = LSP.get(sl, tl, st, domain=domain, url=url, lsp=lsp, lspusername=lspusername, lsppw=lsppw, ttl=ttl)
+                if type(translation) is str:
+                    tt = translation
+                    guid = ''
+                else:
+                    tt = translation.get('tt','')
+                    guid = translation.get('guid','')
+                username = lsp
             if len(tt) < 1:
                 m = md5.new()
                 m.update(st)
@@ -683,7 +687,7 @@ class SimpleTranslation(webapp.RequestHandler):
                 tdb.filter('professional = ', True)
                 item = tdb.get()
                 if item is not None:
-                    tt = item.tt
+                    tt = codecs.encode(item.tt, 'utf-8')
                     guid = item.guid
                     username = item.username
                     city = item.city
@@ -1154,14 +1158,14 @@ class PeerReviewServer(webapp.RequestHandler):
         domain = self.request.get('domain')
         min_scores = self.request.get('min_scores')
         output = self.request.get('output')
-        if len(output) > 0 and len(tl) > 0:
+        if len(output) > 0:
             try:
                 min_scores = int(min_scores)
             except:
                 pass
             if min_scores < 1:
                 min_scores = 20
-            results = PeerReview.fetch(sl=sl, tl=tl, domain=domain, scores=min_scores)
+            results = UserScores.peerreview(sl=sl, tl=tl, domain=domain, scores=min_scores)
             translations = list()
             for r in results:
                 tdb = db.Query(Translation)
@@ -1177,13 +1181,19 @@ class PeerReviewServer(webapp.RequestHandler):
                     tdb.filter('domain')
                 tdb.order('-date')
                 xl = tdb.fetch(limit=5)
-                if len(records) > 0:
+                if len(xl) > 0:
                     for x in xl:
                         t = tx()
                         t.sl = x.sl
-                        t.st = x.st
+                        try:
+                            t.st = codecs.encode(x.st,'utf-8')
+                        except:
+                            t.st = clean(x.st)
                         t.tl = x.tl
-                        t.tt = x.tt
+                        try:
+                            t.tt = codecs.encode(x.tt, 'utf-8')
+                        except:
+                            t.tt = clean(x.tt)
                         t.domain = x.domain
                         t.guid = x.guid
                         translations.append(t)

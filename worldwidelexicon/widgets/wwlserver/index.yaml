@@ -13,24 +13,6 @@ indexes:
   - name: lastupdated
     direction: desc
 
-- kind: PeerReview
-  properties:
-  - name: tl
-  - name: scores
-
-- kind: PeerReview
-  properties:
-  - name: sl
-  - name: tl
-  - name: scores
-
-- kind: PeerReview
-  properties:
-  - name: sl
-  - name: tl
-  - name: domain
-  - name: scores
-
 - kind: Score
   properties:
   - name: username
@@ -280,3 +262,22 @@ indexes:
   - name: domain
   - name: date
     direction: desc
+
+- kind: UserScores
+  properties:
+  - name: translator
+  - name: scores
+
+- kind: UserScores
+  properties:
+  - name: translator
+  - name: languages
+  - name: scores
+
+- kind: UserScores
+  properties:
+  - name: translator
+  - name: domains
+  - name: scores
+
+
