@@ -97,6 +97,49 @@ class MyParser(sgmllib.SGMLParser):
 def clean(text):
     return transcoder.clean(text)
 
+class AccessControlList(db.Model):
+    guid = db.StringProperty(default='')
+    rule = db.StringProperty(default='')
+    value = db.StringProperty(default='')
+    parm = db.StringProperty(default='')
+    updatedon = db.DateTimeProperty(auto_now_add=True)
+    @staticmethod
+    def deleterule(guid):
+        if len(guid) > 0:
+            adb = db.Query(AccessControlList)
+            adb.filter('guid = ', guid)
+            item = adb.get()
+            if item is not None:
+                item.delete()
+                return True
+        return False
+    @staticmethod
+    def addrule(rule, value, parm):
+        if len(rule) > 0 and len(value) > 0 and len(parm) > 0:
+            adb = db.Query(AccessControlList)
+            adb.filter('rule = ', rule)
+            adb.filter('parm = ', parm)
+            item = adb.get()
+            if item is None:
+                m = md5.new()
+                m.update(str(datetime.datetime.now()))
+                guid = str(m.hexdigest())
+                item = AccessControlList()
+                item.guid = guid
+                item.rule = rule
+                item.parm = parm
+            item.value = value
+            item.updatedon = datetime.datetime.now()
+            item.put()
+            return guid
+        return ''
+    @staticmethod
+    def viewrules():
+        adb = db.Query(AccessControlList)
+        adb.order('rule')
+        results = adb.fetch(limit=100)
+        return results
+
 class APIKeys(db.Model):
     """
     Data store for managing API keys for trusted submitters. The system
@@ -1729,6 +1772,38 @@ class Translation(db.Model):
         else:
             validquery = False
         if validquery:
+            #
+            # look up scores for the submitter by username and IP address
+            # if the user has a significant scoring history, we may mark
+            # the submission as spam (e.g. > 10 scores, avgscore < 2.5)
+            userscores = None
+            ipscores = None
+            useravgscore = None
+            ipavgscore = None
+            userrawscore = None
+            iprawscore = None
+            if userscores is not None and useravgscore is not None:
+                if userscores > 20 and useravgscore < 2.5:
+                    spam = True
+            if ipscores is not None and ipavgscore is not None:
+                if ipscores > 20 and ipavgscore < 2.5:
+                    spam = True
+            if len(username) > 0:
+                result = UserScores.getscore(username=username)
+                try:
+                    userscores = result['scores']
+                    useravgscore = result['avgscore']
+                    userrawscore = result['rawscore']
+                except:
+                    pass
+            if len(remote_addr) > 0:
+                result = UserScores.getscore(remote_addr=remote_addr)
+                try:
+                    ipscores = result['scores']
+                    ipavgscore = result['avgscore']
+                    iprawscore = result['rawscore']
+                except:
+                    pass
             st = clean(st)
             tt = clean(tt)
             twords = string.split(tt)
@@ -1773,6 +1848,14 @@ class Translation(db.Model):
             tdb.country = country
             tdb.professional = professional
             tdb.spam = spam
+            if ipscores is not None and ipavgscore is not None:
+                tdb.userscores = ipscores
+                tdb.useravgscore = ipavgscore
+                tdb.userrawscore = iprawscore
+            if userscores is not None and useravgscore is not None:
+                tdb.userscores = userscores
+                tdb.useravgscore = useravgscore
+                tdb.userrawscore = userrawscore
             if len(apikey) > 0:
                 username = APIKeys.getusername(apikey)
                 if len(username) > 0:
@@ -1813,7 +1896,7 @@ class Translation(db.Model):
             words = string.replace(words, '\"', '')
             ngrams = string.split(string.lower(words), ' ')
             tdb.put()
-            result = PeerReview.save(guid, username, remote_addr, sl, tl, None, domain=domain)
+            result = UserScores.translate(username=username, remote_addr=remote_addr, sl=sl, tl=tl, domain=domain)
             if len(username) > 0:
                 if type(latitude) is float and type(longitude) is float:
                     Users.translate(username, len(twords), city=city, state=state, country=country, latitude=latitude, longitude=longitude)
@@ -2557,6 +2640,7 @@ class UserScores(db.Model):
     translator = db.BooleanProperty(default=False)
     languages = db.ListProperty(str)
     domains = db.ListProperty(str)
+    blockedvotes = db.IntegerProperty(default=0)
     createdon = db.DateTimeProperty(auto_now_add=True)
     updatedon = db.DateTimeProperty()
     @staticmethod
@@ -2623,7 +2707,7 @@ class UserScores(db.Model):
             if item is None:
                 m = md5.new()
                 m.update(remote_addr)
-                m.update(datetime.datetime.now())
+                m.update(str(datetime.datetime.now()))
                 md5hash = str(m.hexdigest())
                 item = UserScores()
                 item.guid = md5hash
@@ -2651,6 +2735,12 @@ class UserScores(db.Model):
             for r in rawdata:
                 squares = squares + pow(float(score) - avgscore, 2)
             stdev = pow(squares/float(scores),0.5)
+            blockedvotes = item.blockedvotes
+            if score < 1:
+                if type(blockedvotes) is int:
+                    item.blockedvotes = blockedvotes + 1
+                else:
+                    item.blockedvotes = 1
             item.stdev = stdev
             domains = item.domains
             if len(domain) > 0:
@@ -2675,7 +2765,7 @@ class UserScores(db.Model):
             if item is None:
                 m = md5.new()
                 m.update(remote_addr)
-                m.update(datetime.datetime.now())
+                m.update(str(datetime.datetime.now()))
                 md5hash = str(m.hexdigest())                
                 item = UserScores()
                 item.guid = md5hash

@@ -51,6 +51,7 @@ from google.appengine.api import memcache
 from google.appengine.api import users
 from google.appengine.api.labs import taskqueue
 # import WWL modules
+from database import AccessControlList
 from database import APIKeys
 from database import languages
 from database import Languages
@@ -90,6 +91,7 @@ def right_menu():
     t = '<div class="col2">'
     t = t + '<h4><a href=/admin/setup>Quick Install</a></h4>'
     t = t + '<h4><a href=/admin/keys>Manage API Keys</a></h4>'
+    t = t + '<h4><a href=/admin/acl>Access Control Rules</a></h4>'
     t = t + '<h4><a href=/admin/languages>Languages</a></h4>'
     t = t + '<h4><a href=/admin/mt>Machine Translation</a></h4>'
     t = t + '<h4><a href=/admin/vars>System Variables</a></h4>'
@@ -175,6 +177,68 @@ class ViewAPIKeys(webapp.RequestHandler):
             self.response.out.write(footer())
         else:
             self.redirect('/admin')
+
+class ViewAccessControlList(webapp.RequestHandler):
+    def get(self):
+        user = users.get_current_user()
+        if user and users.is_current_user_admin:
+            self.response.out.write(header())
+            self.response.out.write('<div class="col1">')
+            self.response.out.write('<h3>Create A Rule Or Filter</h3>')
+            self.response.out.write('<table border=1><form action=/admin/acl/set method=get>')
+            self.response.out.write('<tr><td>Filter By</td><td>Action</td><td>Value</td></tr>')
+            self.response.out.write('<tr><td><select name=rule>')
+            self.response.out.write('<option value=ipaddress>IP Address/Range</option>')
+            self.response.out.write('<option value=language>Language</option>')
+            self.response.out.write('<option value=username>Username/Email</option>')
+            self.response.out.write('<option value=country>Country</option>')
+            self.response.out.write('</select></td>')
+            self.response.out.write('<td><select name=value>')
+            self.response.out.write('<option value=allow>Allow</option>')
+            self.response.out.write('<option value=deny>Deny</option>')
+            self.response.out.write('</select></td>')
+            self.response.out.write('<td><input type=text name=parm></td></tr>')
+            self.response.out.write('<tr><td colspan=3><input type=submit value="Create Rule"></td></tr>')
+            self.response.out.write('</form></table>')
+            results = AccessControlList.viewrules()
+            if len(results) > 0:
+                self.response.out.write('<hr><h3>Existing Rules</h3>')
+                self.response.out.write('<table border=1>')
+                self.response.out.write('<tr><td>Filter By</td><td>Action</td><td>Value</td><td></td></tr>')
+                for r in results:
+                    self.response.out.write('<tr><td>' + r.rule + '</td>')
+                    self.response.out.write('<td>' + r.value + '</td>')
+                    self.response.out.write('<td>' + r.parm + '</td>')
+                    self.response.out.write('<td><a href=/admin/acl/delete?guid=' + r.guid + '>delete rule</a></td></tr>')
+                self.response.out.write('</table>')
+            self.response.out.write('</div>')
+            self.response.out.write(footer())
+        else:
+            self.redirect('/admin')
+
+class SaveAccessControlList(webapp.RequestHandler):
+    def get(self):
+        user = users.get_current_user()
+        if user and users.is_current_user_admin:
+            rule = self.request.get('rule')
+            value = self.request.get('value')
+            parm = self.request.get('parm')
+            if len(rule) > 0 and len(value) > 0 and len(parm) > 0:
+                AccessControlList.addrule(rule,value,parm)
+            self.redirect('/admin/acl')
+        else:
+            self.redirect('/admin')
+
+class DeleteAccessControlList(webapp.RequestHandler):
+    def get(self):
+        user = users.get_current_user()
+        if user and users.is_current_user_admin:
+            guid = self.request.get('guid')
+            if len(guid) > 0:
+                AccessControlList.deleterule(guid)
+            self.redirect('/admin/acl')
+        else:
+            self.redirect('/admin')    
 
 class DeleteAPIKey(webapp.RequestHandler):
     def get(self):
@@ -392,6 +456,9 @@ class Status(webapp.RequestHandler):
         self.response.out.write(Settings.get('status'))
 
 application = webapp.WSGIApplication([('/admin', Login),
+                                      ('/admin/acl', ViewAccessControlList),
+                                      ('/admin/acl/set', SaveAccessControlList),
+                                      ('/admin/acl/delete', DeleteAccessControlList),
                                       ('/admin/addlanguage', AddLanguage),
                                       ('/admin/deletelanguage', DeleteLanguage),
                                       ('/admin/deletemt', DeleteMTEngine),
