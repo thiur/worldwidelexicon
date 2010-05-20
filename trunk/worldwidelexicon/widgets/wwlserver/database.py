@@ -884,90 +884,6 @@ class languages():
 
 class rec():
     sl = 'en'
-
-class PeerReview(db.Model):
-    username = db.StringProperty(default='')
-    remote_addr = db.StringProperty(default='')
-    sl = db.StringProperty(default='')
-    tl = db.StringProperty(default='')
-    domain = db.StringProperty(default='')
-    createdon = db.DateTimeProperty(auto_now_add=True)
-    translations = db.IntegerProperty(default=0)
-    scores = db.IntegerProperty(default=0)
-    rawscore = db.IntegerProperty(default=0)
-    avgscore = db.FloatProperty()
-    stdev = db.FloatProperty()
-    reviewers = db.ListProperty(str)
-    rawdata = db.ListProperty(int)
-    guids = db.ListProperty(str)
-    @staticmethod
-    def save(guid, username, remote_addr, sl, tl, score, domain=''):
-        if len(guid) < 1:
-            return False
-        if len(username) > 0:
-            pdb = db.Query(PeerReview)
-            pdb.filter('username = ', username)
-            pdb.filter('sl = ', sl)
-            pdb.filter('tl = ', tl)
-        else:
-            pdb = db.Query(PeerReview)
-            pdb.filter('remote_addr = ', remote_addr)
-            pdb.filter('sl = ', sl)
-            pdb.filter('tl = ', tl)
-        item = pdb.get()
-        if item is None:
-            item = PeerReview()
-            item.remote_addr = remote_addr
-            item.username = username
-            item.sl = sl
-            item.tl = tl
-            item.domain = domain
-        if type(score) is str:
-            score = int(score)
-        if score is not None:
-            rawscore = item.rawscore
-            scores = item.scores + 1
-            rawscore = rawscore + score
-            avgscore = float(rawscore/scores)
-            item.rawscore = rawscore
-            item.scores = scores
-            item.avgscore = avgscore
-            reviewers = item.reviewers
-            if remote_addr not in reviewers:
-                reviewers.append(remote_addr)
-            item.reviewers = reviewers
-        else:
-            item.rawscore = 0
-            item.scores = 0
-        guids = item.guids
-        if guid not in guids:
-            guids.append(guid)
-            item.guids = guids
-        if score is not None:
-            rawdata = item.rawdata
-            if len(rawdata) < 200:
-                rawdata.append(score)
-                item.rawdata = rawdata
-            squares = 0
-            for r in rawdata:
-                squares = squares + pow((float(r)-avgscore),2)
-            stdev = pow(squares, 0.5)
-            item.stdev = stdev
-        item.put()
-        return True
-    @staticmethod
-    def fetch(tl='', sl='', domain='', scores=20, limit=100):
-        pdb = db.Query(PeerReview)
-        if len(tl) > 0:
-            pdb.filter('tl = ', tl)
-        if len(sl) > 0:
-            pdb.filter('sl = ', sl)
-        if len(domain) > 0:
-            pdb.filter('domain = ', domain)
-        pdb.filter('scores <= ', scores)
-        pdb.order('scores')
-        results = pdb.fetch(limit=limit)
-        return results
                     
 class Permissions(db.Model):
     domain = db.StringProperty(default='')
@@ -2288,6 +2204,8 @@ class Users(db.Model):
     downvotes = db.IntegerProperty(default=0)
     blockedvotes = db.IntegerProperty(default=0)
     scores = db.IntegerProperty(default=0)
+    rawscores = db.ListProperty(int)
+    stdev = db.FloatProperty()
     translations = db.IntegerProperty(default=0)
     twords = db.IntegerProperty(default=0)
     lasttranslation = db.DateTimeProperty(auto_now_add = True)
@@ -2736,5 +2654,127 @@ class Users(db.Model):
                 return True
             else:
                 return False
+        else:
+            return False
+
+class UserScores(db.Model):
+    guid = db.StringProperty(default='')
+    username = db.StringProperty(default='')
+    remote_addr = db.StringProperty(default='')
+    anonymous = db.BooleanProperty(default=True)
+    city = db.StringProperty(default='')
+    state = db.StringProperty(default='')
+    country = db.StringProperty(default='')
+    scores = db.IntegerProperty(default=0)
+    avgscore = db.FloatProperty()
+    rawscore = db.IntegerProperty(default=0)
+    rawdata = db.ListProperty(int)
+    stdev = db.FloatProperty()
+    translations = db.IntegerProperty(default=0)
+    translator = db.BooleanProperty(default=False)
+    languages = db.ListProperty(str)
+    domains = db.ListProperty(str)
+    createdon = db.DateTimeProperty(auto_now_add=True)
+    updatedon = db.DateTimeProperty()
+    @staticmethod
+    def peerreview(min_scores=20, sl='', tl='', domain='', limit=25):
+        udb = db.Query(UserScores)
+        udb.filter('translator = ', True)
+        if min_scores > 0:
+            udb.filter('scores <= ', min_scores)
+        else:
+            udb.filter('scores <= ', min_scores)
+        if len(domain) > 0:
+            udb.filter('domain = ', domain)
+        if len(sl) > 0:
+            udb.filter('languages = ', sl)
+        if len(tl) > 0:
+            udb.filter('languages = ', tl)
+        udb.order('scores')
+        results = udb.fetch(limit=limit)
+        return results
+    @staticmethod
+    def score(username='', remote_addr='', sl='', tl = '', score=None, domain=''):
+        if len(username) > 0 or len(remote_addr) > 0 and score is not None:
+            try:
+                score = int(score)
+            except:
+                return False
+            udb = db.Query(UserScores)
+            if len(username) > 0 and string.count(username,'.') < 2:
+                udb.filter('username = ', username)
+            else:
+                username = ''
+                udb.filter('remote_addr = ', remote_addr)
+            item = udb.get()
+            if item is None:
+                item = UserScores()
+                item.username = username
+                item.remote_addr = remote_addr
+                if len(username) > 0:
+                    item.anonymous = False
+            languages = item.languages
+            if len(sl) > 1 and len(sl) < 4 and sl not in languages:
+                languages.append(sl)
+            if len(tl) > 1 and len(tl) < 4 and tl not in languages:
+                languages.append(tl)
+            item.languages = languages
+            item.translations = item.translations + 1
+            item.translator = True
+            scores = item.scores + 1
+            item.scores = scores
+            rawscore = item.rawscore + score
+            item.rawscore = rawscore
+            rawdata = item.rawdata
+            rawdata.append(score)
+            avgscore = float(float(rawscore)/scores)
+            item.avgscore = avgscore
+            squares = 0
+            for r in rawdata:
+                squares = squares + pow(float(score) - avgscore, 2)
+            stdev = pow(squares/float(scores),0.5)
+            item.stdev = stdev
+            domains = item.domains
+            if len(domain) > 0:
+                if domain not in domains:
+                    domains.append(domain)
+                    item.domains = domains
+            item.updatedon = datetime.datetime.now()
+            item.put()
+            return True
+        else:
+            return False
+    @staticmethod
+    def translate(username='', remote_addr='', sl='', tl='', domain=''):
+        if len(username) > 0 or len(remote_addr) > 0:
+            udb = db.Query(UserScores)
+            if len(username) > 0 and string.count(username,'.') < 2:
+                udb.filter('username = ', username)
+            else:
+                username = ''
+                udb.filter('remote_addr = ', remote_addr)
+            item = udb.get()
+            if item is None:
+                item = UserScores()
+                item.username = username
+                item.remote_addr = remote_addr
+                if len(username) > 0:
+                    item.anonymous = False
+            languages = item.languages
+            if len(sl) > 1 and len(sl) < 4 and sl not in languages:
+                languages.append(sl)
+            if len(tl) > 1 and len(tl) < 4 and tl not in languages:
+                languages.append(tl)
+            item.languages = languages
+            item.translations = item.translations + 1
+            item.translator = True
+            domains = item.domains
+            if len(domain) > 0:
+                if domain not in domains:
+                    domains.append(domain)
+                    item.domains = domains
+            item.updatedon = datetime.datetime.now()
+            item.put()
+            return True
         else:
             return False

@@ -94,6 +94,12 @@ class HeartBeat(webapp.RequestHandler):
                 url_fetch = True
             except:
                 url_fetch = False
+            # next delete some db entries
+            try:
+                tdb = db.Query(SanityCheck)
+                results = tdb.fetch(limit=250)
+                if len(results) > 0:
+                    db.delete(results)
             # next update the heartbeat registry
             if memcache_running and db_write and db_read:
                 memcache.set('/heartbeat/running', True, 300)

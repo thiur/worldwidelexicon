@@ -96,7 +96,7 @@ class LSP():
                 m.update(tl)
                 m.update(st)
                 guid = str(m.hexdigest())
-                text = memcache.get('/lsp/' + lsp + '/' + guid)
+                text = memcache.get('/lspd/' + lsp + '/' + guid)
                 if text is not None:
                     return text
                 else:
@@ -111,6 +111,7 @@ class LSP():
                     parms['lspusername']=lspusername
                     parms['lsppw']=lsppw
                     parms['apikey']=apikey
+                    parms['output']='json'
                     form_data = urllib.urlencode(parms)
                     result = urlfetch.fetch(url=fullurl, payload = form_data, method = urlfetch.POST, headers = {'Content-Type' : 'application/x-www-form-urlencoded' , 'Accept-Charset' : 'utf-8'})
                     tt = result.content
@@ -118,7 +119,7 @@ class LSP():
                     # a guid field.
                     try:
                         results = demjson.decode(tt)
-                        tt = results['tt']
+                        tt = results.get('tt','')
                     except:
                         results = dict()
                         results['guid']=''
@@ -150,12 +151,13 @@ class LSP():
                                 item.st = st
                                 item.tt = results['tt']
                                 item.professional = True
+                                item.anonymous = False
                                 item.username = lsp
                                 item.put()
                     except:
                         pass
                     # return the translation
-                    return tt
+                    return results
             else:
                     return ''
         else:

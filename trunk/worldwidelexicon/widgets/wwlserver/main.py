@@ -53,9 +53,9 @@ from google.appengine.api import urlfetch
 import feedparser
 from database import APIKeys
 from database import Directory
-from database import PeerReview
 from database import Settings
 from database import Translation
+from database import UserScores
 from language import TestLanguage
 from transcoder import transcoder
 from www import web
@@ -158,7 +158,7 @@ class WebServer(webapp.RequestHandler):
             t = t + 'Help make the Worldwide Lexicon better by reviewing these translations which were '
             t = t + 'submitted by new volunteer translators.<p>'
             t = t + '<table><form action=/p/submit method=get>'
-            results = PeerReview.fetch(limit = 5)
+            results = UserScores.peerreview(limit = 5)
             for r in results:
                 tdb = db.Query(Translation)
                 if len(r.username) > 0:
