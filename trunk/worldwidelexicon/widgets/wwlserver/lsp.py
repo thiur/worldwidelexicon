@@ -135,7 +135,7 @@ class LSP():
                     try:
                         if len(results['guid']) > 0:
                             tdb = db.Query(Translation)
-                            tdb.filter('guid = ', guid)
+                            tdb.filter('guid = ', results['guid'])
                             tdb.filter('sl = ', sl)
                             tdb.filter('tl = ', tl)
                             item = tdb.get()
@@ -153,7 +153,11 @@ class LSP():
                                 item.professional = True
                                 item.anonymous = False
                                 item.username = lsp
+                                item.indexed = False
                                 item.put()
+                                p = dict()
+                                p['guid']=results['guid']
+                                taskqueue.add(url='/ngrams', params=p)
                     except:
                         pass
                     # return the translation
