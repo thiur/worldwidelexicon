@@ -4,10 +4,6 @@ cron:
   url: /selftest
   schedule: every 1 minutes
 
-- description: purge old geo logs
-  url: /heartbeat
-  schedule: every 1 minutes
-
 - description: purge old translation logs (older than 90 days)
   url: /purge/search
   schedule: every 2 hours

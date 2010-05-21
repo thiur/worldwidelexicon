@@ -59,6 +59,9 @@ handlers:
 - url: /domains/(.*)
   script: admin.py
   secure: optional
+
+- url: /f
+  script: translations.py
   
 - url: /headers
   script: admin.py

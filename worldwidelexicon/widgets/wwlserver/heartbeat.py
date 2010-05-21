@@ -97,7 +97,7 @@ class HeartBeat(webapp.RequestHandler):
             # next delete some db entries
             try:
                 tdb = db.Query(SanityCheck)
-                results = tdb.fetch(limit=250)
+                results = tdb.fetch(limit=5)
                 if len(results) > 0:
                     db.delete(results)
             except:

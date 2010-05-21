@@ -80,6 +80,7 @@ from database import Search
 from database import Translation
 from database import languages
 from database import Users
+from database import UserScores
 from database import Settings
 from language import TestLanguage
 from lsp import LSP
@@ -1188,7 +1189,7 @@ class PeerReviewServer(webapp.RequestHandler):
                 pass
             if min_scores < 1:
                 min_scores = 20
-            results = UserScores.peerreview(sl=sl, tl=tl, domain=domain, scores=min_scores)
+            results = UserScores.peerreview(sl=sl, tl=tl, domain=domain, min_scores=min_scores)
             translations = list()
             for r in results:
                 tdb = db.Query(Translation)
@@ -1258,8 +1259,83 @@ class SubmitPeerReviewScores(webapp.RequestHandler):
                 p['proxy']='y'
                 taskqueue.add(url = '/scores/vote', params=p)
         self.response.out.write('ok')
+
+class FuzzySearch(webapp.RequestHandler):
+    """
+    <h3>/f</h3>
+
+    This request handler is used to request a 'fuzzy search' of the translation memory. 
+    This feature is currently experimental, and will be refined over time. it expects the 
+    following parameters.<p>
+
+    <ul>
+    <li>sl : source language code (optional)</li>
+    <li>tl : target language code (optional)</li>
+    <li>q : search term</li>
+    <li>domain : domain (optional)</li>
+    <li>output : output format (xml, json)</li>
+    </ul>
+    """
+    def get(self):
+        sl = self.request.get('sl')
+        tl = self.request.get('tl')
+        q = self.request.get('q')
+        domain = self.request.get('domain')
+        output = self.request.get('output')
+        if len(q) > 0:
+            tdb = db.Query(Translation)
+            if len(sl) > 0:
+                tdb.filter('sl = ', sl)
+            if len(tl) > 0:
+                tdb.filter('tl  =', tl)
+            if len(domain) > 0:
+                tdb.filter('domain = ', domain)
+            q = string.lower(q)
+            q = string.replace(q, '\"', '')
+            q = string.replace(q, '\'', '')
+            words = string.split(q, ' ')
+            for w in words:
+                tdb.filter('ngrams = ', w)
+            results = tdb.fetch(limit=25)
+            translations = list()
+            for r in results:
+                t = tx()
+                t.sl = r.sl
+                t.tl = r.tl
+                t.st = codecs.encode(r.st, 'utf-8')
+                t.tt = codecs.encode(r.tt, 'utf-8')
+                t.domain = r.domain
+                t.date = str(r.date)
+                t.username = r.username
+                t.scores = r.scores
+                t.rawscore = r.rawscore
+                t.avgscore = r.avgscore
+                t.remote_addr = r.remote_addr
+                t.anonymous = r.anonymous
+                t.professional = r.professional
+                t.spam = r.spam
+                translations.append(t)
+            d = DeepPickle()
+            d.autoheader = True
+            if output == 'xml':
+                self.response.headers['Content-Type']='text/xml'
+            else:
+                self.response.headers['Content-Type']='text/javascript'
+            self.response.out.write(d.pickleTable(translations,output))
+        else:
+            t = '<form action=/f method=get>'
+            t = t + '<table>'
+            t = t + '<tr><td>Source Language (sl)</td><td><input type=text name=sl></td></tr>'
+            t = t + '<tr><td>Target Language (tl)</td><td><input type=text name=tl></td></tr>'
+            t = t + '<tr><td>Search Term (q)</td><td><input type=text name=q></td></tr>'
+            t = t + '<tr><td>Domain, optional (domain)</td><td><input type=text name=domain></td></tr>'
+            t = t + '<tr><td>Output Format (output)</td><td><input type=text name=output value=xml></td></tr>'
+            t = t + '<tr><td colspan=2><input type=submit value=OK></td></tr>'
+            t = t + '</table></form>'
+            www.serve(self, t, sidebar = self.__doc__, title = '/f')            
                 
 application = webapp.WSGIApplication([('/q', GetTranslations),
+                                      ('/f', FuzzySearch),
                                       ('/batch', BatchTranslation),
                                       ('/log', LogQueries),
                                       ('/ngrams', IndexNgrams),

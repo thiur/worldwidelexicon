@@ -1566,6 +1566,7 @@ class Translation(db.Model):
     comments = db.IntegerProperty(default=0)
     professional = db.BooleanProperty(default=False)
     locked = db.BooleanProperty(default = True)
+    indexed = db.BooleanProperty(default = False)
     ngrams = db.ListProperty(str)
     spamvotes = db.IntegerProperty(default = 0)
     @staticmethod
@@ -1646,13 +1647,14 @@ class Translation(db.Model):
     def lsp(sl, tl, st, domain='', url='', lsp='', lspusername='', lsppw=''):
         return ''
     @staticmethod
-    def ngrams(limit=1):
+    def ngrams(limit=10):
         """
         This function is called as a background process to index new translations for full text
         search (breaks the words into ngrams).
         """
         tdb = db.Query(Translation)
-        tdb.filter('reviewed = ', False)
+        tdb.filter('spam = ', False)
+        tdb.filter('indexed != ', True)
         results = tdb.fetch(limit=limit)
         for r in results:
             st = string.lower(clean(r.st))
@@ -1668,16 +1670,21 @@ class Translation(db.Model):
             tt = string.replace(tt, '-','')
             twords = string.split(tt, ' ')
             ngrams = list()
-            r.reviewed = True
+            ngrams.append('idx')
             r.put()
             for s in swords:
                 if len(s) < 30:
                     ngrams.append(s)
             for t in twords:
                 if len(t) < 30:
-                    ngrams.append(s)
+                    ngrams.append(t)
             r.ngrams = ngrams
-            r.put()
+            r.indexed = True
+            try:
+                r.put()
+            except:
+                r.ngrams = list()
+                r.put()
     @staticmethod
     def seteditor(guid, editorscore='', approved='', rejected='', spam=''):
         if len(guid) > 0:
