@@ -528,6 +528,9 @@ class SubmitTranslation(webapp.RequestHandler):
             self.redirect(callback)
         else:
             if len(result) > 0:
+                p = dict()
+                p['guid'] = result
+                taskqueue.add(url = '/ngrams', params=p)
                 self.response.out.write('ok\n' + result)
             elif not emptyform:
                 self.error(500)
@@ -960,7 +963,12 @@ class BatchTranslation(webapp.RequestHandler):
 
 class IndexNgrams(webapp.RequestHandler):
     def get(self):
-        result = Translation.ngrams()
+        self.requesthandler()
+    def post(self):
+        self.requesthandler()
+    def requesthandler(self):
+        guid = self.request.get('guid')
+        result = Translation.generatengrams(guid)
         self.response.out.write('ok')
 
 class RevisionHistory(webapp.RequestHandler):

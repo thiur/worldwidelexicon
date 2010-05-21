@@ -19,3 +19,7 @@ cron:
 - description: expunge comments marked as spam
   url: /comments/spam
   schedule: every 1 hours
+
+- description: index translations for full text search
+  url: /ngrams
+  schedule: every 1 minutes

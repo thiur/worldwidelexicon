@@ -1647,44 +1647,51 @@ class Translation(db.Model):
     def lsp(sl, tl, st, domain='', url='', lsp='', lspusername='', lsppw=''):
         return ''
     @staticmethod
-    def ngrams(limit=10):
+    def generatengrams(guid,limit=5):
         """
         This function is called as a background process to index new translations for full text
         search (breaks the words into ngrams).
         """
         tdb = db.Query(Translation)
-        tdb.filter('spam = ', False)
-        tdb.filter('indexed != ', True)
-        results = tdb.fetch(limit=limit)
+        if len(guid) > 0:
+            tdb.filter('guid = ', guid)
+            results = tdb.fetch(limit=10)
+        else:
+            tdb.filter('userapproved = ', False)
+            results = tdb.fetch(limit=limit)
         for r in results:
-            st = string.lower(clean(r.st))
+            st = string.lower(r.st)
+            texts = st
             st = string.replace(st, '.', '')
             st = string.replace(st, '\'', '')
             st = string.replace(st, '\"', '')
             st = string.replace(st, '-','')
             swords = string.split(st, ' ')
-            tt = string.lower(clean(r.tt))
+            swordcount = len(swords)
+            tt = string.lower(r.tt)
+            texts = texts + tt
             tt = string.replace(tt, '.', '')
             tt = string.replace(tt, '\'', '')
             tt = string.replace(tt, '\"', '')
             tt = string.replace(tt, '-','')
             twords = string.split(tt, ' ')
+            twordcount = len(twords)
             ngrams = list()
-            ngrams.append('idx')
-            r.put()
+            for i in texts:
+                if i not in ngrams:
+                    ngrams.append(i)
             for s in swords:
-                if len(s) < 30:
+                if len(s) < 30 and s not in ngrams:
                     ngrams.append(s)
             for t in twords:
-                if len(t) < 30:
+                if len(t) < 30 and t not in ngrams:
                     ngrams.append(t)
             r.ngrams = ngrams
+            r.swords = swordcount
+            r.twords = twordcount
             r.indexed = True
-            try:
-                r.put()
-            except:
-                r.ngrams = list()
-                r.put()
+            r.userapproved = True
+            r.put()
     @staticmethod
     def seteditor(guid, editorscore='', approved='', rejected='', spam=''):
         if len(guid) > 0:
