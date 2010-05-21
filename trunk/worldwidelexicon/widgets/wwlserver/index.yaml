@@ -120,6 +120,11 @@ indexes:
 - kind: Translation
   properties:
   - name: spam
+  - name: indexed
+
+- kind: Translation
+  properties:
+  - name: spam
   - name: avgscore
     
 - kind: Translation

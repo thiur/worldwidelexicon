@@ -126,7 +126,10 @@ standard_footer = 'Content management system and collaborative translation memor
 
 class WebServer(webapp.RequestHandler):
     def get(self, p1='', p2='', p3=''):
-        user_language = TestLanguage.browserlanguage(self.request.headers['Accept-Language'])
+        try:
+            user_language = TestLanguage.browserlanguage(self.request.headers['Accept-Language'])
+        except:
+            user_language = 'en'
         proxy_settings = '<meta name="allow_edit" content="y" />'        
         lsp = ''
         lspusername = ''
