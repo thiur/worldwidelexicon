@@ -280,9 +280,12 @@ class BlackList(db.Model):
     remote_addr = db.StringProperty(default='')
     tl = db.StringProperty(default='')
     createdon = db.DateTimeProperty(auto_now_add = True)
+    count = db.IntegerProperty(default=1)
     @staticmethod
     def add(domain='', user='', requester='', remote_addr='', tl=''):
         if len(domain) > 0 and len(user) > 0 and len(remote_addr) > 0:
+            newrecordall=False
+            newrecorddomain=False
             if len(requester) < 1:
                 requester = remote_addr
             udb = db.Query(BlackList)
@@ -294,6 +297,7 @@ class BlackList(db.Model):
                 udb.filter('tl = ', tl)
             item = udb.get()
             if item is None:
+                newrecorddomain = True
                 item = BlackList()
                 item.domain = domain
                 item.user = user
@@ -309,6 +313,7 @@ class BlackList(db.Model):
             udb.filter('tl = ', tl)
             item = udb.get()
             if item is None:
+                newrecordall=True
                 item = BlackList()
                 item.domain = 'all'
                 item.user = user
@@ -316,6 +321,40 @@ class BlackList(db.Model):
                 item.remote_addr = remote_addr
                 item.tl = tl
                 item.put()
+            udb = db.Query(BlackList)
+            udb.filter('domain = ', domain)
+            udb.filter('user = ', user)
+            udb.filter('requester = ', 'all')
+            udb.filter('remote_addr = ', remote_addr)
+            item = udb.get()
+            if item is None:
+                item = BlackList()
+                item.domain = domain
+                item.user = user
+                item.requester = 'all'
+                item.remote_addr = remote_addr
+                item.count = 1
+            else:
+                if newrecorddomain:
+                    item.count = item.count + 1
+            item.put()
+            udb = db.Query(BlackList)
+            udb.filter('domain = ', 'all')
+            udb.filter('user = ', user)
+            udb.filter('requester = ', 'all')
+            udb.filter('remote_addr = ', remote_addr)
+            item = udb.get()
+            if item is None:
+                item = BlackList()
+                item.domain = 'all'
+                item.user = user
+                item.requester = 'all'
+                item.remote_addr = remote_addr
+                item.count = 1
+            else:
+                if newrecordall:
+                    item.count = item.count + 1
+            item.put()            
             return True
         else:
             return False
@@ -342,26 +381,51 @@ class BlackList(db.Model):
             item = udb.get()
             if item is not None:
                 item.delete()
+            udb = db.Query(BlackList)
+            udb.filter('domain = ', 'all')
+            udb.filter('user = ', user)
+            udb.filter('requester = ', 'all')
+            udb.filter('remote_addr = ', remote_addr)
+            item = udb.get()
+            if item is not None:
+                if item.count > 1:
+                    item.count = item.count - 1
+                    item.put()
+                else:
+                    item.delete()
+            udb = db.Query(BlackList)
+            udb.filter('domain = ', domain)
+            udb.filter('user = ', user)
+            udb.filter('requester = ', 'all')
+            udb.filter('remote_addr = ', remote_addr)
+            item = udb.get()
+            if item is not None:
+                if item.count > 1:
+                    item.count = item.count - 1
+                    item.put()
+                else:
+                    item.delete()
             return True
         else:
             return False
     @staticmethod
     def my(domain='', requester=''):
-        if len(domain) > 0 and len(user) > 0:
+        if len(domain) > 0 and len(requester) > 0:
             results = memcache.get('/blacklist/' + domain + '/' + requester)
             if results is not None:
                 return results
             udb = db.Query(BlackList)
             udb.filter('domain = ', domain)
-            udb.filter('requester = ', requester)
-            udb.order('-date')
+            if len(requester) > 0:
+                udb.filter('requester = ', requester)
+#            udb.order('-createdon')
             records = udb.fetch(limit=500)
             results = list()
             for r in records:
-                if r not in results:
-                    results.append(r)
+                if r.user not in results:
+                    results.append(r.user)
             if len(results) > 0:
-                memcache.set('/blacklist/' + domain + '/' + requester)
+                memcache.set('/blacklist/' + domain + '/' + requester, results, 300)
                 return results
             else:
                 return None
