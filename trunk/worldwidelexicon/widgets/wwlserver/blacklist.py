@@ -79,7 +79,15 @@ class DomainBlackList(webapp.RequestHandler):
     <h3>/blacklist/domain</h3>
 
     Returns a list of blacklisted users or IP addresses, in simple text file with one entry per
-    line, separated by a new line. 
+    line, separated by a new line, in the format:<p>
+
+    username,count<br>
+    username,count<p>
+
+    e.g.<p>
+
+    1.2.3.4,4<br>
+    foobar,2<br>
     """
     def get(self):
         self.requesthandler()
@@ -88,23 +96,16 @@ class DomainBlackList(webapp.RequestHandler):
     def requesthandler(self):
         domain = self.request.get('domain')
         if len(domain) > 0:
-            # placeholder for call to Blacklist() data store
-            results = list()
-            bl = list()
-            for r in results:
-                if r.authorip not in bl and len(r.authorip) > 0:
-                    bl.append(authorip)
-                if r.author not in bl and len(r.author) > 0:
-                    bl.append(authorip)
-            bl.sort()
+            results = BlackList.getdomain(domain)
             self.response.headers['Content-Type']='text/plain'
-            for b in bl:
-                self.response.out.write(b + '\n')
+            for r in results:
+                self.response.out.write(r + '\n')
         else:
             t = '<table><form action=/blacklist/domain method=get>'
             t = t + '<tr><td>Domain</td><td><input type=text name=domain></td></tr>'
             t = t + '<tr><td colspan=2><input type=submit value=OK></td></tr>'
             t = t + '</table></form>'
+            www.serve(self, t, sidebar=self.__doc__, title = '/blacklist/domain')
 
 class AddToBlackList(webapp.RequestHandler):
     """
