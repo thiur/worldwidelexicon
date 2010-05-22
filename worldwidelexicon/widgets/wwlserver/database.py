@@ -273,6 +273,101 @@ class APIKeys(db.Model):
         else:
             return False
 
+class BlackList(db.Model):
+    domain = db.StringProperty(default='')
+    user = db.StringProperty(default='')
+    requester = db.StringProperty(default='')
+    remote_addr = db.StringProperty(default='')
+    tl = db.StringProperty(default='')
+    createdon = db.DateTimeProperty(auto_now_add = True)
+    @staticmethod
+    def add(domain='', user='', requester='', remote_addr='', tl=''):
+        if len(domain) > 0 and len(user) > 0 and len(remote_addr) > 0:
+            if len(requester) < 1:
+                requester = remote_addr
+            udb = db.Query(BlackList)
+            udb.filter('domain = ', domain)
+            udb.filter('user = ', user)
+            udb.filter('requester = ', requester)
+            udb.filter('remote_addr = ', remote_addr)
+            if len(tl) > 0:
+                udb.filter('tl = ', tl)
+            item = udb.get()
+            if item is None:
+                item = BlackList()
+                item.domain = domain
+                item.user = user
+                item.requester = requester
+                item.remote_addr = remote_addr
+                item.tl = tl
+                item.put()
+            udb = db.Query(BlackList)
+            udb.filter('domain = ', 'all')
+            udb.filter('user = ', user)
+            udb.filter('requester = ', requester)
+            udb.filter('remote_addr = ', remote_addr)
+            udb.filter('tl = ', tl)
+            item = udb.get()
+            if item is None:
+                item = BlackList()
+                item.domain = 'all'
+                item.user = user
+                item.requester = requester
+                item.remote_addr = remote_addr
+                item.tl = tl
+                item.put()
+            return True
+        else:
+            return False
+    @staticmethod
+    def remove(domain='', user='', requester='', remote_addr='', tl=''):
+        if len(domain) > 0 and len(user) > 0 and len(remote_addr) > 0:
+            if len(requester) < 1:
+                requester = remote_addr
+            udb = db.Query(BlackList)
+            udb.filter('domain = ', domain)
+            udb.filter('user = ', user)
+            udb.filter('requester = ', requester)
+            udb.filter('remote_addr = ', remote_addr)
+            udb.filter('tl = ', tl)
+            item = udb.get()
+            if item is not None:
+                item.delete()
+            udb = db.Query(BlackList)
+            udb.filter('domain = ', 'all')
+            udb.filter('user = ', user)
+            udb.filter('requester = ', requester)
+            udb.filter('remote_addr = ', remote_addr)
+            udb.filter('tl = ', tl)
+            item = udb.get()
+            if item is not None:
+                item.delete()
+            return True
+        else:
+            return False
+    @staticmethod
+    def my(domain='', requester=''):
+        if len(domain) > 0 and len(user) > 0:
+            results = memcache.get('/blacklist/' + domain + '/' + requester)
+            if results is not None:
+                return results
+            udb = db.Query(BlackList)
+            udb.filter('domain = ', domain)
+            udb.filter('requester = ', requester)
+            udb.order('-date')
+            records = udb.fetch(limit=500)
+            results = list()
+            for r in records:
+                if r not in results:
+                    results.append(r)
+            if len(results) > 0:
+                memcache.set('/blacklist/' + domain + '/' + requester)
+                return results
+            else:
+                return None
+        else:
+            return None
+
 class Comment(db.Model):
     """
     Google Data Store for comments about translations, and related
