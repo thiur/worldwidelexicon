@@ -1,4 +1,11 @@
 indexes:
+
+- kind: BlackList
+  properties:
+  - name: domain
+  - name: requester
+  - name: createdon
+    direction: desc
   
 - kind: Comment
   properties:

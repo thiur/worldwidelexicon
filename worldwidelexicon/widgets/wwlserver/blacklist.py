@@ -131,8 +131,8 @@ class AddToBlackList(webapp.RequestHandler):
         requester = self.request.get('requester')
         remote_addr = self.request.remote_addr
         if len(domain) > 0 and len(user) > 0:
-            Blacklist.add(domain=domain, user=user, requester=requester, remote_addr=remote_addr)
-            self.request.get('ok')
+            BlackList.add(domain=domain, user=user, requester=requester, remote_addr=remote_addr)
+            self.response.out.write('ok')
         else:
             t = '<table><form action=/blacklist/add method=get>'
             t = t + '<tr><td>Domain</td><td><input type=text name=domain></td></tr>'
@@ -168,8 +168,7 @@ class RemoveFromBlackList(webapp.RequestHandler):
         remote_addr = self.request.get('remote_addr')
         if len(domain) > 0 and len(user) > 0:
             BlackList.remove(domain=domain, user=user, requester=requester, remote_addr=remote_addr, tl=tl)
-            self.request.get('ok')
-        else:
+            self.response.out.write('ok')
             t = '<table><form action=/blacklist/remove method=get>'
             t = t + '<tr><td>Domain</td><td><input type=text name=domain></td></tr>'
             t = t + '<tr><td>Username or IP to unblock</td><td><input type=text name=user></td></tr>'
@@ -193,7 +192,9 @@ class MyBlackList(webapp.RequestHandler):
     def requesthandler(self):
         domain = self.request.get('domain')
         requester = self.request.get('requester')
-        if len(domain) > 0 and len(requester) > 0:
+        if len(requester) < 1:
+            requester = self.request.remote_addr
+        if len(domain) > 0:
             results = BlackList.my(domain=domain,requester=requester)
             if results is not None:
                 self.response.headers['Content-Type']='text/plain'
