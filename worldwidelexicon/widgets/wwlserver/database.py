@@ -282,6 +282,21 @@ class BlackList(db.Model):
     createdon = db.DateTimeProperty(auto_now_add = True)
     count = db.IntegerProperty(default=1)
     @staticmethod
+    def getdomain(domain):
+        if len(domain) < 1:
+            domain = 'all'
+        udb = db.Query(BlackList)
+        udb.filter('domain = ', domain)
+        udb.filter('requester = ', 'all')
+        records = udb.fetch(limit=500)
+        results = list()
+        for r in records:
+            row = r.user + ',' + str(r.count)
+            if row not in results and r.count > 0:
+                results.append(row)
+        results.sort()
+        return results
+    @staticmethod
     def add(domain='', user='', requester='', remote_addr='', tl=''):
         if len(domain) > 0 and len(user) > 0 and len(remote_addr) > 0:
             newrecordall=False
