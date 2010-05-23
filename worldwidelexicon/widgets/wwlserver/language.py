@@ -60,6 +60,7 @@ from mt import MTWrapper
 from webappcookie import Cookies
 from database import Comment
 from database import languages
+from database import Languages
 from transcoder import transcoder
 
 def clean(text):
@@ -190,8 +191,18 @@ class ProcessForm(webapp.RequestHandler):
         txt = d.pickleTable(results, 'json')
         self.response.headers['Content-Type']='application/json'
         self.response.out.write(txt)
-      
-application = webapp.WSGIApplication([('/language', ProcessForm)],
+
+class ListLanguages(webapp.RequestHandler):
+    def get(self):
+        ldb = db.Query(Languages)
+        ldb.order('code')
+        results = ldb.fetch(limit=200)
+        self.response.headers['Content-Type']='text/plain'
+        for r in results:
+            self.response.out.write(r.code ',' + r.name + '\n')
+        
+application = webapp.WSGIApplication([('/language', ProcessForm),
+                                      ('/language/list', ListLanguages)],
                                      debug=True)
 
 def main():
