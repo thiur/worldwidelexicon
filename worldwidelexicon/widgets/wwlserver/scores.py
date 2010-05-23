@@ -8,6 +8,7 @@ This module implements web services and database calls to retrieve and save
 scores for translations. This module defines two web API services:
 
 /scores/get : to retrieve a score history for a translation, username or url
+/scores/lsp : used by LSPs (language service providers) to submit trusted scores for a translator
 /scores/vote : to submit an up/down/block:ban vote 
 
 To submit scores:
@@ -135,6 +136,117 @@ class GetScores(webapp.RequestHandler):
             t = t + '<tr><td colspan=2><input type=submit value=SEARCH></td></tr>'
             t = t + '</table></form>'
             www.serve(self,t, sidebar=self.__doc__, title = '/scores/get')
+
+class LSPScore(webapp.RequestHandler):
+    def get(self):
+        self.requesthandler()
+    def post(self):
+        self.requesthandler()
+    def requesthandler(self):
+        guid = self.request.get('guid')
+        score = self.request.get('score')
+        apikey = self.request.get('apikey')
+        comment = self.request.get('comment')
+        if len(guid) > 0:
+            username = APIKeys.getusername(apikey)
+            if len(username) > 0:
+                sdb = db.Query(Score)
+                sdb.filter('lspguid = ', lspguid)
+                item = sdb.get()
+                if item is None:
+                    try:
+                        score = int(score)
+                        tdb = db.Query(Translation)
+                        tdb.filter('guid = ', guid)
+                        item = tdb.get()
+                        if item is not None:
+                            username = item.username
+                            remote_addr = item.remote_addr
+                            rawscore = item.rawscore
+                            scores = item.scores + 1
+                            item.scores = scores
+                            rawscore = item.rawscore + score
+                            item.rawscore = rawscore
+                            item.avgscore = float(float(rawscore)/scores)
+                            item.put()
+                        else:
+                            username = ''
+                            remote_addr = ''
+                        if len(username) > 0 or len(remote_addr) > 0:
+                            if len(remote_addr) > 0:
+                                udb = db.Query(UserScores)
+                                udb.filter('remote_addr = ', remote_addr)
+                                item = udb.get()
+                                if item is None:
+                                    item.username = username
+                                    item.remote_addr = remote_addr
+                                rawscore = item.rawscore + score
+                                scores = item.scores + 1
+                                rawdata = item.rawdata
+                                item.avgscore = float(float(rawscore)/scores)
+                                if type(rawdata) is list:
+                                    rawdata.append(score)
+                                else:
+                                    rawdata = list()
+                                    rawdata.append(score)
+                                squares = 0
+                                for r in rawdata:
+                                    squares = squares + pow(avgscore-r, 2)
+                                stdev = pow(float(float(squares)/scores),0.5)
+                                item.stdev = stdev
+                                if score < 1:
+                                    item.blockedvotes = item.blockedvotes + 1
+                                item.put()
+                            if len(username) > 0:
+                                udb = db.Query(UserScores)
+                                udb.filter('username = ', remote_addr)
+                                item = udb.get()
+                                if item is None:
+                                    item.username = username
+                                    item.remote_addr = remote_addr
+                                rawscore = item.rawscore + score
+                                scores = item.scores + 1
+                                rawdata = item.rawdata
+                                item.avgscore = float(float(rawscore)/scores)
+                                if type(rawdata) is list:
+                                    rawdata.append(score)
+                                else:
+                                    rawdata = list()
+                                    rawdata.append(score)
+                                squares = 0
+                                for r in rawdata:
+                                    squares = squares + pow(avgscore-r, 2)
+                                stdev = pow(float(float(squares)/scores),0.5)
+                                item.stdev = stdev
+                                if score < 1:
+                                    item.blockedvotes = item.blockedvotes + 1
+                                item.put()
+                            if len(username) > 0:
+                                udb = db.Query(Users)
+                                udb.filter('username = ', username)
+                                item = udb.get()
+                                if item is None:
+                                    item.username = username
+                                    item.remote_addr = remote_addr
+                                item.rawscore = rawscore
+                                item.avgscore = avgscore
+                                item.scores = scores
+
+                    except:
+                        self.error(500)
+                        self.response.out.write('error\ninvalid input')
+            else:
+                self.error(500)
+                self.response.out.write('error\ninvalid API key')
+        else:
+            t = '<table><form action=/scores/lsp method=get>'
+            t = t + '<tr><td>GUID (guid)</td><td><input type=text name=guid></td></tr>'
+            t = t + '<tr><td>LSP GUID (lspguid), internal record locator from LSP</td><td><input type=text name=lspguid></td></tr>'
+            t = t + '<tr><td>LSP API Key (apikey)</td><td><input type=text name=apikey></td></tr>'
+            t = t + '<tr><td>Score (score=0..5)</td><td><input type=text name=score></td></tr>'
+            t = t + '<tr><td>Comment (comment)</td><td><input type=text name=comment></td></tr>'
+            t = t + '<tr><td colspan=2><input type=submit value=OK></td></tr>'
+            t = t + '</form></table>'
 
 class SaveScore(webapp.RequestHandler):
     """
