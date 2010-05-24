@@ -142,7 +142,7 @@ class ProxyDomains(db.Model):
         pdb = db.Query(ProxyDomains)
         pdb.filter('domain = ', text)
         item = pdb.get()
-        if item is None:
+        if item is not None:
             if item.nickname is not None:
                 return item.nickname
         return ''
