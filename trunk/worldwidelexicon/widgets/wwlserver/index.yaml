@@ -127,6 +127,34 @@ indexes:
 
 - kind: Translation
   properties:
+  - name: professional
+  - name: date
+    direction: desc
+
+- kind: Translation
+  properties:
+  - name: professional
+  - name: tl
+  - name: date
+    direction: desc
+
+- kind: Translation
+  properties:
+  - name: professional
+  - name: domain
+  - name: date
+    direction: desc
+
+- kind: Translation
+  properties:
+  - name: professional
+  - name: domain
+  - name: tl
+  - name: date
+    direction: desc
+
+- kind: Translation
+  properties:
   - name: spam
   - name: blockedvotes
 

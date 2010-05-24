@@ -68,6 +68,7 @@ def clean(text):
 
 class ProxyDomains(db.Model):
     domain = db.StringProperty(default='')
+    nickname = db.StringProperty(default='')
     owner = db.StringProperty(default='')
     verified = db.BooleanProperty(default=False)
     verificationcode = db.StringProperty(default='')
@@ -84,6 +85,23 @@ class ProxyDomains(db.Model):
         if len(domain) > 0 and len(owner) > 0:
             domain = string.replace(domain, 'http://', '')
             domain = string.replace(domain, 'https://', '')
+            subdomains = string.split(domain, '.')
+            if len(subdomains) == 3:
+                if subdomains[0] == 'www':
+                    nickname = subdomains[1]
+                else:
+                    nickname = subdomains[0]
+            elif len(subdomains) == 2:
+                nickname = subdomains[0]
+            elif len(subdomains) == 4:
+                nickname = subdomains[1]
+            else:
+                nickname = string.replace(domain, '.com', '')
+                nickname = string.replace(nickname, 'www.', '')
+                nickname = string.replace(nickname, '.net', '')
+                nickname = string.replace(nickname, '.org', '')
+                nickname = string.replace(nickname, '.info', '')
+                nickname = string.replace(nickname, '.tv', '')
             pdb = db.Query(ProxyDomains)
             pdb.filter('domain = ', domain)
             item = pdb.get()
@@ -96,6 +114,7 @@ class ProxyDomains(db.Model):
                     verificationcode = str(m.hexdigest())
                 item = ProxyDomains()
                 item.domain = domain
+                item.nickname = nickname
                 item.owner = owner
                 item.verificationcode = verificationcode
                 item.sl = sl
@@ -109,6 +128,24 @@ class ProxyDomains(db.Model):
                 return False
         else:
             return False
+    @staticmethod
+    def nickname2domain(text):
+        pdb = db.Query(ProxyDomains)
+        pdb.filter('nickname = ', text)
+        item = pdb.get()
+        if item is None:
+            return item.domain
+        else:
+            return ''
+    @staticmethod
+    def domain2nickname(text):
+        pdb = db.Query(ProxyDomains)
+        pdb.filter('domain = ', text)
+        item = pdb.get()
+        if item is None:
+            if item.nickname is not None:
+                return item.nickname
+        return ''
     @staticmethod
     def secretcode(domain):
         if len(domain) > 0:
