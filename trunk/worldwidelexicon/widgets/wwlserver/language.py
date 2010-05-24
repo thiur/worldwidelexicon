@@ -199,7 +199,7 @@ class ListLanguages(webapp.RequestHandler):
         results = ldb.fetch(limit=200)
         self.response.headers['Content-Type']='text/plain'
         for r in results:
-            self.response.out.write(r.code ',' + r.name + '\n')
+            self.response.out.write(r.code + ',' + r.name + '\n')
         
 application = webapp.WSGIApplication([('/language', ProcessForm),
                                       ('/language/list', ListLanguages)],
