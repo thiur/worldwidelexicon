@@ -37,6 +37,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 """
 # import standard Python libraries
+import codecs
 import urllib
 import string
 import md5
@@ -204,9 +205,42 @@ class WebServer(webapp.RequestHandler):
             self.response.out.write(w.out(template1col))
         elif len(p1) > 0:
             page = 'http://www.worldwidelexicon.org/static/' + p1 + '.html'
+            if p1 == 'profile':
+                username = urllib.unquote_plus(p2)
+                tdb = db.Query(Translation)
+                if string.count(username,'.') > 1:
+                    remote_addr = username
+                    username = ''
+                if len(username) > 0:
+                    tdb.filter('username = ', username)
+                else:
+                    tdb.filter('remote_addr = ', remote_addr)
+                tdb.order('-date')
+                results = tdb.fetch(limit=10)
+                t = '<h1>Recent Translations By ' + p2 + '</h1>'
+                for r in results:
+                    if not r.spam:
+                        try:
+                            st = codecs.encode(r.st, 'utf-8')
+
+                        except:
+                            st = clean(r.st)
+                        try:
+                            tt = codecs.encode(r.tt, 'utf-8')
+                        except:
+                            tt = clean(r.tt)
+                        if len(r.domain) > 0:
+                            t = t + '<h4>From <a href=http://' + r.domain + '>' + r.domain + '</a></h4>'
+                        try:
+                            t = t + st
+                            t = t + '<blockquote>' + r.tt + '</blockquote>'
+                        except:
+                            pass
+            else:
+                w = web()
+                w.get(page)
+                t = w.out(page)
             w = web()
-            w.get(page)
-            t = w.out(page)
             w.get(template)
             w.replace(template,'[google_analytics]',google_analytics_header)
             if len(p1) < 4:
@@ -219,6 +253,8 @@ class WebServer(webapp.RequestHandler):
             if p1 == 'hostedtranslationwelcome' and len(p2) > 0:
                 secretcode = ProxyDomains.secretcode(p2)
                 w.replace(template, '[secret_code]',secretcode)
+                nickname = ProxyDomains.domain2nickname(p2)
+                w.replace(template, '[nickname]', nickname)
             r = sidebar_about
             r = r + Feeds.get('http://blog.worldwidelexicon.org/?feed=rss2')
             w.replace(template,'[right_column]', r)
@@ -235,6 +271,29 @@ class WebServer(webapp.RequestHandler):
             w.replace(template,'[menu]',menus)
             w.get(downloads)
             t = clean(w.out(downloads))
+            recent_translators = memcache.get('/home/recent_translators')
+            if recent_translators is None:
+                tdb = db.Query(Translation)
+                tdb.order('-date')
+                results = tdb.fetch(250)
+                translators = list()
+                for r in results:
+                    if len(r.username) > 0:
+                        if (r.username + ',' + r.city) not in translators:
+                            translators.append(r.username + ',' + r.city)
+                    else:
+                        if (r.remote_addr + ',' + r.city) not in translators:
+                            translators.append(r.remote_addr + ',' + r.city)
+                recent_translators = '<h2>Recent Translators</h2><ul>'
+                for r in translators:
+                    pair = string.split(r, ',')
+                    a = pair[0]
+                    if len(pair[1]) > 3:
+                        recent_translators = recent_translators + '<li><a href=/profile/' + string.replace(pair[0],' ','+') + '>' + pair[0] + ' (' + pair[1] + ')</a></li>'
+                    else:
+                        recent_translators = recent_translators + '<li><a href=/profile/' + string.replace(pair[0],' ','+') + '>' + pair[0] + '</a></li>'
+                recent_translators = recent_translators + '</ul>'
+                memcache.set('/home/recent_translators', recent_translators, 300)
             sdb = db.Query(Directory)
             sdb.filter('tl = ', 'root')
             sdb.order('-lastupdated')
@@ -256,7 +315,7 @@ class WebServer(webapp.RequestHandler):
                                 skip=True
                     if not skip:
                         sites.append(r.domain)
-            t = t + '<h2>New Websites On The WWL Network</h2><ul>'
+            t = t + recent_translators + '<h2>New Websites On The WWL Network</h2><ul>'
             for s in sites:
                 t = t +'<li><a href=http://' + s + '>' + s + '</a></li>'
             t = t + '<li><a href=/sites>(more)</a></li></ul>'
