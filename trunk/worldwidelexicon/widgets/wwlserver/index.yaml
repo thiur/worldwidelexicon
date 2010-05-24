@@ -20,6 +20,12 @@ indexes:
   - name: lastupdated
     direction: desc
 
+- kind: ProxyDomains
+  properties:
+  - name: verified
+  - name: createdon
+    direction: desc
+
 - kind: Score
   properties:
   - name: username

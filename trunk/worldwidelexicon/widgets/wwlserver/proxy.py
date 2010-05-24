@@ -48,6 +48,7 @@ from google.appengine.ext import webapp
 from google.appengine.ext.webapp.util import run_wsgi_app
 from google.appengine.ext import db
 from google.appengine.api import memcache
+from google.appengine.api import urlfetch
 # import standard Python modules
 import sys
 import urllib
@@ -58,11 +59,12 @@ import codecs
 from webappcookie import Cookies
 # import WWL modules
 from database import APIKeys
+from database import Directory
 from database import Users
 from transcoder import transcoder
 
 def clean(text):
-    return transcoder.clean(test)
+    return transcoder.clean(text)
 
 class ProxyDomains(db.Model):
     domain = db.StringProperty(default='')
@@ -114,7 +116,10 @@ class ProxyDomains(db.Model):
             pdb.filter('domain = ', domain)
             item = pdb.get()
             if item is not None:
-                return item.verificationcode
+                if item.verified:
+                    return '<i>' + item.verificationcode + ' (already verified)</i>'
+                else:
+                    return item.verificationcode
         return ''
     @staticmethod
     def update(domain, parm, value):
@@ -187,7 +192,7 @@ class ProxyVerify(webapp.RequestHandler):
     def requesthandler(self):
         pdb = db.Query(ProxyDomains)
         pdb.filter('verified = ', False)
-        pdb.order('-createdon')
+        #pdb.order('-createdon')
         results = pdb.fetch(limit = 20)
         for r in results:
             url = 'http://' + r.domain
@@ -196,6 +201,7 @@ class ProxyVerify(webapp.RequestHandler):
                 if string.count(clean(result.content), r.verificationcode) > 0:
                     r.verified = True
                     r.put()
+                    Directory.hostname(r.domain,r.sl,'')
         self.response.out.write('ok')
 
 class ProxyRegister(webapp.RequestHandler):
