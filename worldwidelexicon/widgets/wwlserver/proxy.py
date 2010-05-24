@@ -133,7 +133,7 @@ class ProxyDomains(db.Model):
         pdb = db.Query(ProxyDomains)
         pdb.filter('nickname = ', text)
         item = pdb.get()
-        if item is None:
+        if item is not None:
             return item.domain
         else:
             return ''
@@ -194,9 +194,15 @@ class ProxyController(webapp.RequestHandler):
         tl = self.request.get('tl')
         subdomains = string.split(domain,'.')
         if len(subdomains) == 3:
-            targetdomain = 'www.' + subdomains[1] + '.' + subdomains[2]
+            if subdomains[1] == 'worldwidelexicon':
+                targetdomain = ProxyDomains.nickname2domain(subdomains[0])
+            else:
+                targetdomain = 'www.' + subdomains[1] + '.' + subdomains[2]
         elif len(subdomains) == 4:
-            targetdomain = subdomains[1] + '.' + subdomains[2] + '.' + subdomains[3]
+            if subdomains[2] == 'worldwidelexicon':
+                targetdomain = ProxyDomains.nickname2domain(subdomains[1])
+            else:
+                targetdomain = subdomains[1] + '.' + subdomains[2] + '.' + subdomains[3]
         elif len(subdomains) == 5:
             targetdomain = subdomains[1] + '.' + subdomains[2] + '.' + subdomains[3] + '.' + subdomains[4]
         elif len(subdomains) == 2:

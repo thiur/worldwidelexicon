@@ -2566,7 +2566,13 @@ class Users(db.Model):
                 m.update(str(datetime.datetime.now()))
                 validationkey = str(m.hexdigest())
                 item = Users()
-                item.username = username
+                try:
+                    item.username = username.decode('utf-8')
+                except:
+                    try:
+                        item.username = clean(username)
+                    except:
+                        item.username = username
                 item.email = email
                 item.pwhash = pwhash
                 item.validationkey = validationkey

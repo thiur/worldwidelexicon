@@ -551,7 +551,7 @@ class wwwLogout(webapp.RequestHandler):
                     session = cookies['session']
                 except:
                     session = self.request.get('session')
-                if len(session) > 0:
+                if len(session) > 0 and len(session) < 256:
                     success = Users.logout(session=session)
                     cookies['session']=''
                     self.response.headers['Content-Type']='text/plain'
