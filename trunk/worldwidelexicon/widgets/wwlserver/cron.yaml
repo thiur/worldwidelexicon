@@ -23,3 +23,7 @@ cron:
 - description: index translations for full text search
   url: /ngrams
   schedule: every 1 minutes
+
+- description: verify newly added proxy server clients
+  url: /proxy/verify
+  schedule: every 1 minutes
