@@ -898,6 +898,20 @@ class Languages(db.Model):
         ldb.order('code')
         results = ldb.fetch(limit=200)
         return results
+    @staticmethod
+    def select(selected=''):
+        text = memcache.get('/languages/select')
+        if text is not None:
+            return text
+        else:
+            text = ''
+            ldb = db.Query(Languages)
+            ldb.order('code')
+            results = ldb.fetch(limit=200)
+            for r in results:
+                text = text + '<option value="' + r.code + '">' + r.name + '</option>'
+            memcache.set('/languages/select', text, 300)
+            return text
 
 class languages():
     """

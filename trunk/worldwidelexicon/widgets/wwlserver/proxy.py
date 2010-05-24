@@ -57,11 +57,73 @@ import datetime
 import codecs
 from webappcookie import Cookies
 # import WWL modules
+from database import APIKeys
 from database import Users
 from transcoder import transcoder
 
 def clean(text):
     return transcoder.clean(test)
+
+class ProxyDomains(db.Model):
+    domain = db.StringProperty(default='')
+    owner = db.StringProperty(default='')
+    verified = db.BooleanProperty(default=False)
+    verificationcode = db.StringProperty(default='')
+    blocked = db.BooleanProperty(default=False)
+    createdon = db.DateTimeProperty(auto_now_add=True)
+    sl = db.StringProperty(default='')
+    description = db.TextProperty(default='')
+    tags = db.ListProperty(str)
+    lsp = db.StringProperty(default='speaklikeapi')
+    lspusername = db.StringProperty(default='')
+    lsppw = db.StringProperty(default='')
+    @staticmethod
+    def add(domain, owner, sl='en', description='', lsp='speaklikeapi', lspusername='', lsppw='', verificationcode=''):
+        if len(domain) > 0 and len(owner) > 0:
+            domain = string.replace(domain, 'http://', '')
+            domain = string.replace(domain, 'https://', '')
+            pdb = db.Query(ProxyDomains)
+            pdb.filter('domain = ', domain)
+            item = pdb.get()
+            if item is None:
+                if len(verificationcode) < 8:
+                    m = md5.new()
+                    m.update(str(datetime.datetime.now()))
+                    m.update(domain)
+                    m.update(owner)
+                    verificationcode = str(m.hexdigest())
+                item = ProxyDomains()
+                item.domain = domain
+                item.owner = owner
+                item.verificationcode = verificationcode
+                item.sl = sl
+                item.description = description
+                item.lsp = lsp
+                item.lspusername = lspusername
+                item.lsppw = lsppw
+                item.put()
+                return True
+            else:
+                return False
+        else:
+            return False
+    @staticmethod
+    def update(domain, parm, value):
+        if len(domain) > 0 and len(parm) > 0 and len(value) > 0:
+            pdb = db.Query(ProxyDomains)
+            pdb.filter('domain = ', domain)
+            item = pdb.get()
+            if item is not None:
+                if parm == 'lspusername':
+                    item.lspusername = value
+                if parm == 'lwppw':
+                    item.lsppw = value
+                if parm == 'description':
+                    item.description = description
+            else:
+                return False
+        else:
+            return False
     
 class ProxyController(webapp.RequestHandler):
     """
@@ -77,7 +139,7 @@ class ProxyController(webapp.RequestHandler):
         self.requesthandler(domain)
     def requesthandler(self, domain):
         self.response.headers['Content-Type']='text/plain'
-        proxy_api_key = self.request.get('proxy_api_key')
+        apikey = self.request.get('apikey')
         tl = self.request.get('tl')
         subdomains = string.split(domain,'.')
         if len(subdomains) == 3:
@@ -97,10 +159,34 @@ class ProxyController(webapp.RequestHandler):
         self.response.out.write('allow_edit=y\n')
         self.response.out.write('allow_anonymous=y\n')
         self.response.out.write('require_professional=n\n')
-        if len(proxy_api_key) > -1:
-            self.response.out.write('lsp=speaklike\n')
-            self.response.out.write('lspusername=foo\n')
-            self.response.out.write('lsppw=bar\n')
+        if len(apikey) > 0:
+            result = APIKeys.getusername(apikey)
+            if len(result) > 0:
+                pdb = db.Query(ProxyDomains)
+                pdb.filter('domain = ', targetdomain)
+                item = pdb.get()
+                if item is not None:
+                    self.response.out.write(item.lsp + '\n')
+                    self.response.out.write(item.lspusername + '\n')
+                    self.response.out.write(item.lsppw + '\n')
+
+class ProxyVerify(webapp.RequestHandler):
+    def get(self):
+        self.requesthandler()
+    def post(self):
+        self.requesthandler()
+    def requesthandler(self):
+        pdb = db.Query(ProxyDomains)
+        pdb.filter('verified = ', False)
+        pdb.order('-createdon')
+        results = pdb.fetch(results = 20)
+        for r in results:
+            url = 'http://' + r.domain
+            result = urlfetch.fetch(url = url)
+            if result.status_code == 200:
+                if string.count(clean(result.content), r.verificationcode) > 0:
+                    r.verified = True
+        self.response.out.write('ok')
 
 class ProxyRegister(webapp.RequestHandler):
     """
@@ -133,10 +219,11 @@ class ProxyRegister(webapp.RequestHandler):
         pw2 = self.request.get('pw2')
         domain = self.request.get('domain')
         sl = self.request.get('sl')
+        verificationcode = self.request.get('verificationcode')
         remote_addr = self.request.remote_addr
         success_url = '/hostedtranslationswelcome'
         error_url = '/hostedtranslationserror'
-        if len(email) < 8 or len(pw) < 6 or len(domain) < 3 or len(sl) < 2:
+        if len(email) < 8 or len(pw) < 6 or len(domain) < 3 or len(sl) < 2 and len(verificationcode) < 8:
             self.response.out.write('<form action=/proxy/register method=post>')
             self.response.out.write('<table>')
             self.response.out.write('<tr><td>Email</td><td><input type=text name=email></td></tr>')
@@ -163,6 +250,7 @@ class ProxyRegister(webapp.RequestHandler):
             self.redirect(success_url)
 
 application = webapp.WSGIApplication([('/proxy/register', ProxyRegister),
+                                      ('/proxy/verify', ProxyVerify),
                                       (r'/proxy/(.*)', ProxyController)],
                                      debug=True)
 

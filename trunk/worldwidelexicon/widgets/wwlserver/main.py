@@ -53,6 +53,7 @@ from google.appengine.api import urlfetch
 import feedparser
 from database import APIKeys
 from database import Directory
+from database import Languages
 from database import Settings
 from database import Translation
 from database import UserScores
@@ -257,6 +258,27 @@ class WebServer(webapp.RequestHandler):
             t = t + '<li><a href=/sites>(more)</a></li></ul>'
             w.replace(template,'[left_column]',t)
             r = sidebar_about
+            r = r + '<h1>Free Translation Service</h1>'
+            r = r + 'Join the WWL translation network, and make your website '
+            r = r + 'translatable in minutes. Just complete this short form, '
+            r = r + 'then create subdomains for the languages you want to support '
+            r = r + '(for example, es.yoursite.com, see <a href=http://fr.fleethecube.com>'
+            r = r + 'fr.fleethecube.com</a> for a demo. There is no software to install '
+            r = r + 'and your website can be translated by machine, by your own readers, and '
+            r = r + 'professional translators.<p>'
+            r = r + '<table><form action=/proxy/register method=get>'
+            r = r + '<tr><td>Domain</td><td><input type=text name=domain value=www.mysite.com></td></tr>'
+            r = r + '<tr><td>Your Email</td><td><input type=text name=email></td></tr>'
+            r = r + '<tr><td>Password</td><td><input type=text name=pw></td></tr>'
+            r = r + '<tr><td>Repeat Password</td><td><input type=text name=pw2></td></tr>'
+            r = r + '<tr><td>Primary Language</td><td><select name=sl><option selected value=en>English</option>'
+            r = r + Languages.select()
+            r = r + '</select></td></tr>'
+            r = r + '<tr><td colspan=2>Optional Professional Translations By <a href=http://www.speaklike.com>SpeakLike</a></td></tr>'
+            r = r + '<tr><td>SpeakLike Username</td><td><input type=text name=lspusername></td></tr>'
+            r = r + '<tr><td>SpeakLike Password</td><td><input type=text name=lsppw></td></tr>'
+            r = r + '<tr><td colspan=2><input type=submit value="JOIN"></td></tr>'
+            r = r + '</table></form>'
             r = r + Feeds.get('http://blog.worldwidelexicon.org/?feed=rss2')
             w.replace(template,'[right_column]', r)
             self.response.out.write(w.out(template))
