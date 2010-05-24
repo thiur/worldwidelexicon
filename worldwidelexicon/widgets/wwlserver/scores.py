@@ -138,6 +138,26 @@ class GetScores(webapp.RequestHandler):
             www.serve(self,t, sidebar=self.__doc__, title = '/scores/get')
 
 class LSPScore(webapp.RequestHandler):
+    """
+    <h3>/scores/lsp</h3>
+
+    This API is used by language service providers (LSPs), to submit trusted 
+    peer review scores for new or unknown community translators. The system 
+    uses this information to assess new contributors, and to decide how to 
+    promote or filter their translations.<p>
+
+    The API expects the following parameters:<p>
+
+    <ul>
+    <li>guid : the globally unique ID of the WWL translation being scored</li>
+    <li>lspguid : a unique ID / record locator from the LSPs system (to avoid duplicate votes)</li>
+    <li>score : quality score from 0 to 5 (0=spam, 5 = native speaker)</li>
+    <li>apikey : LSP's API key</li>
+    <li>comment : optional comment</li>
+    </ul>
+
+    The API returns 'ok' or an error message.
+    """
     def get(self):
         self.requesthandler()
     def post(self):
@@ -249,6 +269,7 @@ class LSPScore(webapp.RequestHandler):
             t = t + '<tr><td>Comment (comment)</td><td><input type=text name=comment></td></tr>'
             t = t + '<tr><td colspan=2><input type=submit value=OK></td></tr>'
             t = t + '</form></table>'
+            www.serve(self,t,sidebar=self.__doc__,title='/scores/lsp')
 
 class SaveScore(webapp.RequestHandler):
     """
@@ -439,6 +460,7 @@ else:
     debug_setting = True            
 
 application = webapp.WSGIApplication([('/scores/get', GetScores),
+                                      ('/scores/lsp', LSPScore),
                                       ('/scores/reset', ResetScores),
                                       ('/scores/vote', SaveScore),
                                       ('/scores/user', SetUserScores)], 

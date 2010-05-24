@@ -58,18 +58,11 @@ import codecs
 from webappcookie import Cookies
 # import WWL modules
 from database import Users
+from transcoder import transcoder
 
 def clean(text):
-    try:
-        utext = text.encode('utf-8')
-    except:
-        try:
-            utext = text.encode('iso-8859-1')
-        except:
-            utext = text
-    text = utext.decode('utf-8')
-    return text
-
+    return transcoder.clean(test)
+    
 class ProxyController(webapp.RequestHandler):
     """
     /proxy/*
@@ -141,8 +134,8 @@ class ProxyRegister(webapp.RequestHandler):
         domain = self.request.get('domain')
         sl = self.request.get('sl')
         remote_addr = self.request.remote_addr
-        success_url = '/proxy/admin'
-        error_url = '/proxy/error/login'
+        success_url = '/hostedtranslationswelcome'
+        error_url = '/hostedtranslationserror'
         if len(email) < 8 or len(pw) < 6 or len(domain) < 3 or len(sl) < 2:
             self.response.out.write('<form action=/proxy/register method=post>')
             self.response.out.write('<table>')
@@ -151,6 +144,8 @@ class ProxyRegister(webapp.RequestHandler):
             self.response.out.write('<tr><td>Confirm Password (For New Account)</td><td><input type=password name=pw2></td></tr>')
             self.response.out.write('<tr><td>Your Domain (www.yoursite.com)</td><td><input type=text name=domain></td></tr>')
             self.response.out.write('<tr><td>Primary Language (use 2/3 letter language code)</td><td><input type=text name=sl maxlength=3></td></tr>')
+            self.response.out.write('<tr><td>Your SpeakLike Username (for professional translations)</td><td><input type=text name=lspusername></td></tr>')
+            self.response.out.write('<tr><td>Your SpeakLike Password</td><td><input type=text name=lsppw></td></tr>')
             self.response.out.write('<tr><td colspan=2><input type=submit value="Signup"></td></tr></form></table>')
         else:
             if pw == pw2 and len(pw) > 5 and len(email) > 0:
@@ -165,103 +160,9 @@ class ProxyRegister(webapp.RequestHandler):
                     self.redirect(error_url)
             cookies = Cookies(self)
             cookies['session']=sessioninfo.get('session')
-            self.redirect('/proxy/admin')
-        
+            self.redirect(success_url)
 
-class ProxyAdmin(webapp.RequestHandler):
-    """
-    /proxy/admin
-
-    This web service is used to manage translation settings for WWL proxy servers. Website owners can use this tool to:
-
-    * Enable/Disable languages
-    * Control machine translation settings
-    * Control community translation settings
-    * Control professional translation settings
-
-    The control panel provides a similar set of options as the Word Press translator addon. 
-    
-    """
-    def get(self):
-        self.requesthandler()
-    def post(self):
-        self.requesthandler()
-    def requesthandler(self):
-        cookies = Cookies(self)
-        try:
-            session = cookies['session']
-        except:
-            session = ''
-        email = self.request.get('email')
-        pw = self.request.get('pw')
-        remote_addr = self.request.remote_addr
-        if len(session) < 8 and len(email) < 6 and len(pw) < 6:
-            self.response.out.write('<h3>Worldwide Lexicon Translation Service</h3><hr>')
-            self.response.out.write('<form action=/proxy/admin method=post>')
-            self.response.out.write('Email: <input type=text name=email>  <input type=password name=pw> ')
-            self.response.out.write('<input type=submit value="OK"></form>')
-        elif len(session) < 8:
-            sessioninfo = Users.auth(username=email, pw=pw, session='', remote_addr=remote_addr)
-            if sessioninfo is not None:
-                session = sessioninfo.get('session','')
-                cookies['session']=session
-            else:
-                self.redirect('/proxy/admin')
-        else:
-            self.response.out.write('<h3>Worldwide Lexicon Translation Service</h3><hr>')
-            self.response.out.write('Ipsum orum')
-
-class ProxySubmit(webapp.RequestHandler):
-    """
-    /proxy/submit
-
-    This API call is used to report to the global translation memory which URLs are being
-    viewed in translation (for example on a Word Press site that is using the translation
-    plugin). This enables WWL / Der Mundo to build a global picture of what posts are being
-    read in various languages.
-
-    It expects the following parameters:
-
-    sl = source language
-    tl = target language
-    st = source text (can be partial)
-    tt = translated text (can be partial)
-    domain = main domain
-    url = permalink (original)
-    turl = permalink (translated)
-    stitle = source title
-    ttitle = translated title
-    remote_addr = user IP address
-    
-    """
-    def get(self):
-        self.requesthandler()
-    def post(self):
-        self.requesthandler()
-    def requesthandler(self):
-        sl = self.request.get('sl')
-        tl = self.request.get('tl')
-        st = self.request.get('st')
-        tt = self.request.get('tt')
-        domain = self.request.get('domain')
-        url = self.request.get('url')
-        turl = self.request.get('turl')
-        stitle = self.request.get('stitle')
-        ttitle = self.request.get('ttitle')
-        remote_addr = self.request.remote_addr
-        user_ip = self.request.get('remote_addr')
-        exists = memcache.get('/ratelimit/proxy/submit/' + user_ip)
-        if exists is not None:
-            self.response.out.write('ok')
-        else:
-            Urls.log(url, turl=turl, domain=domain, sl=sl, tl=tl, st=st, tt=tt, stitle=stitle, ttitle=ttitle, remote_addr = remote_addr, user_ip=user_ip)
-            self.response.out.write('ok')
-            memcache.set('/ratelimit/proxy/submit/' + user_ip, 'y', 1)
-
-application = webapp.WSGIApplication([('/proxy/submit', ProxySubmit),
-                                      ('/proxy/register', ProxyRegister),
-                                      (r'/proxy/admin/(.*)', ProxyAdmin),
-                                      ('/proxy/admin', ProxyAdmin),
+application = webapp.WSGIApplication([('/proxy/register', ProxyRegister),
                                       (r'/proxy/(.*)', ProxyController)],
                                      debug=True)
 
