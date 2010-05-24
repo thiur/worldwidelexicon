@@ -665,9 +665,9 @@ class wwwValidate(webapp.RequestHandler):
         doc=self.request.get('doc')
         if len(k) > 0:
             if Users.validate(k):
-                self.redirect('/search')
+                self.redirect('/')
             else:
-                self.redirect('/search')
+                self.redirect('/')
         else:
             t = '<table><form action=/users/validate method=get>'
             t = t + '<tr><td>Validation key</td><td><input type=text name=k size=32>'
