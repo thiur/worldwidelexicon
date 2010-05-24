@@ -58,6 +58,7 @@ from database import Settings
 from database import Translation
 from database import UserScores
 from language import TestLanguage
+from proxy import ProxyDomains
 from transcoder import transcoder
 from www import web
 from www import www
@@ -215,6 +216,9 @@ class WebServer(webapp.RequestHandler):
             w.replace(template,'[footer]',standard_footer)
             w.replace(template,'[menu]',menus)
             w.replace(template,'[left_column]',t)
+            if p1 == 'hostedtranslationwelcome' and len(p2) > 0:
+                secretcode = ProxyDomains.secretcode(p2)
+                w.replace(template, '[secret_code]',secretcode)
             r = sidebar_about
             r = r + Feeds.get('http://blog.worldwidelexicon.org/?feed=rss2')
             w.replace(template,'[right_column]', r)
@@ -258,29 +262,29 @@ class WebServer(webapp.RequestHandler):
             t = t + '<li><a href=/sites>(more)</a></li></ul>'
             w.replace(template,'[left_column]',t)
             r = sidebar_about
-            r = r + '<h1>Free Translation Service</h1>'
-            r = r + 'Join the WWL translation network, and make your website '
-            r = r + 'translatable in minutes. Just complete this short form, '
-            r = r + 'then create subdomains for the languages you want to support '
-            r = r + '(for example, es.yoursite.com, see <a href=http://fr.fleethecube.com>'
-            r = r + 'fr.fleethecube.com</a> for a demo. There is no software to install '
-            r = r + 'and your website can be translated by machine, by your own readers, and '
-            r = r + 'professional translators.<p>'
-            r = r + '<table><form action=/proxy/register method=get>'
-            r = r + '<tr><td>Domain</td><td><input type=text name=domain value=www.mysite.com></td></tr>'
-            r = r + '<tr><td>Your Email</td><td><input type=text name=email></td></tr>'
-            r = r + '<tr><td>Password</td><td><input type=text name=pw></td></tr>'
-            r = r + '<tr><td>Repeat Password</td><td><input type=text name=pw2></td></tr>'
-            r = r + '<tr><td>Primary Language</td><td><select name=sl><option selected value=en>English</option>'
-            r = r + Languages.select()
-            r = r + '</select></td></tr>'
-            r = r + '<tr><td colspan=2>Optional Professional Translations By <a href=http://www.speaklike.com>SpeakLike</a></td></tr>'
-            r = r + '<tr><td>SpeakLike Username</td><td><input type=text name=lspusername></td></tr>'
-            r = r + '<tr><td>SpeakLike Password</td><td><input type=text name=lsppw></td></tr>'
-            r = r + '<tr><td colspan=2><input type=submit value="JOIN"></td></tr>'
-            r = r + '</table></form>'
-            r = r + Feeds.get('http://blog.worldwidelexicon.org/?feed=rss2')
-            w.replace(template,'[right_column]', r)
+            f = '<h1>Free Translation Service</h1>'
+            f = f + 'Join the WWL translation network, and make your website '
+            f = f + 'translatable in minutes. Just complete this short form, '
+            f = f + 'then create subdomains for the languages you want to support '
+            f = f + '(for example, es.yoursite.com, see <a href=http://fr.fleethecube.com>'
+            f = f + 'fr.fleethecube.com</a> for a demo. There is no software to install '
+            f = f + 'and your website can be translated by machine, by your own readers, and '
+            f = f + 'professional translators.<p>'
+            f = f + '<table><form action=/proxy/register method=get>'
+            f = f + '<tr><td>Domain</td><td><input type=text name=domain value=www.mysite.com></td></tr>'
+            f = f + '<tr><td>Your Email</td><td><input type=text name=email></td></tr>'
+            f = f + '<tr><td>Password</td><td><input type=text name=pw></td></tr>'
+            f = f + '<tr><td>Repeat Password</td><td><input type=text name=pw2></td></tr>'
+            f = f + '<tr><td>Primary Language</td><td><select name=sl><option selected value=en>English</option>'
+            f = f + Languages.select()
+            f = f + '</select></td></tr>'
+            f = f + '<tr><td colspan=2>Optional Professional Translations By <a href=http://www.speaklike.com>SpeakLike</a></td></tr>'
+            f = f + '<tr><td>SpeakLike Username</td><td><input type=text name=lspusername></td></tr>'
+            f = f + '<tr><td>SpeakLike Password</td><td><input type=text name=lsppw></td></tr>'
+            f = f + '<tr><td colspan=2><input type=submit value="JOIN"></td></tr>'
+            f = f + '</table></form>'
+            f = f + Feeds.get('http://blog.worldwidelexicon.org/?feed=rss2')
+            w.replace(template,'[right_column]', r + f)
             self.response.out.write(w.out(template))
     def post(self, p1='', p2='', p3=''):
         self.redirect('http://blog.worldwidelexicon.org')

@@ -108,6 +108,15 @@ class ProxyDomains(db.Model):
         else:
             return False
     @staticmethod
+    def secretcode(domain):
+        if len(domain) > 0:
+            pdb = db.Query(ProxyDomains)
+            pdb.filter('domain = ', domain)
+            item = pdb.get()
+            if item is not None:
+                return item.verificationcode
+        return ''
+    @staticmethod
     def update(domain, parm, value):
         if len(domain) > 0 and len(parm) > 0 and len(value) > 0:
             pdb = db.Query(ProxyDomains)
@@ -220,34 +229,17 @@ class ProxyRegister(webapp.RequestHandler):
         domain = self.request.get('domain')
         sl = self.request.get('sl')
         verificationcode = self.request.get('verificationcode')
+        lspusername = self.request.get('lspusername')
+        lsppw = self.request.get('lsppw')
         remote_addr = self.request.remote_addr
         success_url = '/hostedtranslationswelcome'
         error_url = '/hostedtranslationserror'
-        if len(email) < 8 or len(pw) < 6 or len(domain) < 3 or len(sl) < 2 and len(verificationcode) < 8:
-            self.response.out.write('<form action=/proxy/register method=post>')
-            self.response.out.write('<table>')
-            self.response.out.write('<tr><td>Email</td><td><input type=text name=email></td></tr>')
-            self.response.out.write('<tr><td>Password</td><td><input type=password name=pw></td></tr>')
-            self.response.out.write('<tr><td>Confirm Password (For New Account)</td><td><input type=password name=pw2></td></tr>')
-            self.response.out.write('<tr><td>Your Domain (www.yoursite.com)</td><td><input type=text name=domain></td></tr>')
-            self.response.out.write('<tr><td>Primary Language (use 2/3 letter language code)</td><td><input type=text name=sl maxlength=3></td></tr>')
-            self.response.out.write('<tr><td>Your SpeakLike Username (for professional translations)</td><td><input type=text name=lspusername></td></tr>')
-            self.response.out.write('<tr><td>Your SpeakLike Password</td><td><input type=text name=lsppw></td></tr>')
-            self.response.out.write('<tr><td colspan=2><input type=submit value="Signup"></td></tr></form></table>')
+        if pw == pw2 and len(pw) > 5 and len(email) > 0:
+            result = Users.new(username=email, email=email, pw=pw, remote_addr=remote_addr)
+            ProxyDomains.add(domain, email, sl=sl, lspusername=lspusername, lsppw=lsppw)
         else:
-            if pw == pw2 and len(pw) > 5 and len(email) > 0:
-                result = Users.new(username=email, email=email, pw=pw, remote_addr=remote_addr)
-                if not result:
-                    self.redirect(error_url)
-                sessioninfo['session']=''
-                sessioninfo['username']=''
-            else:
-                sessioninfo = Users.auth(username=email, pw=pw, session='', remote_addr=remote_addr)
-                if sessioninfo is None:
-                    self.redirect(error_url)
-            cookies = Cookies(self)
-            cookies['session']=sessioninfo.get('session')
-            self.redirect(success_url)
+            self.redirect(error_url)
+        self.redirect(success_url)
 
 application = webapp.WSGIApplication([('/proxy/register', ProxyRegister),
                                       ('/proxy/verify', ProxyVerify),
