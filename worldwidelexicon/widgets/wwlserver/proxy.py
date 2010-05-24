@@ -188,13 +188,14 @@ class ProxyVerify(webapp.RequestHandler):
         pdb = db.Query(ProxyDomains)
         pdb.filter('verified = ', False)
         pdb.order('-createdon')
-        results = pdb.fetch(results = 20)
+        results = pdb.fetch(limit = 20)
         for r in results:
             url = 'http://' + r.domain
             result = urlfetch.fetch(url = url)
             if result.status_code == 200:
                 if string.count(clean(result.content), r.verificationcode) > 0:
                     r.verified = True
+                    r.put()
         self.response.out.write('ok')
 
 class ProxyRegister(webapp.RequestHandler):
@@ -232,14 +233,14 @@ class ProxyRegister(webapp.RequestHandler):
         lspusername = self.request.get('lspusername')
         lsppw = self.request.get('lsppw')
         remote_addr = self.request.remote_addr
-        success_url = '/hostedtranslationswelcome'
-        error_url = '/hostedtranslationserror'
+        success_url = '/hostedtranslationwelcome'
+        error_url = '/hostedtranslationerror'
         if pw == pw2 and len(pw) > 5 and len(email) > 0:
             result = Users.new(username=email, email=email, pw=pw, remote_addr=remote_addr)
             ProxyDomains.add(domain, email, sl=sl, lspusername=lspusername, lsppw=lsppw)
         else:
             self.redirect(error_url)
-        self.redirect(success_url)
+        self.redirect(success_url + '/' + domain)
 
 application = webapp.WSGIApplication([('/proxy/register', ProxyRegister),
                                       ('/proxy/verify', ProxyVerify),
