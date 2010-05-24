@@ -1,0 +1,27 @@
+<h2>Welcome To WWL Hosted Translations</h2>
+
+Thank you for joining the Worldwide Lexicon translation network. We have added your website to our hosted translation service. To activate your translated website, complete the following instructions.<p>
+
+<h3>Create New Subdomains For Each Language You Want To Support</h3>
+
+Sign into your domain name registrar to create subdomains for each language you want to support. These should be in the form of languagecode.yoursite.com (for example, es.yoursite.com for Spanish). You can find a <a href=http://en.wikipedia.org/wiki/List_of_ISO_639-1_codes>list of ISO language codes here</a> (use the two letter ISO-639-1 code unless only a ISO-639-2 code is available). These subdomains should be mapped to proxy.worldwidelexicon.org using a CNAME entry. You can also map them directly to the IP address 72.51.37.41, however this address may change without notice. The proxy server will load pages from www.yoursite.com and insert the best available translations.<p>
+
+<h3>Insert HTML &lt;META&gt; tags To Define Translation Rules</h3>
+
+The proxy server looks for meta tags in the page header to govern how translations are requested, and whether users can edit translations. You can find a summary of the meta tag instructions at <a href=/proxy>www.worldwidelexicon.org/proxy</a>. You can generate these meta tags dynamically to toggle translation features if desired. You can also use div tags to toggle user edited translations on a per paragraph basis, for example to lock sections of the page from user translations.<p>
+
+<h3>Insert Your Secret Code In Your Home Page</h3>
+
+Insert your secret activation key in your home page, in a &lt;META&gt; tag or in a comment tag. Once our servers see this secret code in your home page, we will activate your domain.<p>
+
+<h3>Activate Professional Translations If Desired</h3>
+
+Go to <a href=/proxy/admin>www.worldwidelexicon.org/proxy/admin</a> to provide your <a href=http://www.speaklike.com>SpeakLike</a> professional translation account credentials. If enabled, pages that contain the require_professional and professional_translation_languages meta tags will be translated by SpeakLike, with temporary machine translations until the professional translations are completed (usually within a few hours, depending on your service level agreement). WWL is not responsible for professional translations. We simply provide a gateway to participating translation agencies.<p>
+
+<h3>That's It</h3>
+
+That's it. There is no software to install, and in most cases, you can set up a multilingual website with machine, community and professional translation in minutes. 
+
+<h3>Host Your Own Translation Server</h3>
+
+This free service is available for websites with modest levels of traffic. If you operate a high volume website, or want to customize your translation process, you can <a href=/proxy>download the PHP code</a> for the proxy server and host it on your own servers. It runs on any PHP web server with memcached, and is easy to configure. 
