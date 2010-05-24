@@ -180,10 +180,10 @@ class LSPScore(webapp.RequestHandler):
                                 if item is None:
                                     item.username = username
                                     item.remote_addr = remote_addr
-                                rawscore = item.rawscore + score
-                                scores = item.scores + 1
-                                rawdata = item.rawdata
-                                item.avgscore = float(float(rawscore)/scores)
+                                rawscore = item.lsprawscore + score
+                                scores = item.lspscores + 1
+                                rawdata = item.lsprawdata
+                                item.lspavgscore = float(float(rawscore)/scores)
                                 if type(rawdata) is list:
                                     rawdata.append(score)
                                 else:
@@ -193,7 +193,8 @@ class LSPScore(webapp.RequestHandler):
                                 for r in rawdata:
                                     squares = squares + pow(avgscore-r, 2)
                                 stdev = pow(float(float(squares)/scores),0.5)
-                                item.stdev = stdev
+                                item.lspstdev = stdev
+                                item.lsprawdata = rawdata
                                 if score < 1:
                                     item.blockedvotes = item.blockedvotes + 1
                                 item.put()
@@ -204,10 +205,10 @@ class LSPScore(webapp.RequestHandler):
                                 if item is None:
                                     item.username = username
                                     item.remote_addr = remote_addr
-                                rawscore = item.rawscore + score
-                                scores = item.scores + 1
-                                rawdata = item.rawdata
-                                item.avgscore = float(float(rawscore)/scores)
+                                rawscore = item.lsprawscore + score
+                                scores = item.lspscores + 1
+                                rawdata = item.lsprawdata
+                                item.lspavgscore = float(float(rawscore)/scores)
                                 if type(rawdata) is list:
                                     rawdata.append(score)
                                 else:
@@ -217,7 +218,8 @@ class LSPScore(webapp.RequestHandler):
                                 for r in rawdata:
                                     squares = squares + pow(avgscore-r, 2)
                                 stdev = pow(float(float(squares)/scores),0.5)
-                                item.stdev = stdev
+                                item.lsprawdata = rawdata
+                                item.lspstdev = stdev
                                 if score < 1:
                                     item.blockedvotes = item.blockedvotes + 1
                                 item.put()

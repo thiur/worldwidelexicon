@@ -369,7 +369,11 @@ class BlackList(db.Model):
             else:
                 if newrecordall:
                     item.count = item.count + 1
-            item.put()            
+            item.put()
+            if string.count(user,'.') > 1:
+                UserScores.save(remote_addr = user, score = 0, domain = domain)
+            else:
+                UserScores.save(username = user, score = 0, domain = domain)
             return True
         else:
             return False
@@ -2824,6 +2828,11 @@ class UserScores(db.Model):
     rawscore = db.IntegerProperty(default=0)
     rawdata = db.ListProperty(int)
     stdev = db.FloatProperty()
+    lspavgscore = db.FloatProperty()
+    lspscores = db.IntegerProperty(default=0)
+    lsprawscore = db.IntegerProperty(default=0)
+    lsprawdata = db.ListProperty(int)
+    lspstdev = db.FloatProperty()
     translations = db.IntegerProperty(default=0)
     translator = db.BooleanProperty(default=False)
     languages = db.ListProperty(str)
@@ -2873,13 +2882,13 @@ class UserScores(db.Model):
         results = udb.fetch(limit=limit)
         return results
     @staticmethod
-    def score(username='', remote_addr='', sl='', tl='', score=None, domain=''):
+    def score(username='', remote_addr='', sl='', tl='', score=None, domain='', lsp=False):
         if len(username) > 0 and string.count(username,'.') < 2:
-            UserScores.save(username=username, remote_addr=remote_addr, sl=sl, tl=tl, score=score, domain=domain)
+            UserScores.save(username=username, remote_addr=remote_addr, sl=sl, tl=tl, score=score, domain=domain, lsp=lsp)
         if len(remote_addr) > 0:
-            UserScores.save(username='', remote_addr=remote_addr, sl=sl, tl=tl, score=score, domain=domain)
+            UserScores.save(username='', remote_addr=remote_addr, sl=sl, tl=tl, score=score, domain=domain, lsp=lsp)
     @staticmethod
-    def save(username='', remote_addr='', sl='', tl = '', score=None, domain=''):
+    def save(username='', remote_addr='', sl='', tl = '', score=None, domain='', lsp=False):
         if len(username) > 0 or len(remote_addr) > 0 and score is not None:
             try:
                 score = int(score)
@@ -2917,6 +2926,7 @@ class UserScores(db.Model):
             item.rawscore = rawscore
             rawdata = item.rawdata
             rawdata.append(score)
+            item.rawdata = rawdata
             avgscore = float(float(rawscore)/scores)
             item.avgscore = avgscore
             squares = 0
@@ -2930,6 +2940,19 @@ class UserScores(db.Model):
                 else:
                     item.blockedvotes = 1
             item.stdev = stdev
+            if lsp:
+                lsprawscore = item.lsprawscore + score
+                lspscores = item.lspscores + 1
+                lsprawdata = item.lsprawdata
+                lsprawdata.append(score)
+                item.lsprawscore = lsprawscore
+                item.lspscours = lspscores
+                item.lspavgscore = float(float(lsprawscore)/scores)
+                squares = o
+                for r in lsprawdata:
+                    squares = squares + pow(float(score) - avgscore, 2)
+                stdev = pow(squares/float(scores),0.5)
+                item.lspstdev = stdev                
             domains = item.domains
             if len(domain) > 0:
                 if domain not in domains:
