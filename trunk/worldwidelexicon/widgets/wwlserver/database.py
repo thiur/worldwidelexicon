@@ -900,18 +900,32 @@ class Languages(db.Model):
         return results
     @staticmethod
     def select(selected=''):
-        text = memcache.get('/languages/select')
-        if text is not None:
-            return text
+        selected = string.lower(selected)
+        if len(selected) < 1:
+            text = memcache.get('/languages/select')
+            if text is not None:
+                return text
         else:
-            text = ''
+            text = memcache.get('/languages/select/' + selected)
+            if text is not None:
+                return text
+        text = ''
+        if len(selected) > 0:
             ldb = db.Query(Languages)
-            ldb.order('code')
-            results = ldb.fetch(limit=200)
-            for r in results:
-                text = text + '<option value="' + r.code + '">' + r.name + '</option>'
+            ldb.filter('code = ', selected)
+            item = ldb.get()
+            if item is not None:
+                text = text + '<option selected value="' + item.code + '">' + item.name + '</option>'
+        ldb = db.Query(Languages)
+        ldb.order('code')
+        results = ldb.fetch(limit=200)
+        for r in results:
+            text = text + '<option value="' + r.code + '">' + r.name + '</option>'
+        if len(selected) < 1:
             memcache.set('/languages/select', text, 300)
-            return text
+        else:
+            memcache.set('/languages/select/' + selected, text, 300)
+        return text
 
 class languages():
     """
@@ -1761,6 +1775,7 @@ class Translation(db.Model):
     indexed = db.BooleanProperty(default = False)
     ngrams = db.ListProperty(str)
     spamvotes = db.IntegerProperty(default = 0)
+    expirationdate = db.DateTimeProperty()
     @staticmethod
     def author(guid):
         if len(guid) > 0:

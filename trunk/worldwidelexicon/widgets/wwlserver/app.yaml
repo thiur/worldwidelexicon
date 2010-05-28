@@ -173,7 +173,7 @@ handlers:
 - url: /t
   script: translations.py
 
-- url: /translate/reload
+- url: /translate/(.*)
   script: translate.py
 
 - url: /translate

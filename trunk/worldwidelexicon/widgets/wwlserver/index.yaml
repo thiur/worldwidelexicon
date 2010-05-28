@@ -14,6 +14,12 @@ indexes:
   - name: date
     direction: desc
 
+- kind: DerMundoProjects
+  properties:
+  - name: domain
+  - name: guid
+    direction: desc
+
 - kind: Directory
   properties:
   - name: tl
