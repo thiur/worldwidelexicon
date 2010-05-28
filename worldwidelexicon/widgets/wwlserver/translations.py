@@ -1099,21 +1099,7 @@ class URLHistory(webapp.RequestHandler):
             if text is not None:
                 self.response.out.write(text)
             else:
-                translations = list()                
-                today = str(datetime.datetime.today())
-                mtcache = memcache.get('/mtcache/' + today + '/' + tl + '/' + url)
-                if mtcache is not None:
-                    for translation in mtcache:
-                        t = tx()
-                        t.sl=translation.get('sl','')
-                        t.tl=translation.get('tl','')
-                        t.st=translation.get('st','')
-                        t.tt=translation.get('tt','')
-                        t.mtengine=translation.get('mtengine','')
-                        t.domain=translation.get('domain','')
-                        t.url=translation.get('url','')
-                        t.date=str(translation.get('date',''))
-                        translations.append(t)
+                translations = list()
                 tdb = db.Query(Translation)
                 tdb.filter('url = ', url)
                 if len(tl) > 0:
@@ -1140,6 +1126,7 @@ class URLHistory(webapp.RequestHandler):
                     t.country = r.country
                     t.username = r.username
                     t.remote_addr = r.remote_addr
+                    t.machine = r.machine
                     t.professional = r.professional
                     t.date = r.date
                     t.reviewed = r.reviewed
@@ -1392,36 +1379,58 @@ class CacheTranslation(webapp.RequestHandler):
         url = self.request.get('url')
         apikey = self.request.get('apikey')
         mtengine = self.request.get('mtengine')
-        if len(st) > 0 and len(tt) > 0:
-            memcache.set('/mtcache/' + tl + '/' + st, tt, 3600*24)
-            timestamp = datetime.datetime.now()
-            today = str(datetime.datetime.today())
-            if len(url) > 0:
-                translations = memcache.get('/mtcache/' + today + '/' + tl + '/' + url)
-                if translations is None:
-                    translations = list()
-                found = False
+        batch = self.request.get('batch')
+        if batch == 'y':
+            ctr = 0
+            while ctr < 100:
+                ctr = ctr + 1
+                st = clean(self.request.get('st' + str(ctr)))
+                tt = clean(self.request.get('tt' + str(ctr)))
+                if len(st) > 0 and len(tt) > 0:
+                    p = dict()
+                    p['sl']=sl
+                    p['tl']=tl
+                    p['st']=st
+                    p['tt']=tt
+                    p['domain']=domain
+                    p['url']=url
+                    p['apikey']=apikey
+                    p['mtengine']=mtengine
+                    taskqueue.add(url='/cache', params=p)
+        elif len(st) > 0 and len(tt) > 0:
+            m = md5.new()
+            m.update(st)
+            m.update(tt)
+            guid = str(m.hexdigest())
+            tdb = db.Query(Translation)
+            tdb.filter('guid = ', guid)
+            item = tdb.get()
+            if item is None:
                 m = md5.new()
-                m.update(tt)
-                guid = str(m.hexdigest())
-                for t in translations:
-                    g = t.get('guid','')
-                    if len(g) > 0 and g == guid:
-                        found = True
-                if not found:
-                    tx = dict()
-                    tx['guid']=guid
-                    tx['sl']=sl
-                    tx['tl']=tl
-                    tx['st']=st
-                    tx['tt']=tt
-                    tx['domain']=domain
-                    tx['url']=url
-                    tx['mtengine']=mtengine
-                    tx['date']=timestamp
-                    translations.append(tx)
-                if len(translations) > 0:
-                    memcache.set('/mtcache/' + today + '/' + tl + '/' + url, translations, 72000)
+                m.update(st)
+                md5hash = str(m.hexdigest())
+                timestamp = datetime.datetime.now()
+                timediff = datetime.timedelta(days=3)
+                timestamp = timestamp + timediff
+                item = Translation()
+                item.guid = guid
+                item.md5hash = md5hash
+                item.sl = sl
+                item.tl = tl
+                item.st = st
+                item.tt = tt
+                item.domain = domain
+                item.url = url
+                item.mtengine = mtengine
+                item.expirationdate = timestamp
+                item.machine = True
+                item.anonymous = True
+                item.professional = False
+                if len(mtengine) > 0:
+                    item.username = mtengine
+                else:
+                    item.username = 'google'
+                item.put()
             self.response.out.write('ok')
         else:
             t = '<form action=/cache method=get><table>'
