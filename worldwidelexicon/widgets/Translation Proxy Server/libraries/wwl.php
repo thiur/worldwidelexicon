@@ -49,9 +49,9 @@ class Wwl {
 		
 		// Get setting from the configuation file
 		$this->memcache_enabled 	= MEMCACHE_ENABLED;
-		$this->memcache_ttl 		= MEMCACHE_TTL;
+		$this->memcache_ttl 	= MEMCACHE_TTL;
 		
-		if ( class_exists("Memcache")){
+		if ($this->memcache_enabled && class_exists("Memcache")){
 		    $this->mc = new Memcache;
 		    if ($this->mc->connect(MEMCACHE_ADDRESS, MEMCACHE_PORT)){
 			log_message('debug', "Connected to memcache server at ".MEMCACHE_ADDRESS);
