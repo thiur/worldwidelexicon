@@ -8,7 +8,7 @@
 
 	// Set the error-reporting preferences here.
 	//ini_set('display_errors', 0); 
-	//error_reporting(0);
+	error_reporting(E_ERROR);
 
 
 	// These are self explanatory, where are you setting up the proxy?
