@@ -32,7 +32,7 @@ handlers:
 - url: /batch
   script: translations.py
 
-- url: /cache/(.*)
+- url: /cache
   script: translations.py
 
 - url: /css
@@ -172,6 +172,12 @@ handlers:
   
 - url: /t
   script: translations.py
+
+- url: /translate/reload
+  script: translate.py
+
+- url: /translate
+  script: translate.py
 
 - url: /transense/(.*)
   script: transense.py

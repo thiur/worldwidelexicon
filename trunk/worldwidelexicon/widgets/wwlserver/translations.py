@@ -1099,13 +1099,27 @@ class URLHistory(webapp.RequestHandler):
             if text is not None:
                 self.response.out.write(text)
             else:
+                translations = list()                
+                today = str(datetime.datetime.today())
+                mtcache = memcache.get('/mtcache/' + today + '/' + tl + '/' + url)
+                if mtcache is not None:
+                    for translation in mtcache:
+                        t = tx()
+                        t.sl=translation.get('sl','')
+                        t.tl=translation.get('tl','')
+                        t.st=translation.get('st','')
+                        t.tt=translation.get('tt','')
+                        t.mtengine=translation.get('mtengine','')
+                        t.domain=translation.get('domain','')
+                        t.url=translation.get('url','')
+                        t.date=str(translation.get('date',''))
+                        translations.append(t)
                 tdb = db.Query(Translation)
                 tdb.filter('url = ', url)
                 if len(tl) > 0:
                     tdb.filter('tl = ', tl)
                 tdb.order('-date')
                 results = tdb.fetch(limit=500)
-                translations = list()
                 for r in results:
                     t = tx()
                     t.guid = r.guid
@@ -1172,9 +1186,9 @@ class SpamTranslations(webapp.RequestHandler):
         self.requesthandler()
     def requesthandler(self):
         spamcount = Translation.purgespam()
-        lowvotecount = Translation.purgebadtranslations()
+        #lowvotecount = Translation.purgebadtranslations()
         self.response.out.write('ok<p>purged ' + str(spamcount) + ' spam translations and ')
-        self.response.out.write(str(lowvotecount) + ' low quality translations.')
+        self.response.out.write('0 low quality translations.')
 
 class PeerReviewServer(webapp.RequestHandler):
     """
@@ -1340,10 +1354,91 @@ class FuzzySearch(webapp.RequestHandler):
             t = t + '<tr><td>Output Format (output)</td><td><input type=text name=output value=xml></td></tr>'
             t = t + '<tr><td colspan=2><input type=submit value=OK></td></tr>'
             t = t + '</table></form>'
-            www.serve(self, t, sidebar = self.__doc__, title = '/f')            
+            www.serve(self, t, sidebar = self.__doc__, title = '/f')
+
+class CacheTranslation(webapp.RequestHandler):
+    """
+    <h3>/cache</h3>
+
+    This web API is used to cache machine translations and other placeholder translations to
+    optimize performance and to reduce load on upstream machine translation services. These
+    translations will be stored in memcache, but not in the persistent data store, both for
+    performance reasons, and to comply with the terms of service for popular machine translation
+    services.<p>
+
+    The API expects the following parameters:<p>
+
+    <ul>
+    <li>sl = source language</li>
+    <li>tl = target language</li>
+    <li>st = source text</li>
+    <li>tt = translated text</li>
+    <li>domain = domain</li>
+    <li>url = source URL</li>
+    <li>mtengine = name of MT engine (google, apertium, microsoft, etc)</li>
+    <li>apikey = API key (may be required if system is locked down)</li>
+    </ul>
+    """
+    def get(self):
+        self.requesthandler()
+    def post(self):
+        self.requesthandler()
+    def requesthandler(self):
+        sl = self.request.get('sl')
+        tl = self.request.get('tl')
+        st = clean(self.request.get('st'))
+        tt = clean(self.request.get('tt'))
+        domain = self.request.get('domain')
+        url = self.request.get('url')
+        apikey = self.request.get('apikey')
+        mtengine = self.request.get('mtengine')
+        if len(st) > 0 and len(tt) > 0:
+            memcache.set('/mtcache/' + tl + '/' + st, tt, 3600*24)
+            timestamp = datetime.datetime.now()
+            today = str(datetime.datetime.today())
+            if len(url) > 0:
+                translations = memcache.get('/mtcache/' + today + '/' + tl + '/' + url)
+                if translations is None:
+                    translations = list()
+                found = False
+                m = md5.new()
+                m.update(tt)
+                guid = str(m.hexdigest())
+                for t in translations:
+                    g = t.get('guid','')
+                    if len(g) > 0 and g == guid:
+                        found = True
+                if not found:
+                    tx = dict()
+                    tx['guid']=guid
+                    tx['sl']=sl
+                    tx['tl']=tl
+                    tx['st']=st
+                    tx['tt']=tt
+                    tx['domain']=domain
+                    tx['url']=url
+                    tx['mtengine']=mtengine
+                    tx['date']=timestamp
+                    translations.append(tx)
+                if len(translations) > 0:
+                    memcache.set('/mtcache/' + today + '/' + tl + '/' + url, translations, 72000)
+            self.response.out.write('ok')
+        else:
+            t = '<form action=/cache method=get><table>'
+            t = t + '<tr><td>Source Language</td><td><input type=text name=sl></td></tr>'
+            t = t + '<tr><td>Target Language</td><td><input type=text name=tl></td></tr>'
+            t = t + '<tr><td>Source Text</td><td><input type=text name=st></td></tr>'
+            t = t + '<tr><td>Translated Text</td><td><input type=text name=tt></td></tr>'
+            t = t + '<tr><td>Machine Translation Engine</td><td><input type=text name=mtengine value=google></td></tr>'
+            t = t + '<tr><td>Domain</td><td><input type=text name=domain></td></tr>'
+            t = t + '<tr><td>URL</td><td><input type=text name=url></td></tr>'
+            t = t + '<tr><td colspan=2><input type=submit value=OK></td></tr>'
+            t = t + '</table></form>'
+            www.serve(self, t, sidebar = self.__doc__, title = '/cache')
                 
 application = webapp.WSGIApplication([('/q', GetTranslations),
                                       ('/f', FuzzySearch),
+                                      ('/cache', CacheTranslation),
                                       ('/batch', BatchTranslation),
                                       ('/log', LogQueries),
                                       ('/ngrams', IndexNgrams),

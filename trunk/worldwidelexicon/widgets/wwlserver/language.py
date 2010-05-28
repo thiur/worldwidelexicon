@@ -116,7 +116,20 @@ class TestLanguage(db.Model):
                 return ''
     @staticmethod
     def browserlanguage(header):
-        return 'es'
+        locales = string.split(header, ',')
+        if len(locales) > 0:
+            lt = locales[0]
+            if string.count(lt,'-') > 0:
+                locales = string.split(lt,'-')
+                lt = locales[0]
+            if string.count(lt,';') > 0:
+                locales = string.split(lt,';')
+                lt = locales[0]
+            if len(lt) == 2:
+                return lt
+            else:
+                return lt[0:2]
+        return 'en'
             
 class lx():
     code = ''
