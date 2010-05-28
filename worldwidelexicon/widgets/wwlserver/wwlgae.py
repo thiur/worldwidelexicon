@@ -29,10 +29,15 @@ of how it all works. Have fun.
 
 """
 from google.appengine.api import memcache
+from google.appengine.api import urlfetch
 import urllib
 import urllib2
 import md5
 import string
+from transcoder import transcoder
+
+def clean(text):
+    return transcoder.clean(text)
 
 memcache_ttl = 600
 
@@ -263,7 +268,10 @@ class wwl():
         mtengine = force selection of specific machine translation engine (e.g. mtengine=google, apertium, moses, worldlingo), default is automatic selection
         """
         if len(sl) > 0 and len(tl) > 0 and len(st) > 0:
+            if sl == tl:
+                return st
             # first check memcached, if running
+            st = clean(st)
             tt = wwl.getcache(sl, tl, st)
             if len(tt) > 0:
                 return tt
@@ -286,12 +294,15 @@ class wwl():
             f['output']='text'
             form_data = urllib.urlencode(f)
             url = wwl.server() + '/t?' + form_data
-            result = urllib2.urlopen(url)
-            tt = result.read()
-            # if a translation is returned, save it in memcached, if running
-            if len(tt) > 0:
-                wwl.setcache(sl, tl, st, tt)
-            return tt
+            try:
+                result = urlfetch.fetch(url=url)
+                if result.status_code == 200:
+                    tt = clean(result.content)
+                if len(tt) > 0:
+                    wwl.setcache(sl, tl, st, tt)
+                return tt
+            except:
+                return ''
         else:
             return ''
     @staticmethod

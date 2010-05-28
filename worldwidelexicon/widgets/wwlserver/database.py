@@ -2314,7 +2314,7 @@ class Translation(db.Model):
         tdb = db.Query(Translation)
         tdb.filter('spam = ', False)
         tdb.filter('blockedvotes >= ', min_spam_votes)
-        results = tdb.fetch(limit=50)
+        results = tdb.fetch(limit=10)
         if len(results) > 0:
             for r in results:
                 r.spam = True
