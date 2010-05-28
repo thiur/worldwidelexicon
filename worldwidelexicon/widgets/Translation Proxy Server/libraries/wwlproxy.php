@@ -36,6 +36,12 @@ class Wwlproxy extends Wwl {
 		
 		// Get the html content of the target site
 		$this->source_html				= $this->curl->simple_get( $this->targetUrl->toString() );
+		log_message('debug', "Content type: ".$this->curl->info["content_type"]);
+		if (!strstr($this->curl->info["content_type"], "text")){
+			log_message('debug', "Not acceptable content-type, redirecting to the URL");
+			header("Location: ".$this->targetUrl->toString());
+			die();
+		}
 
 		// Let's use PHPs very decent built in DOMDocument class to parse the HTML.  Suppress errors.
 		@$this->doc->loadHTML($this->source_html);
