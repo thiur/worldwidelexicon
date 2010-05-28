@@ -7,13 +7,13 @@
 
 
 	// Set the error-reporting preferences here.
-	ini_set('display_errors', 0); 
-	error_reporting(0);
+	//ini_set('display_errors', 0); 
+	//error_reporting(0);
 
 
 	// These are self explanatory, where are you setting up the proxy?
-	define("PROXY_IP", "72.51.37.41");
-	define("PROXY_URL", "http://72.51.37.41/");
+	define("PROXY_IP", $_SERVER["SERVER_ADDR"]);
+	define("PROXY_URL", "http://".$_SERVER["SERVER_ADDR"]."/");
 	define("PROXY_HOME_PATH", "/var/www/html/");
 	
 	
@@ -26,9 +26,9 @@
 
 	// Memcache : Enable memcache below and set the address and ttl (in seconds).
 	define("MEMCACHE_ENABLED", true);
-	define("MEMCACHE_ADDRESS", "localhost");
+	define("MEMCACHE_ADDRESS", "domU-12-31-38-00-9D-46.compute-1.internal");
 	define("MEMCACHE_PORT", 11211);
-	define("MEMCACHE_TTL", 86400);	
+	define("MEMCACHE_TTL", 86400);
 	
 	
 	// If your server doesn't have Memcache installed, then install it.

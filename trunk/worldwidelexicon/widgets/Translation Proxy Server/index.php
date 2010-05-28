@@ -31,7 +31,7 @@
 	$request = new RequestValidator();
 	if ( !$request->isAllowed() ) {
 		log_message('error', $request->getMessage());
-		die($request->getMessage());
+		//die($request->getMessage());
 	}
 		
 	// Get the full URL from the current visitor's request.
@@ -112,10 +112,13 @@
 	// (2) The second special case is an external link which has been routed through the WWL Proxy
 	elseif ( preg_match('%http://proxy\.worldwidelexicon\.org%', $full_url_string))
 	{
-		preg_match( '/l=(..)&u=(.+)$/', $full_url_string, $matches );
-		$sourceLanguage = "en";
-		$targetLanguage = $matches[1];
-		$targetUrl = new URL($matches[2]);
+		//preg_match( '/l=(..)&u=(.+)$/', $full_url_string, $matches );
+		//$sourceLanguage = "en";
+		//$targetLanguage = $matches[1];
+		//$targetUrl = new URL($matches[2]);
+		$sourceLanguage = isset($_GET["sl"]) ? $_GET["sl"] : "en";
+		$targetLanguage = isset($_GET["l"]) ? $_GET["l"] : $lang_helper->detectTargetLanguage();
+		$targetUrl = new URL(isset($_GET["u"]) ? $_GET["u"] : "");
 		$routeAllLinks = true;
 	}
 	
@@ -127,7 +130,7 @@
 		$targetLanguage = $lang_helper->detectTargetLanguage();
 		$targetUrl 	 = new URL( $lang_helper->removeLanguageCode( $full_url_string ) );
 	}
-
+	log_message('debug', "We have {$targetUrl->toString()} from {$sourceLanguage} into {$targetLanguage}");
 	// Let's initialize a virgin Proxy object.
 	$wwl = new Wwlproxy($sourceLanguage, $targetLanguage, $targetUrl);
 	$wwl->setLinkRouting($routeAllLinks);

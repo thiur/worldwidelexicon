@@ -12,8 +12,9 @@
  */
 
 // Add a message to today's log
-function log_message($type, $message_text)
-{
+function log_message($type, $message_text) {
+
+	date_default_timezone_set("America/New_York");
 	// Log files are created daily.
 	$log_filename = LOG_PATH . date("Y-m-d") . ".txt";
 	$entry = "";

@@ -32,8 +32,7 @@ class Wwl {
 	var $secure_wwl_servers = array('worldwidelexicon.appspot.com');
 
 	var $memcache_enabled = true;
-	var $memcache_address = 'localhost';
-	var $memcache_port = 11211;
+	var $mc = null;
 	var $memcache_ttl = 86400;
 
 	// For gettext() support
@@ -44,16 +43,23 @@ class Wwl {
 	
 	function __construct($sl = '', $tl = '') {
 
+		
 		$this->targetLanguage = $tl;
 		$this->sourceLanguage = $sl;
 		
 		// Get setting from the configuation file
 		$this->memcache_enabled 	= MEMCACHE_ENABLED;
-		$this->memcache_address 	= MEMCACHE_ADDRESS;
-		$this->memcache_port 		= MEMCACHE_PORT;
 		$this->memcache_ttl 		= MEMCACHE_TTL;
-
-        log_message('debug', "WWL class initialized - source: $sl, target: $tl");
+		
+		if ( class_exists("Memcache")){
+		    $this->mc = new Memcache;
+		    if ($this->mc->connect(MEMCACHE_ADDRESS, MEMCACHE_PORT)){
+			log_message('debug', "Connected to memcache server at ".MEMCACHE_ADDRESS);
+		    } else {
+			log_message('debug', "Can't connect to memcache server at ".MEMCACHE_ADDRESS);
+		    }
+		}
+    		log_message('debug', "WWL class initialized - source: $sl, target: $tl");
 	}			
 		
 	function wwl($sl = '', $tl = '') {
@@ -242,16 +248,11 @@ class Wwl {
 	function getcache( $st ) {
 		
 		// If memcache is enabled, make sure all arguments are not empty strings.
-		if ( class_exists("Memcache") && $this->memcache_enabled && strlen($this->memcache_address) > 0 && strlen($this->sourceLanguage) > 0 && 
-			strlen($this->targetLanguage) > 0 && strlen($st) > 0 ) {
+		if ( $this->mc && strlen($this->sourceLanguage) > 0 && strlen($this->targetLanguage) > 0 && strlen($st) > 0 ) {
 				
-			$memcache = new Memcache;
-			if ( $memcache->connect( $this->memcache_address, $this->memcache_port) ) {
-
-				// Check if there is a memcached result, if so return it.
-				$result = $memcache->get( MD5($this->sourceLanguage . $this->targetLanguage . $st) );				
-				return $result;
-			}
+			// Check if there is a memcached result, if so return it.
+			$result = $this->mc->get( MD5($this->sourceLanguage . $this->targetLanguage . $st) );				
+			return $result;
 			
 		}
 		return '';
@@ -267,15 +268,11 @@ class Wwl {
 	function setcache( $st, $tt ) {
 
 		// If memcache is enabled, also make sure all arguments are not empty strings.
-		if (class_exists("Memcache") && $this->memcache_enabled && strlen($this->memcache_address) > 0 && strlen($this->sourceLanguage) > 0 && 
-			strlen($this->targetLanguage) > 0 && strlen($st) > 0 && strlen($tt) > 0 ) {
-		
-			$memcache = new Memcache;
-			if ( $memcache->connect( $this->memcache_address, $this->memcache_port) ) {
-				if ( $memcache->set( MD5($this->sourceLanguage . $this->targetLanguage . $st), $tt, false, $this->memcache_ttl) ) { 
-					return true;
-				} 
-			}
+		if ($this->mc && strlen($this->sourceLanguage) > 0 && strlen($this->targetLanguage) > 0 && strlen($st) > 0 && strlen($tt) > 0 ) {
+			if ( $this->mc->set( MD5($this->sourceLanguage . $this->targetLanguage . $st), $tt, false, $this->memcache_ttl) ) { 
+				//log_message("debug", "saved ".$tt." for ".$this->memcache_ttl);
+				return true;
+			} 
 		}
 		return false;
 	}

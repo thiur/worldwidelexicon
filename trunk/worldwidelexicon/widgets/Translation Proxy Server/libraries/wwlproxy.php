@@ -16,21 +16,24 @@ class Wwlproxy extends Wwl {
 	private $z = 0;			// an index
 	
 	function __construct( $sl, $tl, $url ) {
-	
+
+		
 		if (empty($sl) || empty($tl) || empty($url)) {
 			log_message("error", "WWL Proxy initialization error - required fields not set.");
 			die("WWL Proxy initialization error - required fields not set.");
 		}
 		
+		
+		parent::__construct($sl, $tl);
+
 		// The simple stuff
-		$this->targetLanguage 			= $tl;
-		$this->sourceLanguage 			= $sl;
 		$this->targetUrl				= $url;
 		$this->startTime 				= time();
 		$this->curl 					= new Curl();
 		$this->doc 						= new DOMDocument();
 		$this->routeAllLinks			= false;
 
+		
 		// Get the html content of the target site
 		$this->source_html				= $this->curl->simple_get( $this->targetUrl->toString() );
 
@@ -427,7 +430,7 @@ class Wwlproxy extends Wwl {
 	// Add the JS script that enables us to submit user-generated translations to the WWL.
 	function _makeEditable()
 	{
-		$assets_url_base = "http://" . $this->targetLanguage . "." . $this->targetUrl->getHostBase() . "/";
+		$assets_url_base = "/"; //"http://" . $this->targetLanguage . "." . $this->targetUrl->getHostBase() . "/";
 		$head = $this->doc->getElementsByTagname('head')->item(0);
 
 		// Create and append: JS
