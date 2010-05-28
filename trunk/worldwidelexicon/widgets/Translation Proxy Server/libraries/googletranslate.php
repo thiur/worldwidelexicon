@@ -121,14 +121,14 @@ class GoogleTranslate {
 						$ret[] = $trans["responseData"]["translatedText"];
 					}
 					else {
-						log_message("debug", "Google Translate: " . $json_decoded["responseStatus"] . $json_decoded["responseDetails"]);
+						log_message("debug", "Google Translate: " . $json_decoded["responseStatus"] . " ".$json_decoded["responseDetails"]);
 						$ret[] = "";
 					}
 				}
 			} 
 			else 
 			{
-				log_message("debug", "Google Translate: " . $json_decoded["responseStatus"] . $json_decoded["responseDetails"]);		
+				log_message("debug", "Google Translate: " . $json_decoded["responseStatus"] . " ".$json_decoded["responseDetails"]);		
 			}						
 		}
 

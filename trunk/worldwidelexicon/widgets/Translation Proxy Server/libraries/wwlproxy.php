@@ -717,7 +717,7 @@ class Wwlproxy extends Wwl {
 
 		if ( preg_match( '/<title>500 Server Error<\/title>/', $translation ) ) 
 		{
-			log_message('error', "WWL Translation returned '500 Server Error'");
+			log_message('error', "WWL Translation returned '500 Server Error':".$translation);
 			return false;
 		}
 		
