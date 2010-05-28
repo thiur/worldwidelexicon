@@ -118,7 +118,10 @@
 		//$targetUrl = new URL($matches[2]);
 		$sourceLanguage = isset($_GET["sl"]) ? $_GET["sl"] : "en";
 		$targetLanguage = isset($_GET["l"]) ? $_GET["l"] : $lang_helper->detectTargetLanguage();
-		$targetUrl = new URL(isset($_GET["u"]) ? $_GET["u"] : "");
+		if (!isset($_GET["u"]) ) {
+			die("No target URL");
+		}
+		$targetUrl = new URL($_GET["u"]);
 		$routeAllLinks = true;
 	}
 	
