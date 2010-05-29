@@ -154,6 +154,7 @@ class WebServer(webapp.RequestHandler):
 <li><a href=/proxy>Proxy</a></li>\
 <li><a href=http://wordpress.org/extend/plugins/speaklike-worldwide-lexicon-translator/>WP</a></li>\
 </ul>'
+        shorturl = False
         if p1 == 'blog':
             self.redirect('http://blog.worldwidelexicon.org')
         elif p1 == 's':
@@ -238,12 +239,17 @@ class WebServer(webapp.RequestHandler):
                             pass
             else:
                 w = web()
-                w.get(page)
-                t = w.out(page)
+                if w.get(page):
+                    t = w.out(page)
+                else:
+                    shorturl = True
+                    t = ''
             w = web()
             w.get(template)
             w.replace(template,'[google_analytics]',google_analytics_header)
-            if len(p1) < 4:
+            if shorturl:
+                p1 = 'Der Mundo'
+            else:
                 p1 = 'Worldwide Lexicon'
             w.replace(template,'[title]',p1)
             w.replace(template,'[meta]', proxy_settings)
