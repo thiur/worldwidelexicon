@@ -61,6 +61,7 @@ from database import UserScores
 from language import TestLanguage
 from proxy import ProxyDomains
 from transcoder import transcoder
+from translate import LandingPage
 from www import web
 from www import www
 
@@ -381,6 +382,7 @@ class Feeds():
 
 application = webapp.WSGIApplication([(r'/(.*)/(.*)/(.*)', WebServer),
                                       (r'/(.*)/(.*)', WebServer),
+                                      (r'/x(.*)', LandingPage),
                                       (r'/(.*)', WebServer),
                                       ('/', WebServer)],
                                      debug=True)
