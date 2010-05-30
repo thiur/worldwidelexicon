@@ -25,6 +25,12 @@ handlers:
 
 - url: /image
   static_dir: image
+
+- url: /flash_web
+  static_dir: flash_web
+
+- url: /flash_web/images
+  static_dir: flash_web/images
   
 - url: /api
   script: home.py
