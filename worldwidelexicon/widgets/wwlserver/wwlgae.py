@@ -35,6 +35,9 @@ import urllib2
 import md5
 import string
 from transcoder import transcoder
+from lsp import LSP
+from database import Translation
+from mt import MTWrapper
 
 def clean(text):
     return transcoder.clean(text)
@@ -204,52 +207,6 @@ class wwl():
         else:
             return False
     @staticmethod
-    def setpresence(wwlusername, pw, username, network, status, languages):
-        if len(wwlusername) > 0 and len(pw) > 0 and len(username) > 0 and len(network) > 0 and len(status) > 0:
-            f = dict()
-            f['wwlusername']=wwlusername
-            f['pw']=pw
-            f['username']=username
-            f['network']=network
-            f['status']=status
-            if type(languages) is list:
-                lt = ''
-                for l in languages:
-                    lt = lt + l + ','
-                languages = lt
-            f['languages']=languages
-            form_data = urllib.urlencode(f)
-            url = wwl.server(secure=True) + '/presence/set'
-            result = urllib2.urlopen(url, form_data)
-            tt = result.read()
-            if tt == 'ok':
-                return True
-            else:
-                return False
-        else:
-            return False
-    @staticmethod
-    def getpresence(username, network):
-        url = wwl.server() + '/presence/get?username=' + username + '&network=' + network
-        result = urllib2.urlopen(url)
-        tt = result.read()
-        return tt
-    @staticmethod
-    def findtranslators(network, status, languages):
-        records = list()
-        if type(languages) is list:
-            lt = ''
-            for l in languages:
-                lt = lt + l + ','
-            languages = lt
-        if len(network) > 0 and len(languages) > 0:
-            url = wwl.server() + '/presence/find?network=' + network + '&status=' + status + '&languages=' + languages
-            result = urllib2.urlopen(url)
-            tt = result.read()
-            return string.split(tt, '\n')
-        else:
-            return ''
-    @staticmethod
     def get(sl, tl, st, domain='', allow_machine='y', allow_anonymous='y', require_professional = 'n', ip_filter='', lsp='', lspusername='', lsppw='', mtengine=''):
         """
         This function is used to get the best available translation for a text. It expects the following parameters:
@@ -268,16 +225,26 @@ class wwl():
         mtengine = force selection of specific machine translation engine (e.g. mtengine=google, apertium, moses, worldlingo), default is automatic selection
         """
         if len(sl) > 0 and len(tl) > 0 and len(st) > 0:
+            st = clean(st)
             if sl == tl:
                 return st
+            if len(tl) < 2 or len(tl) > 3:
+                return st
+            tt = memcache.get('/wwl/' + sl + '/' + tl + '/' + st)
+            if tt is not None:
+                return tt
             # first check memcached, if running
-            st = clean(st)
             tt = wwl.getcache(sl, tl, st)
             if len(tt) > 0:
                 return tt
             if len(tt) > 0:
                 return tt
-            # next call out to WWL service, /t web API, to get best available translation
+            # next call LSP.get() if professional translation params are present
+            if len(lsp) > 0:
+                pass
+            # next query Translation() for cached professional translations
+            # next query Translation() for any cached translations
+            # store translation in memcache and return
             f = dict()
             f['sl']=sl
             f['tl']=tl
@@ -385,29 +352,3 @@ class wwl():
             return True
         else:
             return False
-    @staticmethod
-    def translatepage(sl, tl, st, mode='html', boundary='\n', domain='', allow_machine='y', allow_anonymous='y', require_professional='n', lsp='', lspusername='', lsppw='', mtengine='', ip_filter=''):
-        """
-        This convenience function breaks a larger text down into many smaller units for translation.
-        This has not been heavily tested, and will be improved to include better html and xml parsing,
-        as well as support for other document formats. I generally recommend that you spend some time
-        to wire the get() function into your web app rather than try to re-render pages in bulk, as this
-        is more error prone.
-
-        The function expects the following parameters:
-
-        sl = source language code
-        tl = target language code
-        mode = text, html
-        boundary = delimiter to use when chunking text
-        """
-        if len(sl) > 0 and len(tl) > 0 and len(st) > 0:
-            texts = string.split(st, boundary)
-            if len(texts) > 0:
-                tt = ''
-                for t in texts:
-                    tt = tt + wwl.get(sl, tl, t, domain=domain, allow_machine=allow_machine, allow_anonymous=allow_anonymous, require_professional=require_professional, lsp=lsp, lspusername=lspusername, lsppw=lsppw, ip_filter=ip_filter, mtengine=mtengine)
-                    tt = tt + boundary
-                return tt
-        else:
-            return ''

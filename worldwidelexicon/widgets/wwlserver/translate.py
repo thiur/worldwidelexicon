@@ -36,6 +36,7 @@ from google.appengine.api import urlfetch
 from google.appengine.api.labs import taskqueue
 # import Worldwide Lexicon modules
 import feedparser
+from excerpt_extractor import get_summary
 from database import APIKeys
 from database import Directory
 from database import Languages
@@ -45,25 +46,34 @@ from database import UserScores
 from language import TestLanguage
 from proxy import ProxyDomains
 from transcoder import transcoder
+from webappcookie import Cookies
 from wwlgae import wwl
 from www import web
 from www import www
 from shorturl import UrlEncoder
 import sgmllib
 
+template = 'http://www.dermundo.com/css/template.css'
+
 # Define convenience functions
             
 def clean(text):
     return transcoder.clean(text)
 
-def g(tl, text):
+def g(tl, text, professional=True):
     t = memcache.get('/g/' + tl + '/' + text)
     if t is not None:
         return t
+    elif len(tl) < 2:
+        return t
     else:
+        text = clean(text)
         speaklikeusername = Settings.get('speaklikeusername')
         speaklikepw = Settings.get('speaklikepw')
-        t = wwl.get('en', tl, text, lsp='speaklikeapi', lspusername=speaklikeusername, lsppw=speaklikepw)
+        if professional:
+            t = clean(wwl.get('en', tl, text, lsp='speaklikeapi', lspusername=speaklikeusername, lsppw=speaklikepw))
+        else:
+            t = clean(wwl.get('en', tl, text))
         if len(t) > 0:
             memcache.set('/g/' + tl + '/' + text, t, 300)
             return t
@@ -71,6 +81,29 @@ def g(tl, text):
             return text
 
 # Define default settings
+
+sharethis_header = '<script type="text/javascript" src="http://w.sharethis.com/button/sharethis.js#publisher=902e01b2-5b17-45ca-9068-9bbeaf71ae2b&amp;type=website&amp;post_services=email%2Cfacebook%2Ctwitter%2Cgbuzz%2Cmyspace%2Cdigg%2Csms%2Cwindows_live%2Cdelicious%2Cstumbleupon%2Creddit%2Cgoogle_bmarks%2Clinkedin%2Cbebo%2Cybuzz%2Cblogger%2Cyahoo_bmarks%2Cmixx%2Ctechnorati%2Cfriendfeed%2Cpropeller%2Cwordpress%2Cnewsvine&amp;button=false"></script>\
+<style type="text/css">\
+body {font-family:helvetica,sans-serif;font-size:12px;}\
+a.stbar.chicklet img {border:0;height:16px;width:16px;margin-right:3px;vertical-align:middle;}\
+a.stbar.chicklet {height:16px;line-height:16px;}\
+</style>'
+
+sharethis_button = '<a id="ck_email" class="stbar chicklet" href="javascript:void(0);"><img src="http://w.sharethis.com/chicklets/email.gif" /></a>\
+<a id="ck_facebook" class="stbar chicklet" href="javascript:void(0);"><img src="http://w.sharethis.com/chicklets/facebook.gif" /></a>\
+<a id="ck_twitter" class="stbar chicklet" href="javascript:void(0);"><img src="http://w.sharethis.com/chicklets/twitter.gif" /></a>\
+<a id="ck_sharethis" class="stbar chicklet" href="javascript:void(0);"><img src="http://w.sharethis.com/chicklets/sharethis.gif" />ShareThis</a>\
+<script type="text/javascript">\
+	var shared_object = SHARETHIS.addEntry({\
+	title: document.title,\
+	url: document.location.href\
+});\
+\
+shared_object.attachButton(document.getElementById("ck_sharethis"));\
+shared_object.attachChicklet("email", document.getElementById("ck_email"));\
+shared_object.attachChicklet("facebook", document.getElementById("ck_facebook"));\
+shared_object.attachChicklet("twitter", document.getElementById("ck_twitter"));\
+</script>'
 
 addthis_button = '<!-- AddThis Button BEGIN -->\
 <a class="addthis_button" href="http://www.addthis.com/bookmark.php?v=250&amp;pub=worldwidelex">\
@@ -176,8 +209,9 @@ class DerMundoProjects(db.Model):
     sl = db.StringProperty(default='')
     tags = db.ListProperty(str)
     translators = db.ListProperty(str)
+    createdby = db.StringProperty(default='')
     @staticmethod
-    def add(url):
+    def add(url, email=''):
         url = urllib.unquote_plus(url)
         text = string.replace(url, 'http://', '')
         text = string.replace(text, 'https://', '')
@@ -191,6 +225,7 @@ class DerMundoProjects(db.Model):
                 item = DerMundoProjects()
                 item.domain = domain
                 item.url = url
+                item.createdby = email
                 ue = UrlEncoder()
                 try:
                     obj_id = str(item.key().id())
@@ -210,10 +245,13 @@ class DerMundoProjects(db.Model):
                     shorturl = ue.encode_url(int(item.id))
                     item.shorturl = shorturl
                     item.put()
+                p = dict()
+                p['u']= url
+                taskqueue.add(url = '/translate/crawl', params=p)
                 return 'http://www.dermundo.com/' + shorturl
         return ''
     @staticmethod
-    def find(url):
+    def find(url, email=''):
         url = urllib.unquote_plus(url)
         url = urllib.unquote_plus(url)
         text = string.replace(url, 'http://', '')
@@ -298,6 +336,7 @@ class Translator(webapp.RequestHandler):
             t = t + '<tr><td>URL</td><td><input type=text name=u value="http://www.nytimes.com"></td></tr>'
             t = t + '<tr><td colspan=2>' + g(language, 'Create a social translation project and short URL') + ': '
             t = t + '<input type=checkbox name=makeproject checked></td></tr>'
+            t = t + '<tr><td>' + g(language, 'Email Address') + '</td><td><input type=text name=email></td></tr>'
             t = t + '<tr><td colspan=2>' + g(language, 'Optional professional translation by <a href=http://www.speaklike.com>SpeakLike</a>') + '</td></tr>'
             t = t + '<tr><td>SpeakLike username</td><td><input type=text name=lspusername></td></tr>'
             t = t + '<tr><td>SpeakLike password</td><td><input type=password name=lsppw></td></tr>'
@@ -373,7 +412,7 @@ class DisplayTranslators(webapp.RequestHandler):
                 tdb.filter('url = ', url)
                 item = tdb.get()
                 if item is not None:
-                    shorturl = clean('http://www.dermundo.com/' + item.shorturl)
+                    shorturl = clean('http://www.dermundo.com/x' + item.shorturl)
                 else:
                     shorturl = ''
                 tdb = db.Query(Translation)
@@ -416,19 +455,18 @@ class TranslationFrame(webapp.RequestHandler):
     def requesthandler(self):
         l = self.request.get('l')
         u = urllib.quote_plus(self.request.get('u'))
-        if string.count(u, 'http://') < 1:
-            u = 'http://' + u
+        email = self.request.get('email')
         makeproject = self.request.get('makeproject')
         if makeproject == 'on':
-            shorturl = DerMundoProjects.add(u)
+            shorturl = DerMundoProjects.add(u, email=email)
         else:
-            shorturl = DerMundoProjects.find(u)
+            shorturl = DerMundoProjects.find(u, email=email)
         allow_machine = self.request.get('allow_machine')
         lspusername = self.request.get('lspusername')
         lsppw = self.request.get('lsppw')
         self.response.out.write('<frameset rows="8%, 92%">')
-        self.response.out.write('<frame src=http://www.dermundo.com/translate/translators?l=' + l + '&surl=' + shorturl + '&u=' + u + '>')
-        self.response.out.write('<frame src=http://proxy.worldwidelexicon.org?l=' + l + '&u=' + u + '>')
+        self.response.out.write('<frame src=http://www.dermundo.com/translate/translators?l=' + l + '&u=' + u + '>')
+        self.response.out.write('<frame src=http://proxy.worldwidelexicon.org?l=' + l + '&u=' + urllib.unquote_plus(u) + '>')
         self.response.out.write('</frameset>')
 
 class CrawlPage(webapp.RequestHandler):
@@ -438,18 +476,96 @@ class CrawlPage(webapp.RequestHandler):
         self.requesthandler()
     def requesthandler(self):
         u = self.request.get('u')
-        m = MyParser()
+        (title, description) = get_summary(u)
+        tdb = db.Query(DerMundoProjects)
+        tdb.filter('url = ', u)
+        item = tdb.get()
+        if item is not None:
+            try:
+                item.title = title.decode('utf-8')
+            except:
+                try:
+                    item.title = clean(title)
+                except:
+                    item.title = title
+            try:
+                item.description = description.decode('utf-8')
+            except:
+                try:
+                    item.description = clean(description)
+                except:
+                    item.description = description
+            title = string.lower(title)
+            description = string.lower(description)
+            language = TestLanguage.language(text=description)
+            if len(language) > 1 and len(language) < 4:
+                item.sl = language
+            words = string.split(title) + string.split(description)
+            item.tags = words
+            item.indexed = True
+            item.put()
+        self.response.out.write(title + '\n' + description)
+
+class LandingPage(webapp.RequestHandler):
+    def get(self, p1=''):
+        self.requesthandler(p1)
+    def post(self, p1=''):
+        self.requesthandler(p1)
+    def requesthandler(self, p1):
+        cookies = Cookies(self)
         try:
-            result = urlfetch.fetch(url=u)
-            if result.status_code == 200:
-                data = clean(result.content)
-                m = MyParser()
-                title = m.title
-                description = m.description
-                keywords = m.keywords
-                self.response.out.write(title + '\n' + description + '\n' + keywords)
+            language = TestLanguage.browserlanguage(self.request.headers['Accept-Language'])
         except:
-            self.response.out.write('error')
+            language = 'en'
+        if len(language) < 2 or len(language) > 3:
+            language = 'en'
+        u = p1
+        tdb = db.Query(DerMundoProjects)
+        tdb.filter('shorturl = ', u)
+        item = tdb.get()
+        if item is not None:
+            title = clean(item.title)
+            description = clean(item.description)
+            description = '(<a href=http://' + item.domain + '>' + item.domain + '</a>) ' + description
+            sl = item.sl
+            url = item.url
+            if string.count(url, 'http://') < 1:
+                url = 'http://' + url
+        else:
+            title = u
+            description = ''
+            sl = ''
+            url = ''
+        dmenus = '<ul><li><a href=http://www.worldwidelexicon.org>Worldwide Lexicon</a></li>\
+                <li><a href=http://blog.worldwidelexicon.org>' + g(language,'Blog') + '</a></li>\
+                <li><a href=http://www.worldwidelexicon.org>' + g(language,'Tools For Webmasters') + '</a></li></ul>'
+        t = '<h1>' + title
+        t = t + '</h1>'
+        t = t + description
+        t = t + '<p><h2>Create Translations For This Page</h2>'
+        t = t + '<form action=/translate/view method=get>'
+        t = t + '<table><tr><td><select name=l>'
+        t = t + Languages.select(selected=language)
+        t = t + '</select></td><td><input type=submit value=OK></td></tr>'
+        t = t + '<input type=hidden name=u value="' + url + '">'
+        t = t + '</form></table>'
+        t = t + '<br>'
+        t = t + '<h2>Share This Page</h2>'
+        t = t + '<blockquote>' + sharethis_button + '</blockquote>'
+        r = '<h2>' + g(language,'Translators') + '</h2>'
+        r = r + '<ul><li>Ipsum</li><li>Orum</li></ul>'
+        r = r + '<h2>' + g(language,'Recent Translations') + '</h2>'
+        r = r + 'Foo<blockquote>Bar</blockquote>'
+        w = web()
+        w.get(template)
+        w.replace(template, '[title]', 'Der Mundo')
+        w.replace(template, '[meta]', sharethis_header)
+        w.replace(template, '[menu]', dmenus)
+        w.replace(template, '[left_column]', t)
+        w.replace(template, '[right_column]', r)
+        w.replace(template, '[footer]', standard_footer)
+        t = w.out(template)
+        self.response.out.write(t)
                 
 application = webapp.WSGIApplication([('/translate', Translator),
                                       ('/translate/view', TranslationFrame),

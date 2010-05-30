@@ -20,6 +20,12 @@ indexes:
   - name: guid
     direction: desc
 
+- kind: DerMundoProjects
+  properties:
+  - name: tags
+  - name: date
+    direction: desc
+
 - kind: Directory
   properties:
   - name: tl
