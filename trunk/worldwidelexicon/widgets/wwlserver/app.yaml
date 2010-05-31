@@ -26,11 +26,14 @@ handlers:
 - url: /image
   static_dir: image
 
-- url: /flash_web
-  static_dir: flash_web
+- url: /dermundocss
+  static_dir: dermundocss
 
-- url: /flash_web/images
-  static_dir: flash_web/images
+- url: /dermundocss/css
+  static_dir: dermundocss/css
+
+- url: /dermundocss/images
+  static_dir: dermundocss/images
   
 - url: /api
   script: home.py
