@@ -883,6 +883,20 @@ class Languages(db.Model):
         else:
             return False
     @staticmethod
+    def getname(code):
+        if len(code) < 4:
+            txt = memcache.get('/languages/code/' + code)
+            if txt is not None:
+                return txt
+            else:
+                ldb = db.Query(Languages)
+                ldb.filter('code = ', code)
+                item = ldb.get()
+                if item is not None:
+                    memcache.set('/languages/code/' + code, item.name, 3600)
+                    return item.name
+        return ''
+    @staticmethod
     def remove(code):
         if len(code) < 4:
             ldb = db.Query(Languages)

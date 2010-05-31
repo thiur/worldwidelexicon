@@ -82,6 +82,8 @@ def g(tl, text, professional=True):
 
 # Define default settings
 
+snapshot_code = '<script type="text/javascript" src="http://shots.snap.com/ss/9bad968f87780aea459ecbeaecc6a753/snap_shots.js"></script>'
+
 sharethis_header = '<script type="text/javascript" src="http://w.sharethis.com/button/sharethis.js#publisher=902e01b2-5b17-45ca-9068-9bbeaf71ae2b&amp;type=website&amp;post_services=email%2Cfacebook%2Ctwitter%2Cgbuzz%2Cmyspace%2Cdigg%2Csms%2Cwindows_live%2Cdelicious%2Cstumbleupon%2Creddit%2Cgoogle_bmarks%2Clinkedin%2Cbebo%2Cybuzz%2Cblogger%2Cyahoo_bmarks%2Cmixx%2Ctechnorati%2Cfriendfeed%2Cpropeller%2Cwordpress%2Cnewsvine&amp;button=false"></script>\
 <style type="text/css">\
 body {font-family:helvetica,sans-serif;font-size:12px;}\
@@ -131,7 +133,8 @@ pageTracker._trackPageview();\
 
 # Define default settings for Blueprint CSS framework, included with this package as the default style sheet
 
-template = 'http://www.worldwidelexicon.org/css/template.html'
+template = 'http://www.worldwidelexicon.org/dermundocss/translate.html'
+dmtemplate = 'http://www.dermundo.com/dermundocss/index.html'
 template1col = 'http://3.latest.worldwidelexicon.appspot.com/css/template1col.html'
 downloads = 'http://www.worldwidelexicon.org/static/downloads.html'
 
@@ -144,18 +147,24 @@ sidebar_about = 'The Worldwide Lexicon is an open source collaborative translati
                 web application. \
                 Our mission is to eliminate the language barrier for interesting websites and articles, by \
                 enabling people to create translation communities around their favorite webites, topics or \
-                groups.\
-                <h1>Firefox Translator</h1>\
-                <img src=/image/firefoxlogo.jpg align=left><a href=https://addons.mozilla.org/en-US/firefox/addon/13897>\
+                groups.'
+
+firefox_translator = '<h1>Firefox Translator</h1>'
+
+firefox_translator_prompt = '<img src=/image/firefoxlogo.jpg align=left><a href=https://addons.mozilla.org/en-US/firefox/addon/13897>\
                 Download our social translator for Firefox</a>. This free addon enables you to explore the \
                 foreign language web. It translates web pages using the best available translations from \
                 machines and from other users.<p>'
 
-web_tools =    '<h1>Tools For Webmasters</h1>\
-                Make your website, blog or service accessible in any language. The Worldwide Lexicon makes high quality, \
+web_tools =    'Make your website, blog or service accessible in any language. The Worldwide Lexicon makes high quality, \
                 open source translation tools for Word Press, Drupal and Firefox. You can also use the same software that \
                 powers this website to translate your own website. Visit <a href=http://www.worldwidelexicon.org>\
                 www.worldwidelexicon.org</a> to learn more.'
+
+instructions =  '<ol><li>Complete the short form to start a translation project</li>\
+                <li>DerMundo.com will assign a shortcut URL which you can share with your friends and other translators</li>\
+                <li>You can view and edit translations using the DerMundo.com translation server, or you can use the <a href=https://addons.mozilla.org/en-US/firefox/addon/13897>Firefox Social Translator></li>\
+                </ol>'
 
 # standard footer and source code attribution, do not modify or hide
 standard_footer = 'Content management system and collaborative translation memory powered \
@@ -302,19 +311,9 @@ class Translator(webapp.RequestHandler):
         lsp = ''
         lspusername = ''
         lsppw = ''
-        professional_translation_languages = ''
-        #professional_translation_languages = Settings.get('professional_translation_languages')
-        if len(lsp) > 0:
-            proxy_settings = proxy_settings + '<meta name="lsp" content="'+ lsp + '" />'
-        if len(lspusername) > 0:
-            proxy_settings = proxy_settings + '<meta name="lspusername" content="' + lspusername + '" />'
-        if len(lsppw) > 0:
-            proxy_settings = proxy_settings + '<meta name="lsppw" content="' + lsppw + '" />'
-        if len(professional_translation_languages) > 0:
-            proxy_settings = proxy_settings + '<meta name="professional_translation_languages" content="' + professional_translation_languages + '" />'
-        menus = '<ul><li><a href=http://blog.worldwidelexicon.org>Blog</a></li>\
-<li><a href=http://www.worldwidelexicon.org>Worldwide Lexicon</a></li>\
-</ul>'
+        dmenus = '<ul><li><a href=http://www.worldwidelexicon.org>Worldwide Lexicon</a></li>\
+                <li><a href=http://blog.worldwidelexicon.org>' + g(language,'Blog') + '</a></li>\
+                <li><a href=http://www.worldwidelexicon.org>' + g(language,'Tools For Webmasters') + '</a></li></ul>'
         if p1 == 'blog':
             self.redirect('http://blog.worldwidelexicon.org')
         elif p1 == 's':
@@ -322,18 +321,22 @@ class Translator(webapp.RequestHandler):
             self.response.out.write('<h2>Page Not Found</h2>')
         else:
             #t = '<h1>' + language + '</h1>'
-            t = '<h1>' + g(language, 'Social Translation For The Web') + '</h1>'
-            t = t + g(language, 'Machine translation is great, but we all know it often produces inaccurate (and sometimes funny) translations. ')
+            w = web()
+            w.get(template)
+            w.replace(template,'[social_translation]', g(language,'Social Translation For The Web'))
+            t = g(language, 'Machine translation is great, but we all know it often produces inaccurate (and sometimes funny) translations. ')
             t = t + g(language, 'Der Mundo is the worldwide web, translated by people. We use machine translation (from Google Translate and Apertium) to produce a "rough draft". ')
             t = t + g(language, 'Then users take over to edit the translations, score translations from other users, and make them better.<p>')
-            t = t + '<p><table><form action=/translate/view method=get>'
+            w.replace(template, '[introduction]', t)
+            # generate form
+            t = '<p><table><form action=/translate/view method=get>'
             t = t + '<tr><td>' + g(language, 'Language') + '</td><td><select name=l>'
             t = t + clean(Languages.select(selected=language)) + '</td></tr>'
             t = t + '<tr><td></td><td><select name=allow_machine>'
             t = t + '<option selected value="y">' + g(language,'Display human and machine translations') + '</option>'
             t = t + '<option value="n">' + g(language, 'Only display human translations') + '</option>'
             t = t + '</select></td></tr>'
-            t = t + '<tr><td>URL</td><td><input type=text name=u value="http://www.nytimes.com"></td></tr>'
+            t = t + '<tr><td>URL</td><td><input type=text size=40 name=u value="http://www.nytimes.com"></td></tr>'
             t = t + '<tr><td colspan=2>' + g(language, 'Create a social translation project and short URL') + ': '
             t = t + '<input type=checkbox name=makeproject checked></td></tr>'
             t = t + '<tr><td>' + g(language, 'Email Address') + '</td><td><input type=text name=email></td></tr>'
@@ -347,18 +350,35 @@ class Translator(webapp.RequestHandler):
             t = t + '</td></tr>'
             t = t + '<tr><td colspan=2><input type=submit value="' + g(language,'Translate!') + '"></td></tr>'
             t = t + '</form></table><p>'
-            w = web()
-            w.get(template)
+            w.replace(template,'[start_form]',t)
             w.replace(template,'[google_analytics]',google_analytics_header)
-            w.replace(template,'[title]','Der Mundo')
-            w.replace(template,'[meta]', proxy_settings)
-            w.replace(template,'[footer]',standard_footer)
-            w.replace(template,'[menu]',menus)
-            w.replace(template,'[left_column]',t)
-            r = '<h1>' + g(language, 'About') + '</h1>'
-            r = r + g(language, sidebar_about)
-            r = r + g(language, web_tools)
-            w.replace(template,'[right_column]', r)
+            w.replace(template,'[title]','Der Mundo : ' + g(language,'The World In Your Language'))
+            w.replace(template,'[meta]', sharethis_header + snapshot_code)
+            w.replace(template,'[copyright]',standard_footer)
+            w.replace(template,'[menu]',dmenus)
+            w.replace(template,'[about]', g(language,'About'))
+            w.replace(template,'[about_worldwide_lexicon]', g(language, sidebar_about))
+            w.replace(template,'[downloads_intro]', g(language, web_tools))
+            w.replace(template,'[tagline]', g(language, 'The World In Your Language'))
+            w.replace(template,'[share_this_page]', g(language, 'Share This Page'))
+            w.replace(template,'[share_this_button]', sharethis_button)
+            w.replace(template,'[instructions]', g(language, 'Instructions'))
+            w.replace(template,'[instructions_prompt]', g(language, instructions))
+            w.replace(template,'[firefox_translator]', g(language, 'Firefox Translator'))
+            w.replace(template,'[about_firefox_translator]', g(language, firefox_translator_prompt))
+            w.replace(template,'[new_pages]', g(language, 'New Pages'))
+            pdb = db.Query(DerMundoProjects)
+            pdb.order('-createdon')
+            results = pdb.fetch(limit=20)
+            ctr = 0
+            t = ''
+            for r in results:
+                if ctr < 10:
+                    if r.indexed:
+                        t = t + '<h4><a href=/x' + r.shorturl + '>' + codecs.encode(r.title, 'utf-8') + '</a></h4>'
+                        t = t + '<code>' + codecs.encode(r.description, 'utf-8') + '</code>'
+                        ctr = ctr + 1
+            w.replace(template,'[new_pages_list]', t)
             self.response.out.write(w.out(template))
     def post(self, p1='', p2='', p3=''):
         self.redirect('http://blog.worldwidelexicon.org')
@@ -529,6 +549,7 @@ class LandingPage(webapp.RequestHandler):
             description = '(<a href=http://' + item.domain + '>' + item.domain + '</a>) ' + description
             sl = item.sl
             url = item.url
+            shorturl = 'http://www.dermundo.com/x' + item.shorturl
             if string.count(url, 'http://') < 1:
                 url = 'http://' + url
         else:
@@ -536,35 +557,78 @@ class LandingPage(webapp.RequestHandler):
             description = ''
             sl = ''
             url = ''
+            shorturl = ''
+        rt = unicode('')
+        translators = list()
+        txt = ''
+        if len(url) > 0:
+            tdb = db.Query(Translation)
+            tdb.filter('url = ', string.replace(url, 'http://', ''))
+            tdb.order('-date')
+            results = tdb.fetch(limit=10)
+            for r in results:
+                tl = Languages.getname(r.tl)
+                if len(r.username) > 0:
+                    if r.username not in translators:
+                        translators.append(r.username)
+                    rt = rt + '<h4>&rarr; (' + tl + ') .. ' + codecs.encode(r.username, 'utf-8') + ' (' + codecs.encode(r.city, 'utf-8') + ') </h4>'
+                else:
+                    if r.remote_addr not in translators:
+                        translators.append(r.remote_addr)
+                    rt = rt + '<h4>&rarr; (' + tl + ') .. ' + codecs.encode(r.remote_addr, 'utf-8') + ' (' + codecs.encode(r.city, 'utf-8') + ') </h4>'
+                st = clean(r.st)
+                tt = clean(r.tt)
+                if len(st) < 1:
+                    st = codecs.encode(r.st, 'utf-8')
+                if len(tt) < 1:
+                    tt = codecs.encode(r.tt, 'utf-8')
+                rt = rt + unicode(st, 'utf-8')
+                rt = rt + '<code>' + unicode(tt, 'utf-8') + '</code>'
+        translators.sort()
+        if len(translators) > 0:
+            txt = '<ul>'
+            for tx in translators:
+                txt = txt + '<li><a href=/profile/' + tx + '>' + tx + '</a></li>'
+            txt = txt + '</ul>'
+        else:
+            txt = ''
         dmenus = '<ul><li><a href=http://www.worldwidelexicon.org>Worldwide Lexicon</a></li>\
                 <li><a href=http://blog.worldwidelexicon.org>' + g(language,'Blog') + '</a></li>\
                 <li><a href=http://www.worldwidelexicon.org>' + g(language,'Tools For Webmasters') + '</a></li></ul>'
-        t = '<h1>' + title
-        t = t + '</h1>'
-        t = t + description
-        t = t + '<p><h2>Create Translations For This Page</h2>'
-        t = t + '<form action=/translate/view method=get>'
-        t = t + '<table><tr><td><select name=l>'
-        t = t + Languages.select(selected=language)
-        t = t + '</select></td><td><input type=submit value=OK></td></tr>'
-        t = t + '<input type=hidden name=u value="' + url + '">'
-        t = t + '</form></table>'
-        t = t + '<br>'
-        t = t + '<h2>Share This Page</h2>'
-        t = t + '<blockquote>' + sharethis_button + '</blockquote>'
-        r = '<h2>' + g(language,'Translators') + '</h2>'
-        r = r + '<ul><li>Ipsum</li><li>Orum</li></ul>'
-        r = r + '<h2>' + g(language,'Recent Translations') + '</h2>'
-        r = r + 'Foo<blockquote>Bar</blockquote>'
         w = web()
-        w.get(template)
-        w.replace(template, '[title]', 'Der Mundo')
-        w.replace(template, '[meta]', sharethis_header)
-        w.replace(template, '[menu]', dmenus)
-        w.replace(template, '[left_column]', t)
-        w.replace(template, '[right_column]', r)
-        w.replace(template, '[footer]', standard_footer)
-        t = w.out(template)
+        w.get(dmtemplate)
+        w.replace(dmtemplate, '[tagline]', g(language, 'The world in your language'))
+        w.replace(dmtemplate, '[meta]', sharethis_header + snapshot_code)
+        w.replace(dmtemplate, '[google_analytics]', google_analytics_header)
+        w.replace(dmtemplate, '[menu]', dmenus)
+        w.replace(dmtemplate, '[title]', title)
+        w.replace(dmtemplate, '[description]', description)
+        w.replace(dmtemplate, '[share_this_page]', g(language, 'Share This Page'))
+        w.replace(dmtemplate, '[share_this_button]', sharethis_button)
+        w.replace(dmtemplate, '[recent_translations]', g(language, 'Recent Translations'))
+        w.replace(dmtemplate, '[recent_translators]', g(language, 'Recent Translators'))
+        w.replace(dmtemplate, '[edit_translations]', 'View And Edit Translations')
+        w.replace(dmtemplate, '[recent_translation_list]', rt)
+        if len(shorturl) > 0:
+            w.replace(dmtemplate, '[short_url]', shorturl)
+            w.replace(dmtemplate, '[short_url_prompt]', g(language,'Share this shortcut URL with your friends and other translators.'))
+        else:
+            w.replace(dmtemplate, '[short_url]', '')
+            w.replace(dmtemplate, '[short_url_prompt', '')
+        w.replace(dmtemplate, '[recent_translator_list]', txt)
+        w.replace(dmtemplate, '[copyright]', standard_footer)
+        w.replace(dmtemplate, '[about]', g(language, 'About'))
+        w.replace(dmtemplate, '[firefox_translator]', g(language, 'Firefox Translator'))
+        w.replace(dmtemplate, '[firefox_translator_required]', g(language, 'Firefox translator addon is required'))
+        w.replace(dmtemplate, '[proxy_url]', 'http://proxy.worldwidelexicon.org?l=' + language + '&u=' + url)
+        w.replace(dmtemplate, '[about_firefox_translator]', g(language, firefox_translator_prompt))
+        w.replace(dmtemplate, '[about_worldwide_lexicon]', g(language, sidebar_about))
+        w.replace(dmtemplate, '[downloads_intro]', g(language, web_tools))
+        if string.count(url, 'http://') < 1:
+            url = 'http://' + url
+        w.replace(dmtemplate, '[original_page]', g(language, 'Original Page'))
+        w.replace(dmtemplate, '[source_url]', url)
+        t = w.out(dmtemplate)
         self.response.out.write(t)
                 
 application = webapp.WSGIApplication([('/translate', Translator),
