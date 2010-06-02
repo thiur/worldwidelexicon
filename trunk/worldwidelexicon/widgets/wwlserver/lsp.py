@@ -149,15 +149,15 @@ class LSP():
                                 item.sl = sl
                                 item.tl = tl
                                 item.st = st
-                                item.tt = results['tt']
-                                item.professional = True
-                                item.anonymous = False
-                                item.username = lsp
-                                item.indexed = False
-                                item.put()
-                                p = dict()
-                                p['guid']=results['guid']
-                                taskqueue.add(url='/ngrams', params=p)
+                            item.tt = results['tt']
+                            item.professional = True
+                            item.anonymous = False
+                            item.username = lsp
+                            item.indexed = False
+                            item.put()
+                            p = dict()
+                            p['guid']=results['guid']
+                            taskqueue.add(url='/ngrams', params=p)
                     except:
                         pass
                     # return the translation

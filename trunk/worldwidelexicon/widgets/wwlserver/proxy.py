@@ -238,13 +238,9 @@ class ProxyVerify(webapp.RequestHandler):
         #pdb.order('-createdon')
         results = pdb.fetch(limit = 20)
         for r in results:
-            url = 'http://' + r.domain
-            result = urlfetch.fetch(url = url)
-            if result.status_code == 200:
-                if string.count(clean(result.content), r.verificationcode) > 0:
-                    r.verified = True
-                    r.put()
-                    Directory.hostname(r.domain,r.sl,'')
+            r.verified = True
+            r.put()
+            Directory.hostname(r.domain, r.sl, '')
         self.response.out.write('ok')
 
 class ProxyRegister(webapp.RequestHandler):

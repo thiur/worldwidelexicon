@@ -523,6 +523,16 @@ class SubmitTranslation(webapp.RequestHandler):
                 taskqueue.add(url = '/share', params = p)
             except:
                 pass
+        if len(url) > 0 and string.count(url, 'https://') < 1:
+            if string.count(url, 'http://') < 1:
+                url = 'http://' + url
+            p = dict()
+            p['url']= url
+            if len(username) > 0:
+                p['email']=username
+            else:
+                p['email']=remote_addr
+            taskqueue.add(url = '/translate/shortcut', params = p)
         callback = self.request.get('callback')
         if len(callback) > 0:
             self.redirect(callback)

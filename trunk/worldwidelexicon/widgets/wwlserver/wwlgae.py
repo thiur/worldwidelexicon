@@ -32,6 +32,8 @@ from google.appengine.api import memcache
 from google.appengine.api import urlfetch
 import urllib
 import urllib2
+import datetime
+import codecs
 import md5
 import string
 from transcoder import transcoder
@@ -230,18 +232,6 @@ class wwl():
                 return st
             if len(tl) < 2 or len(tl) > 3:
                 return st
-            tt = memcache.get('/wwl/' + sl + '/' + tl + '/' + st)
-            if tt is not None:
-                return tt
-            # first check memcached, if running
-            tt = wwl.getcache(sl, tl, st)
-            if len(tt) > 0:
-                return tt
-            if len(tt) > 0:
-                return tt
-            # next call LSP.get() if professional translation params are present
-            if len(lsp) > 0:
-                pass
             # next query Translation() for cached professional translations
             # next query Translation() for any cached translations
             # store translation in memcache and return
@@ -265,9 +255,9 @@ class wwl():
                 result = urlfetch.fetch(url=url)
                 if result.status_code == 200:
                     tt = clean(result.content)
-                if len(tt) > 0:
-                    wwl.setcache(sl, tl, st, tt)
-                return tt
+                    return tt
+                else:
+                    return ''
             except:
                 return ''
         else:

@@ -94,6 +94,7 @@ def right_menu():
     t = t + '<h4><a href=/admin/acl>Access Control Rules</a></h4>'
     t = t + '<h4><a href=/admin/languages>Languages</a></h4>'
     t = t + '<h4><a href=/admin/mt>Machine Translation</a></h4>'
+    t = t + '<h4><a href=/admin/memcache>Memcache Statistics</a></h4>'
     t = t + '<h4><a href=/admin/vars>System Variables</a></h4>'
     t = t + '</div>'
     return t
@@ -117,6 +118,34 @@ class Login(webapp.RequestHandler):
             greeting = ("<a href=\"%s\">Sign in or register</a>." %
                         users.create_login_url("/admin"))
         self.response.out.write("<html><body>" + greeting + "</body></html>")
+
+class MemcacheStats(webapp.RequestHandler):
+    def get(self):
+        if is_admin():
+            self.response.out.write(header())
+            stats = memcache.get_stats()
+            self.response.out.write('<div class="col1">')
+            self.response.out.write('<h3>Memcache Statistics</h3>')
+            self.response.out.write('<table>')            
+            self.response.out.write('<tr><td>Number of Items</td><td>' + str(stats['items']) + '</td></tr>')
+            self.response.out.write('<tr><td>Hits</td><td>' + str(stats['hits']) + '</td></tr>')
+            self.response.out.write('<tr><td>Misses</td><td>' + str(stats['misses']) + '</td></tr>')
+            self.response.out.write('<tr><td>Bytes</td><td>' + str(stats['bytes']) + '</td></tr>')
+            self.response.out.write('<tr><td>Oldest Item</td><td>' + str(stats['oldest_item_age']) + ' seconds</td></tr>')
+            self.response.out.write('<tr><td>Average Item Size</td><td>' + str(float(stats['bytes'])/stats['items']) + ' bytes</td></tr>')
+            self.response.out.write('<tr><td colspan=2><a href=/admin/memcachereset>Clear and Reset Cache</a></td></tr>')
+            self.response.out.write('</table></div>')
+            self.response.out.write(footer())
+        else:
+            self.redirect('/admin')
+
+class MemcacheReset(webapp.RequestHandler):
+    def get(self):
+        if is_admin:
+            memcache.flush_all()
+            self.redirect('/admin/memcache')
+        else:
+            self.redirect('/admin')
 
 class Variables(webapp.RequestHandler):
     def get(self):
@@ -465,6 +494,8 @@ application = webapp.WSGIApplication([('/admin', Login),
                                       ('/admin/keys', ViewAPIKeys),
                                       ('/admin/languages', ManageLanguages),
                                       ('/admin/makekey', MakeAPIKey),
+                                      ('/admin/memcache', MemcacheStats),
+                                      ('/admin/memcachereset', MemcacheReset),                                      
                                       ('/admin/mt', ManageMachineTranslation),
                                       ('/admin/deletekey', DeleteAPIKey),
                                       ('/admin/vars', Variables),
