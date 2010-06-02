@@ -54,6 +54,7 @@ from shorturl import UrlEncoder
 import sgmllib
 
 template = 'http://www.dermundo.com/css/template.css'
+sidebar_url = 'http://3.latest.worldwidelexicon.appspot.com/dermundocss/sidebar.html'
 
 # Define convenience functions
             
@@ -61,21 +62,21 @@ def clean(text):
     return transcoder.clean(text)
 
 def g(tl, text, professional=True):
-    t = memcache.get('/g/' + tl + '/' + text)
+    t = memcache.get('/wwlcache/' + tl + '/' + text)
     if t is not None:
         return t
-    elif len(tl) < 2:
-        return t
     else:
-        text = clean(text)
         speaklikeusername = Settings.get('speaklikeusername')
         speaklikepw = Settings.get('speaklikepw')
+        speaklikelangs = ['pt', 'ru', 'nl', 'de', 'cs', 'fr', 'it', 'ar', 'ja', 'es', 'zh', 'pl']
+        if tl not in speaklikelangs:
+            professional = False
         if professional:
             t = clean(wwl.get('en', tl, text, lsp='speaklikeapi', lspusername=speaklikeusername, lsppw=speaklikepw))
         else:
             t = clean(wwl.get('en', tl, text))
         if len(t) > 0:
-            memcache.set('/g/' + tl + '/' + text, t, 300)
+            memcache.set('/wwlcache/' + tl + '/' + text, t, 1800)
             return t
         else:
             return text
@@ -156,6 +157,11 @@ firefox_translator_prompt = '<img src=/image/firefoxlogo.jpg align=left><a href=
                 foreign language web. It translates web pages using the best available translations from \
                 machines and from other users.<p>'
 
+firefox_translator_prompt2 = 'The Firefox Translator is an ideal way to view and contribute translations. \
+                It automatically translates foreign language pages when it is needed, and when \
+                you edit translations to make them better, these changes are automatically shared with \
+                other users worldwide.<p>'
+
 web_tools =    'Make your website, blog or service accessible in any language. The Worldwide Lexicon makes high quality, \
                 open source translation tools for Word Press, Drupal and Firefox. You can also use the same software that \
                 powers this website to translate your own website. Visit <a href=http://www.worldwidelexicon.org>\
@@ -165,6 +171,26 @@ instructions =  '<ol><li>Complete the short form to start a translation project<
                 <li>DerMundo.com will assign a shortcut URL which you can share with your friends and other translators</li>\
                 <li>You can view and edit translations using the DerMundo.com translation server, or you can use the <a href=https://addons.mozilla.org/en-US/firefox/addon/13897>Firefox Social Translator></li>\
                 </ol>'
+
+translator_instructions = 'You can view and edit translations in two ways. If you have our Firefox Translator addon (highly recommended), \
+                simply follow the link to the original web page, and turn on the Firefox Translator. It will translate \
+                the page within your browser. You can edit translations by pointing at a section of text, and a popup editor \
+                will appear. If you do not have the Firefox addon, you can view and edit translations \
+                using our translation server. This will load the page, translate it, and send it to you. You can also edit \
+                translations there. Translations submitted from both tools are shared with the worldwide user community.'
+
+firefox_sidebar_intro = 'Discover, translate and share interesting webpages with your friends and the world.'
+
+firefox_sidebar_learn_more = 'Learn more'
+
+firefox_sidebar_instructions = 'The Firefox Translator automatically translates foreign language pages using the \
+                best available human and machine translations. You can edit translations simply by pointing at a section \
+                of text. A popup editor will appear where you can edit the translation, which will be shared with the \
+                user community worldwide.'
+
+firefox_sidebar_shortcut = 'Share this shortcut to <a href=http://www.facebook.com target=_new>Facebook</a>, \
+                <a href=http://www.twitter.com target=_new>Twitter</a> and your friends. The shortcut address for this \
+                translation project is :'
 
 # standard footer and source code attribution, do not modify or hide
 standard_footer = 'Content management system and collaborative translation memory powered \
@@ -307,6 +333,10 @@ class Translator(webapp.RequestHandler):
             language = 'en'
         if len(language) > 2:
             language = language[0:2]
+        t = memcache.get('/dermundo/cache/' + language)
+        if t is not None:
+            self.response.out.write(t)
+            return
         proxy_settings = '<meta name="allow_edit" content="y" />'        
         lsp = ''
         lspusername = ''
@@ -365,20 +395,36 @@ class Translator(webapp.RequestHandler):
             w.replace(template,'[instructions]', g(language, 'Instructions'))
             w.replace(template,'[instructions_prompt]', g(language, instructions))
             w.replace(template,'[firefox_translator]', g(language, 'Firefox Translator'))
-            w.replace(template,'[about_firefox_translator]', g(language, firefox_translator_prompt))
+            w.replace(template,'[about_firefox_translator]', g(language, firefox_translator_prompt) + g(language, firefox_translator_prompt2))
             w.replace(template,'[new_pages]', g(language, 'New Pages'))
             pdb = db.Query(DerMundoProjects)
             pdb.order('-createdon')
             results = pdb.fetch(limit=20)
             ctr = 0
-            t = ''
-            for r in results:
-                if ctr < 10:
-                    if r.indexed:
-                        t = t + '<h4><a href=/x' + r.shorturl + '>' + codecs.encode(r.title, 'utf-8') + '</a></h4>'
-                        t = t + '<code>' + codecs.encode(r.description, 'utf-8') + '</code>'
-                        ctr = ctr + 1
+            t = memcache.get('/dermundo/newpages')
+            if t is None:
+                t = ''
+                for r in results:
+                    if ctr < 10:
+                        if r.indexed:
+                            try:
+                                title = codecs.encode(r.title,'utf-8')
+                            except:
+                                title = clean(r.title)
+                            try:
+                                description = codecs.encode(r.description, 'utf-8')
+                            except:
+                                description = clean(r.description)
+                            try:
+                                t = t + '<h4><a href=/x' + r.shorturl + '>' + title + '</a></h4>'
+                                t = t + '<code>' + description + '</code>'
+                                ctr = ctr + 1
+                            except:
+                                pass
+                if len(t) > 0:
+                    memcache.set('/dermundo/newpages', t, 240)
             w.replace(template,'[new_pages_list]', t)
+            memcache.set('/dermundo/cache/' + language, w.out(template), 650)
             self.response.out.write(w.out(template))
     def post(self, p1='', p2='', p3=''):
         self.redirect('http://blog.worldwidelexicon.org')
@@ -392,12 +438,9 @@ class TranslateReloader(webapp.RequestHandler):
         try:
             tl = self.request.get('tl')
             if len(tl) > 0:
-                try:
-                    urlfetch.fetch(url='http://www.dermundo.com/translate', headers={'Accept-Language': tl})
-                except:
-                    self.error(500)
+                urlfetch.fetch(url='http://www.dermundo.com/translate', headers={'Accept-Language': tl})
             else:
-                languages = ['es', 'fr', 'de', 'it', 'pt', 'ja', 'ar', 'zh']
+                languages = ['es', 'fr', 'de', 'it', 'pt', 'ja', 'ar', 'ru', 'zh']
                 for l in languages:
                     p = dict()
                     p['tl']=l
@@ -496,6 +539,8 @@ class CrawlPage(webapp.RequestHandler):
         self.requesthandler()
     def requesthandler(self):
         u = self.request.get('u')
+        if string.count(u, 'http://') < 1 and string.count(u, 'https://') < 1:
+            u = 'http://' + u
         (title, description) = get_summary(u)
         tdb = db.Query(DerMundoProjects)
         tdb.filter('url = ', u)
@@ -621,20 +666,51 @@ class LandingPage(webapp.RequestHandler):
         w.replace(dmtemplate, '[firefox_translator]', g(language, 'Firefox Translator'))
         w.replace(dmtemplate, '[firefox_translator_required]', g(language, 'Firefox translator addon is required'))
         w.replace(dmtemplate, '[proxy_url]', 'http://proxy.worldwidelexicon.org?l=' + language + '&u=' + url)
-        w.replace(dmtemplate, '[about_firefox_translator]', g(language, firefox_translator_prompt))
+        w.replace(dmtemplate, '[about_firefox_translator]', g(language, firefox_translator_prompt) + g(language, firefox_translator_prompt2))
         w.replace(dmtemplate, '[about_worldwide_lexicon]', g(language, sidebar_about))
         w.replace(dmtemplate, '[downloads_intro]', g(language, web_tools))
+        w.replace(dmtemplate, '[instructions]', g(language, 'Instructions'))
+        w.replace(dmtemplate, '[translator_instructions]', g(language, translator_instructions))
         if string.count(url, 'http://') < 1:
             url = 'http://' + url
         w.replace(dmtemplate, '[original_page]', g(language, 'Original Page'))
         w.replace(dmtemplate, '[source_url]', url)
         t = w.out(dmtemplate)
         self.response.out.write(t)
+
+class GenerateShortCut(webapp.RequestHandler):
+    def get(self):
+        self.requesthandler()
+    def post(self):
+        self.requesthandler()
+    def requesthandler(self):
+        url = self.request.get('url')
+        email = self.request.get('email')
+        shorturl = DerMundoProjects.add(url, email=email)
+        self.response.out.write('ok\n' + shorturl)
+
+class Sidebar(webapp.RequestHandler):
+    def get(self):
+        self.requesthandler()
+    def post(self):
+        self.requesthandler()
+    def requesthandler(self):
+        w = web()
+        w.get(sidebar_url)
+        w.replace(sidebar_url, '[google_analytics]', google_analytics_header)
+        w.replace(sidebar_url, '[meta]', '')
+        w.replace(sidebar_url, '[firefox_sidebar_intro]', '<img src=http://www.dermundo.com/image/logo.png align=left>' + firefox_sidebar_intro)
+        w.replace(sidebar_url, '[shortcut]', 'Shortcut')
+        w.replace(sidebar_url, '[firefox_sidebar_shortcut]', firefox_sidebar_shortcut)
+        t = w.out(sidebar_url)
+        self.response.out.write(t)
                 
 application = webapp.WSGIApplication([('/translate', Translator),
                                       ('/translate/view', TranslationFrame),
                                       ('/translate/crawl', CrawlPage),
+                                      ('/translate/shortcut', GenerateShortCut),
                                       ('/translate/translators', DisplayTranslators),
+                                      ('/sidebar', Sidebar),
                                       ('/translate/reload', TranslateReloader)],
                                      debug=True)
 
