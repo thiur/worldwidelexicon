@@ -1,5 +1,5 @@
 application: worldwidelexicon
-version: 2
+version: 3
 runtime: python
 api_version: 1
 
@@ -82,6 +82,9 @@ handlers:
 - url: /heartbeat
   script: purge.py
   secure: optional
+
+- url: /help/firefox
+  script: translate.py
   
 - url: /hosts/auth/(.*)
   script: hosts.py
@@ -127,6 +130,9 @@ handlers:
 
 - url: /p
   script: translations.py
+
+- url: /profile/(.*)
+  script: translate.py
   
 - url: /q
   script: translations.py

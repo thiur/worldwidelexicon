@@ -42,6 +42,7 @@ from database import Directory
 from database import Languages
 from database import Settings
 from database import Translation
+from database import Users
 from database import UserScores
 from language import TestLanguage
 from proxy import ProxyDomains
@@ -54,7 +55,8 @@ from shorturl import UrlEncoder
 import sgmllib
 
 template = 'http://www.dermundo.com/css/template.css'
-sidebar_url = 'http://3.latest.worldwidelexicon.appspot.com/dermundocss/sidebar.html'
+usertemplate = 'http://www.dermundo.com/dermundocss/profile.html'
+sidebar_url = 'http://www.dermundo.com/dermundocss/sidebar.html'
 
 # Define convenience functions
             
@@ -68,7 +70,7 @@ def g(tl, text, professional=True):
     else:
         speaklikeusername = Settings.get('speaklikeusername')
         speaklikepw = Settings.get('speaklikepw')
-        speaklikelangs = ['pt', 'ru', 'nl', 'de', 'cs', 'fr', 'it', 'ar', 'ja', 'es', 'zh', 'pl']
+        speaklikelangs = ['pt', 'ru', 'nl', 'de', 'cs', 'fr', 'it', 'ar', 'ja', 'es', 'zh', 'pl', 'el', 'da', 'pl']
         if tl not in speaklikelangs:
             professional = False
         if professional:
@@ -190,12 +192,17 @@ firefox_sidebar_instructions = 'The Firefox Translator automatically translates 
 
 firefox_sidebar_shortcut = 'Share this shortcut to <a href=http://www.facebook.com target=_new>Facebook</a>, \
                 <a href=http://www.twitter.com target=_new>Twitter</a> and your friends. The shortcut address for this \
-                translation project is :'
+                translation project is<p>'
+
+firefox_sidebar_no_shortcut = 'No shortcut address has been created for this webpage yet. Visit <a target=_new href=http://www.dermundo.com/translate>www.dermundo.com/translate</a> \
+                or simply start editing translations on this page to create a DerMundo shortcut.'
 
 # standard footer and source code attribution, do not modify or hide
 standard_footer = 'Content management system and collaborative translation memory powered \
                   by the <a href=http://www.worldwidelexicon.org>Worldwide Lexicon Project</a> \
                   (c) 1998-2010 Brian S McConnell and Worldwide Lexicon Inc. All rights reserved. \
+                  Professional translations for the Der Mundo interface and documentation produced \
+                  by <a href=http://www.speaklike.com>SpeakLike</a>. \
                   WWL multilingual CMS and translation memory is open source software published \
                   under a BSD style license. Contact: bsmcconnell on skype or gmail.'
 
@@ -331,6 +338,9 @@ class Translator(webapp.RequestHandler):
             language = TestLanguage.browserlanguage(self.request.headers['Accept-Language'])
         except:
             language = 'en'
+        dmenus = '<ul><li><a href=http://www.worldwidelexicon.org>Worldwide Lexicon</a></li>\
+                <li><a href=http://blog.worldwidelexicon.org>' + g(language,'Blog') + '</a></li>\
+                <li><a href=http://www.worldwidelexicon.org>' + g(language,'Tools For Webmasters') + '</a></li></ul>'
         if len(language) > 2:
             language = language[0:2]
         t = memcache.get('/dermundo/cache/' + language)
@@ -341,9 +351,6 @@ class Translator(webapp.RequestHandler):
         lsp = ''
         lspusername = ''
         lsppw = ''
-        dmenus = '<ul><li><a href=http://www.worldwidelexicon.org>Worldwide Lexicon</a></li>\
-                <li><a href=http://blog.worldwidelexicon.org>' + g(language,'Blog') + '</a></li>\
-                <li><a href=http://www.worldwidelexicon.org>' + g(language,'Tools For Webmasters') + '</a></li></ul>'
         if p1 == 'blog':
             self.redirect('http://blog.worldwidelexicon.org')
         elif p1 == 's':
@@ -362,10 +369,10 @@ class Translator(webapp.RequestHandler):
             t = '<p><table><form action=/translate/view method=get>'
             t = t + '<tr><td>' + g(language, 'Language') + '</td><td><select name=l>'
             t = t + clean(Languages.select(selected=language)) + '</td></tr>'
-            t = t + '<tr><td></td><td><select name=allow_machine>'
-            t = t + '<option selected value="y">' + g(language,'Display human and machine translations') + '</option>'
-            t = t + '<option value="n">' + g(language, 'Only display human translations') + '</option>'
-            t = t + '</select></td></tr>'
+#            t = t + '<tr><td></td><td><select name=allow_machine>'
+#            t = t + '<option selected value="y">' + g(language,'Display human and machine translations') + '</option>'
+#            t = t + '<option value="n">' + g(language, 'Only display human translations') + '</option>'
+#            t = t + '</select></td></tr>'
             t = t + '<tr><td>URL</td><td><input type=text size=40 name=u value="http://www.nytimes.com"></td></tr>'
             t = t + '<tr><td colspan=2>' + g(language, 'Create a social translation project and short URL') + ': '
             t = t + '<input type=checkbox name=makeproject checked></td></tr>'
@@ -437,13 +444,25 @@ class TranslateReloader(webapp.RequestHandler):
     def requesthandler(self):
         try:
             tl = self.request.get('tl')
+            p = self.request.get('p')
             if len(tl) > 0:
-                urlfetch.fetch(url='http://www.dermundo.com/translate', headers={'Accept-Language': tl})
+                if len(p) < 1:
+                    urlfetch.fetch(url='http://www.dermundo.com/translate', headers={'Accept-Language': tl})
+                elif p == 'shorturl':
+                    urlfetch.fetch(url='http://www.dermundo.com/xwUBM', headers={'Accept-Language': tl})
+                elif p == 'help':
+                    urlfetch.fetch(url='http://www.dermundo.com/help/firefox', headers={'Accept-Language': tl})
+                else:
+                    pass
             else:
-                languages = ['es', 'fr', 'de', 'it', 'pt', 'ja', 'ar', 'ru', 'zh']
+                languages = ['es', 'fr', 'de', 'it', 'pt', 'ja', 'ar', 'ru', 'zh', 'cs', 'nl']
                 for l in languages:
                     p = dict()
                     p['tl']=l
+                    taskqueue.add(url='/translate/reload', params=p)
+                    p['p']='shorturl'
+                    taskqueue.add(url='/translate/reload', params=p)
+                    p['p']='help'
                     taskqueue.add(url='/translate/reload', params=p)
             self.response.out.write('ok')
         except:
@@ -568,7 +587,11 @@ class CrawlPage(webapp.RequestHandler):
             words = string.split(title) + string.split(description)
             item.tags = words
             item.indexed = True
-            item.put()
+            try:
+                item.put()
+            except:
+                item.description = ''
+                item.put()
         self.response.out.write(title + '\n' + description)
 
 class LandingPage(webapp.RequestHandler):
@@ -585,30 +608,46 @@ class LandingPage(webapp.RequestHandler):
         if len(language) < 2 or len(language) > 3:
             language = 'en'
         u = p1
-        tdb = db.Query(DerMundoProjects)
-        tdb.filter('shorturl = ', u)
-        item = tdb.get()
-        if item is not None:
-            title = clean(item.title)
-            description = clean(item.description)
-            description = '(<a href=http://' + item.domain + '>' + item.domain + '</a>) ' + description
-            sl = item.sl
-            url = item.url
-            shorturl = 'http://www.dermundo.com/x' + item.shorturl
-            if string.count(url, 'http://') < 1:
-                url = 'http://' + url
+        pageinfo = memcache.get('/dermundo/pageinfo/' + u)
+        if pageinfo is None:
+            tdb = db.Query(DerMundoProjects)
+            tdb.filter('shorturl = ', u)
+            item = tdb.get()
+            if item is not None:
+                title = clean(item.title)
+                description = clean(item.description)
+                description = '(<a href=http://' + item.domain + '>' + item.domain + '</a>) ' + description
+                sl = item.sl
+                url = item.url
+                shorturl = 'http://www.dermundo.com/x' + item.shorturl
+                if string.count(url, 'http://') < 1:
+                    url = 'http://' + url
+                pageinfo = dict()
+                pageinfo['title']=title
+                pageinfo['description']=description
+                pageinfo['sl']=sl
+                pageinfo['url']=url
+                pageinfo['shorturl']=shorturl
+                memcache.set('/dermundo/pageinfo/' + u, pageinfo, 3600)
+            else:
+                title = u
+                description = ''
+                sl = ''
+                url = ''
+                shorturl = ''
         else:
-            title = u
-            description = ''
-            sl = ''
-            url = ''
-            shorturl = ''
-        rt = unicode('')
+            title = pageinfo['title']
+            description = pageinfo['description']
+            sl = pageinfo['sl']
+            url = pageinfo['url']
+            shorturl = pageinfo['shorturl']
         translators = list()
-        txt = ''
-        if len(url) > 0:
+        url = string.replace(url, 'http://', '')
+        txt = None
+        if len(url) > 0 and txt is None:
+            rt = unicode('')
             tdb = db.Query(Translation)
-            tdb.filter('url = ', string.replace(url, 'http://', ''))
+            tdb.filter('url = ', url)
             tdb.order('-date')
             results = tdb.fetch(limit=10)
             for r in results:
@@ -629,14 +668,15 @@ class LandingPage(webapp.RequestHandler):
                     tt = codecs.encode(r.tt, 'utf-8')
                 rt = rt + unicode(st, 'utf-8')
                 rt = rt + '<code>' + unicode(tt, 'utf-8') + '</code>'
-        translators.sort()
-        if len(translators) > 0:
-            txt = '<ul>'
-            for tx in translators:
-                txt = txt + '<li><a href=/profile/' + tx + '>' + tx + '</a></li>'
-            txt = txt + '</ul>'
-        else:
-            txt = ''
+            translators.sort()
+            if len(translators) > 0:
+                txt = '<ul>'
+                for tx in translators:
+                    txt = txt + '<li><a href=/profile/' + tx + '>' + tx + '</a></li>'
+                txt = txt + '</ul>'
+                memcache.set('/dermundo/recenttranslatorslist/' + url, txt, 300)
+            else:
+                txt = ''
         dmenus = '<ul><li><a href=http://www.worldwidelexicon.org>Worldwide Lexicon</a></li>\
                 <li><a href=http://blog.worldwidelexicon.org>' + g(language,'Blog') + '</a></li>\
                 <li><a href=http://www.worldwidelexicon.org>' + g(language,'Tools For Webmasters') + '</a></li></ul>'
@@ -695,15 +735,258 @@ class Sidebar(webapp.RequestHandler):
     def post(self):
         self.requesthandler()
     def requesthandler(self):
+        al = self.request.get('tl')
+        if len(al) < 2 or len(al) > 3:
+            al = 'en'
+        url = self.request.get('url')
+        language = TestLanguage.browserlanguage(al)
         w = web()
         w.get(sidebar_url)
         w.replace(sidebar_url, '[google_analytics]', google_analytics_header)
-        w.replace(sidebar_url, '[meta]', '')
-        w.replace(sidebar_url, '[firefox_sidebar_intro]', '<img src=http://www.dermundo.com/image/logo.png align=left>' + firefox_sidebar_intro)
-        w.replace(sidebar_url, '[shortcut]', 'Shortcut')
-        w.replace(sidebar_url, '[firefox_sidebar_shortcut]', firefox_sidebar_shortcut)
+        w.replace(sidebar_url, '[meta]', '<meta http-equiv=refresh content=30>')
+        w.replace(sidebar_url, '[firefox_sidebar_intro]', '<img src=http://www.dermundo.com/image/logo.png align=left>' + g(language,firefox_sidebar_intro))
+        w.replace(sidebar_url, '[shortcut]', g(language, 'Shortcut'))
+        w.replace(sidebar_url, '[recent_translators]', g(language, 'Recent Translators'))
+        w.replace(sidebar_url, '[statistics]', g(language, 'Statistics'))
+        w.replace(sidebar_url, '[statistics_data]', '<ul><li>Ipsum</li><li>Orum</li></ul>')
+        shorturl = memcache.get('/dermundo/shorturl/' + url)
+        if shorturl is None:
+            pdb = db.Query(DerMundoProjects)
+            if string.count(url, 'http://') < 1:
+                surl = 'http://' + url
+            else:
+                surl = url
+            pdb.filter('url = ', surl)
+            item = pdb.get()
+            if item is not None:
+                shorturl = 'http://www.dermundo.com/x' + item.shorturl
+            else:
+                shorturl = ''
+            if len(shorturl) > 0:
+                memcache.set('/dermundo/shorturl/' + url, shorturl, 360)
+        if len(shorturl) > 0:
+            w.replace(sidebar_url, '[firefox_sidebar_shortcut]', g(language, firefox_sidebar_shortcut))
+            w.replace(sidebar_url, '[shorturl]', '<a target=_new href=' + shorturl + '>' + string.replace(shorturl, 'http://', '') + '</a>')
+        else:
+            w.replace(sidebar_url, '[firefox_sidebar_shortcut]', '')
+            w.replace(sidebar_url, '[shorturl]', g(language, firefox_sidebar_no_shortcut))
+        text = memcache.get('/firefox/sidebar/recenttranslators/' + url)
+        if text is not None:
+            w.replace(sidebar_url, '[recent_translator_list]', text)
+        else:
+            tdb = db.Query(Translation)
+            if string.count(url, 'http://') > 0:
+                url = string.replace(url, 'http://', '')
+            if string.count(url, 'https://') > 0:
+                url = string.replace(url, 'https://', '')
+            translators = list()
+            translatorcity = dict()
+            translatorlang = dict()
+            tdb.filter('url = ', url)
+            tdb.order('-date')
+            results = tdb.fetch(limit=50)
+            if len(results) > 0:
+                text = '<ul>'
+                for r in results:
+                    if len(r.username) > 0:
+                        if r.username not in translators:
+                            translators.append(r.username)
+                            translatorcity[r.username]=r.city
+                            translatorlang[r.username]=r.tl
+                    else:
+                        if r.remote_addr not in translators:
+                            translators.append(r.remote_addr)
+                            translatorcity[r.remote_addr] = r.city
+                            translatorlang[r.remote_addr] = r.tl
+                for tx in translators:
+                    text = text + '<li>(&rarr; ' + Languages.getname(translatorlang[tx]) + ') <a href=http://www.dermundo.com/profile/' + tx + '>'
+                    text = text + tx + ' (' + translatorcity[tx] + ')</a></li>'
+                text = text + '</ul>'
+                memcache.set('/firefox/sidebar/recenttranslators/' + url, text, 360)
+            else:
+                text = ''
+            w.replace(sidebar_url, '[recent_translator_list]', text)
         t = w.out(sidebar_url)
         self.response.out.write(t)
+
+class RecentTranslations(webapp.RequestHandler):
+    def get(self):
+        self.requesthandler()
+    def post(self):
+        self.requesthandler()
+    def requesthandler(self):
+        tdb = db.Query(Translation)
+        tdb.order('-date')
+        results = tdb.fetch(limit=20)
+        self.response.out.write('<head><title>Der Mundo</title>')
+        self.response.out.write('<meta http-equiv=refresh content=5>')
+        self.response.out.write('</head> \n <body>')
+        t = '<h2>Recent Translations</h2>'
+        for r in results:
+            try:
+                st = codecs.encode(r.st, 'utf-8')
+            except:
+                st = clean(r.st)
+            try:
+                tt = codecs.encode(r.tt, 'utf-8')
+            except:
+                tt = clean(r.tt)
+            t = t + '<p>' + st + '</p>'
+            t = t + '<code>' + tt + '</code>'
+        self.response.out.write(t)
+
+class Help(webapp.RequestHandler):
+    def get(self):
+        self.requesthandler()
+    def post(self):
+        self.requesthandler()
+    def requesthandler(self):
+        try:
+            language = TestLanguage.browserlanguage(self.request.headers['Accept-Language'])
+        except:
+            language = 'en'
+        dmenus = '<ul><li><a href=http://www.worldwidelexicon.org>Worldwide Lexicon</a></li>\
+                <li><a href=http://blog.worldwidelexicon.org>' + g(language,'Blog') + '</a></li>\
+                <li><a href=http://www.worldwidelexicon.org>' + g(language,'Tools For Webmasters') + '</a></li></ul>'
+        intro = 'The <a href=https://addons.mozilla.org/en-US/firefox/addon/13897>Firefox Translator</a> enables you to browse the web in any language. \
+        Simply open a URL, and if it is in a foreign language, it will translate it to your language. \
+        You can also edit the translations to fix mistakes.'
+        install = '<ol>\
+        <li>Using Firefox, go to <a href=https://addons.mozilla.org/en-US/firefox/addon/>addons.mozilla.org/en-US/firefox/addon/13897</a></li>\
+        <li>Install the addon</li>\
+        <li>Restart Firefox</li>\
+        <li>Go to a foreign language website. Try <a href=http://www.lemonde.fr>Le Monde</a> and <a href=http://www.elpais.es>El Pais</a></li>\
+        </ol>'
+        config1 = 'The Firefox Translator offers many options to display \
+        translations. Go to the Options link (it is on the right side of \
+        the toolbar). When you go there, you can adjust these settings:'
+        config2 = '<ul>\
+        <li>Display bilingual text (the original text and the translation)</li>\
+        <li>Display machine translations</li>\
+        <li>Display translations from anonymous users</li>\
+        <li>Require a minimum quality score for translations</li>\
+        <li>Automatic translations (the translator will translate any page that is in a foreign language)</li>\
+        </ul>'
+        privacy = 'The Firefox Translator communicates with several translation \
+        services when it is active. You can disable the toolbar by clicking on the blue and green icon in the lower right corner \
+        of the window. The toolbar is automatically disabled in these situations:'
+        privacy2 = '<ul>\
+        <li>Firefox is in "Private Browsing" mode</li>\
+        <li>You visit a secure website</li>\
+        <li>You have disabled the toolbar</li>\
+        </ul>'
+        text = memcache.get('/firefox/help/' + language)
+        if text is None:
+            t = g(language, intro)
+            t = t + '<h3>' + g(language,'Installation') + '</h3>'
+            t = t + g(language,install) + '<p>'
+            t = t + '<h3>' + g(language,'Configuration') + '</h3>'
+            t = t + g(language,config1) + '<p>'
+            t = t + '<p>' + g(language,config2) + '</p>'
+            t = t + '<h3>' + g(language, 'Privacy') + '</h3>'
+            t = t + '<p>' + g(language, privacy) + '</p>'
+            t = t + g(language, privacy2) + '<p>'
+            w = web()
+            w.get(template)
+            w.replace(template, '[social_translation]', g(language, 'Firefox Translator (Help)'))
+            w.replace(template, '[introduction]', t)
+            w.replace(template, '[start_form]', '')
+            w.replace(template, '[downloads_intro]','')
+            w.replace(template, '[google_analytics]',google_analytics_header)
+            w.replace(template, '[title]','Der Mundo : ' + g(language,'The World In Your Language'))
+            w.replace(template, '[meta]', sharethis_header + snapshot_code)
+            w.replace(template, '[copyright]',standard_footer)
+            w.replace(template, '[menu]',dmenus)
+            w.replace(template, '[about]', g(language,'About'))
+            w.replace(template, '[about_worldwide_lexicon]', g(language, sidebar_about))
+            w.replace(template, '[downloads_intro]', g(language, web_tools))
+            w.replace(template, '[tagline]', g(language, 'The World In Your Language'))
+            w.replace(template, '[share_this_page]', g(language, 'Share This Page'))
+            w.replace(template, '[share_this_button]', sharethis_button)
+            w.replace(template, '[instructions]', '')
+            w.replace(template, '[instructions_prompt]', '')
+            w.replace(template, '[firefox_translator]', g(language, 'Firefox Translator'))
+            w.replace(template, '[about_firefox_translator]', g(language, firefox_translator_prompt) + g(language, firefox_translator_prompt2))
+            w.replace(template, '[new_pages]', '')
+            text = w.out(template)
+            self.response.out.write(text)
+
+class UserProfile(webapp.RequestHandler):
+    def get(self, username=''):
+        self.requesthandler(username)
+    def post(self, username=''):
+        self.requesthandler(username)
+    def requesthandler(self, username=''):
+        try:
+            language = TestLanguage.browserlanguage(self.request.headers['Accept-Language'])
+        except:
+            language = 'en'
+        dmenus = '<ul><li><a href=http://www.worldwidelexicon.org>Worldwide Lexicon</a></li>\
+                <li><a href=http://blog.worldwidelexicon.org>' + g(language,'Blog') + '</a></li>\
+                <li><a href=http://www.worldwidelexicon.org>' + g(language,'Tools For Webmasters') + '</a></li></ul>'
+        w = web()
+        udb = db.Query(Users)
+        udb.filter('username = ', username)
+        item = udb.get()
+        if item is not None:
+            city = item.city
+            country = item.country
+            title = item.username
+            try:
+                description = codecs.encode(item.description, 'utf-8')
+            except:
+                description = clean(item.description)
+        else:
+            title = 'Unknown User'
+            description = ''
+            city = ''
+            country = ''
+        rt = memcache.get('/dermundo/profile/recenttranslations/' + username)
+        if rt is None:
+            tdb = db.Query(Translation)
+            if string.count(username, '.') > 1:
+                tdb.filter('remote_addr = ', username)
+            else:
+                tdb.filter('username = ', username)
+            tdb.order('-date')
+            results = tdb.fetch(limit=10)
+            rt = ''
+            if len(results) > 0:
+                for r in results:
+                    rt = rt + '<h4>'
+                    if len(r.domain) > 0:
+                        if len(r.url) > 0:
+                            url = r.url
+                            if string.count(r.url, 'http://') < 1:
+                                url = url + 'http://'
+                            rt = rt + '<a href=' + url + '>(' + r.domain + ')</a> '
+                        else:
+                            rt = rt + '<a href=http://' + r.domain + '>(' + r.domain + ')</a> '
+                    rt = rt + '&rarr; ' + Languages.getname(r.tl) + '</h4>'
+                    st = clean(r.st)
+                    tt = clean(r.tt)
+                    rt = rt + '<p>' + st + '</p>'
+                    rt = rt + '<code>' + tt + '</code>'
+        w.get(usertemplate)
+        w.replace(usertemplate, '[meta]', sharethis_header + snapshot_code)
+        w.replace(usertemplate, '[google_analytics]', google_analytics_header)
+        w.replace(usertemplate, '[title]', title)
+        w.replace(usertemplate, '[tagline]', g(language, 'The World In Your Language'))
+        w.replace(usertemplate, '[menu]', dmenus)
+        w.replace(usertemplate, '[description]', g(language, description, professional=False))
+        w.replace(usertemplate, '[city]', city)
+        w.replace(usertemplate, '[country]', country)
+        w.replace(usertemplate, '[firefox_translator]', g(language, 'Firefox Translator'))
+        w.replace(usertemplate, '[about_firefox_translator]', g(language,firefox_translator_prompt) + g(language, firefox_translator_prompt2))
+        w.replace(usertemplate, '[about]', g(language, 'About'))
+        w.replace(usertemplate, '[share_this_page]', g(language, 'Share This Page'))
+        w.replace(usertemplate, '[about_worldwide_lexicon]', g(language,sidebar_about))
+        w.replace(usertemplate, '[downloads_intro]', g(language, web_tools))
+        w.replace(usertemplate, '[share_this_button]', sharethis_button)
+        w.replace(usertemplate, '[copyright]', standard_footer)
+        w.replace(usertemplate, '[recent_translations]', g(language, 'Recent Translations'))
+        w.replace(usertemplate, '[recent_translation_list]', rt)
+        self.response.out.write(w.out(usertemplate))
                 
 application = webapp.WSGIApplication([('/translate', Translator),
                                       ('/translate/view', TranslationFrame),
@@ -711,7 +994,10 @@ application = webapp.WSGIApplication([('/translate', Translator),
                                       ('/translate/shortcut', GenerateShortCut),
                                       ('/translate/translators', DisplayTranslators),
                                       ('/sidebar', Sidebar),
-                                      ('/translate/reload', TranslateReloader)],
+                                      (r'/profile/(.*)', UserProfile),
+                                      ('/help/firefox', Help),
+                                      ('/translate/reload', TranslateReloader),
+                                      ('/translate/recent', RecentTranslations)],
                                      debug=True)
 
 def main():

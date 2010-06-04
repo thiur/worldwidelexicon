@@ -114,7 +114,10 @@ class LSP():
                     parms['output']='json'
                     form_data = urllib.urlencode(parms)
                     result = urlfetch.fetch(url=fullurl, payload = form_data, method = urlfetch.POST, headers = {'Content-Type' : 'application/x-www-form-urlencoded' , 'Accept-Charset' : 'utf-8'})
-                    tt = result.content
+                    if result.content == 200:
+                        tt = result.content
+                    else:
+                        tt = ''
                     # check to see if response is in JSON format and contains
                     # a guid field.
                     try:
@@ -128,39 +131,11 @@ class LSP():
                         results['sl']=sl
                         results['tl']=tl
                     if len(tt) > 0 and result.status_code == 200:
+                        found = True
                         memcache.set('/lsp/' + lsp + '/' + guid, tt, ttl)
                         memcache.set('/lspd/' + lsp + '/' + guid, results, ttl)
-                    # if guid is found, check Translation() data store to see
-                    # if a record exists, if no, create one.
-                    try:
-                        if len(results['guid']) > 0:
-                            tdb = db.Query(Translation)
-                            tdb.filter('guid = ', results['guid'])
-                            tdb.filter('sl = ', sl)
-                            tdb.filter('tl = ', tl)
-                            item = tdb.get()
-                            if item is None:
-                                m = md5.new()
-                                m.update(st)
-                                md5hash = str(m.hexdigest())
-                                item = Translation()
-                                item.guid = results['guid']
-                                item.md5hash = md5hash
-                                item.sl = sl
-                                item.tl = tl
-                                item.st = st
-                            item.tt = results['tt']
-                            item.professional = True
-                            item.anonymous = False
-                            item.username = lsp
-                            item.indexed = False
-                            item.put()
-                            p = dict()
-                            p['guid']=results['guid']
-                            taskqueue.add(url='/ngrams', params=p)
-                    except:
-                        pass
-                    # return the translation
+                    else:
+                        found = False
                     return results
             else:
                     return ''
