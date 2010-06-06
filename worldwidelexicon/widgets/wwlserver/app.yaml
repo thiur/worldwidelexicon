@@ -168,9 +168,8 @@ handlers:
 - url: /status
   script: admin.py
   
-- url: /stats/scores
-  script: scores.py
-  secure: optional
+- url: /stats
+  script: translations.py
   
 - url: /stream
   script: main.py
@@ -204,7 +203,7 @@ handlers:
   script: translations.py
   
 - url: /unicode
-  script: translations.py
+  script: unicode.py
   
 - url: /users/(.*)
   script: users.py

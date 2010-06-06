@@ -267,6 +267,10 @@ class WebServer(webapp.RequestHandler):
             w.replace(template,'[right_column]', r)
             self.response.out.write(w.out(template))
         else:
+            headers = self.request.headers
+            host = headers.get('host','')
+            if host == 'www.dermundo.com':
+                self.redirect('/translate')
             w = web()
             w.get(template)
             w.replace(template,'[google_analytics]',google_analytics_header)

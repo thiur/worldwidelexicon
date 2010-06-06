@@ -74,8 +74,10 @@ from www import www
 from geo import geo
 from akismet import Akismet
 from transcoder import transcoder
+from database import Cache
 from database import Comment
 from database import Directory
+from database import Log
 from database import Search
 from database import Translation
 from database import languages
@@ -86,8 +88,8 @@ from language import TestLanguage
 from lsp import LSP
 from ip import ip
 
-def clean(text):
-    return transcoder.clean(text)
+def clean(text, charset=''):
+    return transcoder.clean(text, charset)
 
 class tx():
     sl = ''
@@ -436,20 +438,43 @@ class SubmitTranslation(webapp.RequestHandler):
                 validuser = True
         sl = self.request.get('sl')
         tl = self.request.get('tl')
-        st = self.request.get('st')
-        st = clean(st)
-        tt = self.request.get('tt')
-        tt = clean(tt)
+        domain = self.request.get('domain')
+        url = self.request.get('url')
         title = clean(self.request.get('title'))
         ttitle = clean(self.request.get('ttitle'))
         description = clean(self.request.get('description'))
         tdescription = clean(self.request.get('tdescription'))
+        headers = self.request.headers
+        headerkeys = headers.keys()
+        headerkeys.sort()
+        lt = ''
+        for h in headerkeys:
+             lt = lt + h + ' : ' + headers[h] + '\n'
+        try:
+            charset = string.lower(headers['Accept-Charset'])
+        except:
+            charset = ''
+        st = self.request.get('st')
+        st = clean(st, charset=charset)
+        tt = self.request.get('tt')
+        tt = clean(tt, charset=charset)
+        lt = lt + 'sl=' + sl + '\n'
+        lt = lt + 'tl=' + tl + '\n'
+        lt = lt + 'domain=' + domain + '\n'
+        lt = lt + 'url=' + url + '\n'
+        try:
+            lt = lt + 'st=' + st + '\n'
+        except:
+            lt = lt + 'st=ERROR\n'
+        try:
+            lt = lt + 'tt=' + tt + '\n'
+        except:
+            lt = lt + 'tt=ERROR\n'
+        Log.log('/submit', lt)
         if len(sl) < 1 or len(tl) < 1 or len(st) < 1 or len(tt) < 1:
             validquery=False
         if len(sl) < 1 and len(tl) < 1:
             emptyform = True
-        domain = self.request.get('domain')
-        url = self.request.get('url')
         doc = self.request.get('doc')
         if proxy == 'y':
             remote_addr = self.request.get('ip')
@@ -1390,6 +1415,7 @@ class CacheTranslation(webapp.RequestHandler):
         apikey = self.request.get('apikey')
         mtengine = self.request.get('mtengine')
         batch = self.request.get('batch')
+        purge = self.request.get('purge')
         if batch == 'y':
             ctr = 0
             while ctr < 100:
@@ -1407,6 +1433,8 @@ class CacheTranslation(webapp.RequestHandler):
                     p['apikey']=apikey
                     p['mtengine']=mtengine
                     taskqueue.add(url='/cache', params=p)
+        elif purge == 'y':
+            Cache.purge()
         elif len(st) > 0 and len(tt) > 0:
             m = md5.new()
             m.update(st)
@@ -1454,6 +1482,68 @@ class CacheTranslation(webapp.RequestHandler):
             t = t + '<tr><td colspan=2><input type=submit value=OK></td></tr>'
             t = t + '</table></form>'
             www.serve(self, t, sidebar = self.__doc__, title = '/cache')
+
+class Statistics(webapp.RequestHandler):
+    """
+    <h3>/stats</h3>
+
+    This API returns statistics about translations. It expects one or more of the following
+    parameters:<p>
+    <ul>
+    <li>url</li>
+    <li>domain</li>
+    <li>username</li>
+    <li>remote_addr</li>
+    <li>sl</li>
+    <li>tl</li>
+    <li>startdate</li>
+    <li>enddate</li>
+    </ul>
+
+    It returns an XML or JSON object with a the following fields:<p>
+
+    <ul>
+    <li>swords : source text words</li>
+    <li>twords : translated words</li>
+    <li>translations : number of translations</li>
+    <li>users : comma separated list of users</li>
+    <li>languages : comma separate list of languages</li>
+    </ul>
+
+    NOTE: because of the way App Engine indexes data, this API can't be used
+    to query the entire system for global statistics. It works best when queries
+    are done on a per URL, per target language basis, since the number of transactions
+    will typically be small enough not to exceed Google's limit on query sizes.
+    We will add global statistics in a future release when Google supports map
+    reduce type functionality in App Engine.
+    """
+    def get(self):
+        self.requesthandler()
+    def post(self):
+        self.requesthandler()
+    def requesthandler(self):
+        url = self.request.get('url')
+        domain = self.request.get('domain')
+        username = self.request.get('username')
+        sl = self.request.get('sl')
+        tl = self.request.get('tl')
+        remote_addr = self.request.get('ip')
+        url = string.replace(url, 'http://','')
+        url = string.replace(url, 'https://', '')
+        if len(url) > 0 or len(domain) > 0 or len(username) > 0 or len(sl) > 0 or len(tl) > 0 or len(remote_addr) > 0:
+            results = Translation.stats(sl=sl, tl=tl, domain=domain, url=url, remote_addr=remote_addr)
+            self.response.out.write(str(results))
+        else:
+            t = '<form action=/stats method=get><table>'
+            t = t + '<tr><td>url</td><td><input type=text name=url></td></tr>'
+            t = t + '<tr><td>domain</td><td><input type=text name=domain></td></tr>'
+            t = t + '<tr><td>source language (sl)</td><td><input type=text name=sl></td></tr>'
+            t = t + '<tr><td>target language (tl)</td><td><input type=text name=tl></td></tr>'
+            t = t + '<tr><td>username</td><td><input type=text name=username></td></tr>'
+            t = t + '<tr><td>user ip (ip)</td><td><input type=text name=ip></td></tr>'
+            t = t + '<tr><td colspan=2><input type=submit value=OK></td></tr>'
+            t = t + '</table></form>'
+            www.serve(self, t, sidebar = self.__doc__, title = '/stats')
                 
 application = webapp.WSGIApplication([('/q', GetTranslations),
                                       ('/f', FuzzySearch),
@@ -1469,6 +1559,7 @@ application = webapp.WSGIApplication([('/q', GetTranslations),
                                       ('/r', RevisionHistory),
                                       ('/u', URLHistory),
                                       ('/spam', SpamTranslations),
+                                      ('/stats', Statistics),
                                       ('/submit', SubmitTranslation)],
                                      debug=True)
 

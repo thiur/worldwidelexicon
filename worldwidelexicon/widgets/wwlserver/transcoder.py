@@ -137,13 +137,19 @@ def smart_str(s, encoding='utf-8', errors='strict', from_encoding='utf-8'):
 
 class transcoder():
     @staticmethod
-    def clean(text):
+    def clean(text, charset=''):
         """
         This function is used to check character encodings and to encode
         texts in the UTF-8 encoding. It will convert from ASCII and ISO-Latin-1
         if the incoming text is not UTF-8. Support for detection and conversion
         of other encodings will be added in the future.
         """
+        if len(charset) > 0:
+            try:
+                utext = smart_str(text, encoding='utf-8', from_encoding=charset)
+                return utext
+            except:
+                pass
         try:
             utext = smart_str(text, encoding='utf-8', from_encoding='utf-8')
         except:

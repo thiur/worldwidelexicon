@@ -451,6 +451,63 @@ class BlackList(db.Model):
         else:
             return None
 
+class Cache(db.Model):
+    """
+    Persistent cache, implemented as a layer on top of memcache to
+    improve performance. 
+    """
+    name = db.StringProperty(default='')
+    value = db.TextProperty(default='')
+    expirationdate = db.DateTimeProperty()
+    @staticmethod
+    def getitem(parm, ttl=7200):
+        if len(parm) > 250:
+            m = md5.new()
+            m.update(parm)
+            parm = str(m.hexdigest())
+        text = memcache.get(parm)
+        if text is not None:
+            return text
+        else:
+            cdb = db.Query(Cache)
+            cdb.filter('name = ', parm)
+            item = cdb.get()
+            if item is None:
+                return
+            else:
+                if datetime.datetime.now() > item.expirationdate:
+                    item.delete()
+                    return
+                memcache.set(parm, item.value, ttl)
+                return item.value
+    @staticmethod
+    def setitem(parm, v, ttl=7200):
+        td = datetime.timedelta(seconds=ttl)
+        expirationdate = datetime.datetime.now() + td
+        if len(parm) > 250:
+            m = md5.new()
+            m.update(parm)
+            parm = str(m.hexdigest())
+        memcache.set(parm, v, ttl)
+        cdb = db.Query(Cache)
+        cdb.filter('name = ', parm)
+        item = cdb.get()
+        if item is None:
+            item = Cache()
+            item.name = parm
+        item.value = unicode(v, 'utf-8')
+        item.expirationdate = expirationdate
+        item.put()
+        memcache.set(parm, v, ttl)
+        return True
+    @staticmethod
+    def purge():
+        cdb = db.Query(Cache)
+        cdb.filter('expirationdate < ', datetime.datetime.now())
+        results = cdb.fetch()
+        db.delete(results)
+        return True
+
 class Comment(db.Model):
     """
     Google Data Store for comments about translations, and related
@@ -1092,6 +1149,17 @@ class languages():
             if valid:
                 t = t + '<option value="' + l + '">' + langlist.get(l, '') + '</option>'
         return t
+
+class Log(db.Model):
+    application = db.StringProperty(default='')
+    date = db.DateTimeProperty(auto_now_add=True)
+    text = db.TextProperty(default='')
+    @staticmethod
+    def log(application, text):
+        item = Log()
+        item.app = application
+        item.text = text
+        item.put()
 
 class rec():
     sl = 'en'
@@ -2000,6 +2068,41 @@ class Translation(db.Model):
                 item.put()
                 return True
         return False
+    @staticmethod
+    def stats(sl='', tl='', domain='', url='', username='', remote_addr='', startdate=None, enddate=None):
+        tdb = db.Query(Translation)
+        if len(sl) > 0:
+            tdb.filter('sl = ', sl)
+        if len(tl) > 0:
+            tdb.filter('tl = ', tl)
+        if len(domain) > 0:
+            tdb.filter('domain = ', domain)
+        if len(url) > 0:
+            tdb.filter('url = ', url)
+        if len(remote_addr) > 0:
+            tdb.filter('remote_addr = ', remote_addr)
+        if len(username) > 0:
+            tdb.filter('username = ', username)
+        records = tdb.fetch(limit=250)
+        results = dict()
+        results['swords']=0
+        results['twords']=0
+        results['translations']=len(records)
+        results['users']=list()
+        results['languages']=list()
+        for r in records:
+            if r.swords is not None:
+                results['swords']=results['swords']+r.swords
+                results['twords']=results['twords']+r.twords
+                if r.username not in results['users']:
+                    results['users'].append(r.username)
+                if r.remote_addr not in results['users']:
+                    results['users'].append(r.remote_addr)
+                if r.sl not in results['languages']:
+                    results['languages'].append(r.sl)
+                if r.tl not in results['languages']:
+                    results['languages'].append(r.tl)
+        return results
     @staticmethod
     def submit(sl='', st='', tl='', tt='', username='', remote_addr='', domain='', url='', city='', state='', country='', longitude=None, latitude=None, professional=False, spam=False, lsp='', proxy='n', apikey=''):
         if len(sl) > 0 and len(st) > 0 and len(tl) > 0 and len(tt) > 0:
