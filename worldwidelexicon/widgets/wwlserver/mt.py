@@ -80,6 +80,7 @@ from google.appengine.ext.webapp.util import run_wsgi_app
 from google.appengine.ext import db
 from google.appengine.api import urlfetch
 from google.appengine.api import memcache
+from google.appengine.api.labs import taskqueue
 import demjson
 import urllib
 import string
@@ -375,6 +376,16 @@ class MTWrapper():
       if tt is not None:
         tt = clean(tt)
         if len(tt) > 0:
+            if len(url) > 0:
+                p = dict()
+                p['sl']=sl
+                p['tl']=tl
+                p['st']=st
+                p['tt']=tt
+                p['domain']=domain
+                p['url']=url
+                p['mtengine']=mtengine
+                taskqueue.add(url = '/cache', params=p)
             if len(md5hash) > 0:
                 memcache.set('/mt/' + sl + '/' + tl + '/' + md5hash, tt, 3600)
             elif len(st) < 200:
