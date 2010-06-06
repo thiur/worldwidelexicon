@@ -614,6 +614,8 @@ class SimpleTranslation(webapp.RequestHandler):
     <li>allow_anonymous = y/n (allow anonymous translations, default = y)</li>
     <li>allow_machine = y/n (allow machine translations, default = y)</li>
     <li>min_score = minimum average quality score (0 to 5, default 0)</li>
+    <li>domain = optional domain</li>
+    <li>url = optional url</li>
     <li>lsp = name of professional translation service provider (will request a professional translation)</li>
     <li>lspusername = username to submit to professional translation svc (overrides system default)</li>
     <li>lsppw = password or API key to submit to professional translation svc (overrides system default)</li>
@@ -659,6 +661,8 @@ class SimpleTranslation(webapp.RequestHandler):
         allow_anonymous = self.request.get('allow_anonymous')
         allow_machine = self.request.get('allow_machine')
         min_score = self.request.get('min_score')
+        domain = self.request.get('domain')
+        url = self.request.get('url')
         output = self.request.get('output')
         mtengine = self.request.get('mtengine')
         queue = self.request.get('queue')
@@ -777,7 +781,7 @@ class SimpleTranslation(webapp.RequestHandler):
             if len(tt) < 1 and allow_machine != 'n':
                 mt = MTWrapper()
                 mtengine = mt.pickEngine(sl,tl)
-                tt = mt.getTranslation(sl, tl, st)
+                tt = mt.getTranslation(sl, tl, st, domain=domain, url=url)
 
             # phasing out call to Translation.lucky() due to issues with properly finding user generated translations
             #
@@ -831,6 +835,8 @@ class SimpleTranslation(webapp.RequestHandler):
             t = t + '<tr><td>Source Language</td><td><input type=text name=sl></td></tr>'
             t = t + '<tr><td>Target Language</td><td><input type=text name=tl></td></tr>'
             t = t + '<tr><td colspan><b>Text To Translate</b><br><textarea name=st></textarea></td></tr>'
+            t = t + '<tr><td>Optional Domain</td><td><input type=text name=domain></td></tr>'
+            t = t + '<tr><td>Optional Source URL</td><td><input type=text name=url></td></tr>'
             t = t + '<tr><td>Language Service Provider (request pro translation)</td>'
             t = t + '<td><input type=text name=lsp></td></tr>'
             t = t + '<tr><td>LSP Username</td><td><input type=text name=lspusername></td></tr>'
@@ -1455,8 +1461,8 @@ class CacheTranslation(webapp.RequestHandler):
                 item.md5hash = md5hash
                 item.sl = sl
                 item.tl = tl
-                item.st = st
-                item.tt = tt
+                item.st = unicode(st, 'utf-8')
+                item.tt = unicode(tt, 'utf-8')
                 item.domain = domain
                 item.url = url
                 item.mtengine = mtengine

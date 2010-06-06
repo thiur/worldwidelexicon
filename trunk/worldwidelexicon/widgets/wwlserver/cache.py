@@ -1,5 +1,6 @@
 from google.appengine.ext import db
 from google.appengine.api import memcache
+import pickle
 
 class Cache(db.Model):
     """
@@ -24,7 +25,7 @@ class Cache(db.Model):
             parm = str(m.hexdigest())
         text = memcache.get(parm)
         if text is not None:
-            return text
+            return pickle.loads(text)
         else:
             cdb = db.Query(Cache)
             cdb.filter('name = ', parm)
@@ -35,30 +36,32 @@ class Cache(db.Model):
                 if datetime.datetime.now() > item.expirationdate:
                     item.delete()
                     return
-                memcache.set(parm, item.value, ttl)
-                return item.value
+                text = pickle.loads(item.value)
+                memcache.set(parm, text, ttl)
+                return text
     @staticmethod
     def setitem(parm, v, ttl=7200):
         """
         Stores an item to memcache and to the datastore. 
         """
+        vt = pickle.dumps(v)
         td = datetime.timedelta(seconds=ttl)
         expirationdate = datetime.datetime.now() + td
         if len(parm) > 250:
             m = md5.new()
             m.update(parm)
             parm = str(m.hexdigest())
-        memcache.set(parm, v, ttl)
+        memcache.set(parm, vt, ttl)
         cdb = db.Query(Cache)
         cdb.filter('name = ', parm)
         item = cdb.get()
         if item is None:
             item = Cache()
             item.name = parm
-        item.value = unicode(v, 'utf-8')
+        item.value = unicode(vt, 'utf-8')
         item.expirationdate = expirationdate
         item.put()
-        memcache.set(parm, v, ttl)
+        memcache.set(parm, vt, ttl)
         return True
     @staticmethod
     def purge():
