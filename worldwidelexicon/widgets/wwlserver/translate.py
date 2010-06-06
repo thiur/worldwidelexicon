@@ -335,6 +335,7 @@ class Translator(webapp.RequestHandler):
     def get(self, p1='', p2='', p3=''):
         slu = Settings.get('speaklikeusername')
         slp = Settings.get('speaklikepw')
+        language = self.request.get('tl')
         try:
             language = TestLanguage.browserlanguage(self.request.headers['Accept-Language'])
         except:
@@ -947,11 +948,15 @@ class UserProfile(webapp.RequestHandler):
             rt = ''
             if len(results) > 0:
                 for r in results:
+                    if len(city) < 1:
+                        city = r.city
+                    if len(country) < 1:
+                        country = r.country
                     rt = rt + '<h4>'
                     if len(r.domain) > 0:
                         if len(r.url) > 0:
                             url = r.url
-                            if string.count(r.url, 'http://') < 1:
+                            if string.count(url, 'http://') < 1:
                                 url = url + 'http://'
                             rt = rt + '<a href=' + url + '>(' + r.domain + ')</a> '
                         else:
@@ -961,6 +966,32 @@ class UserProfile(webapp.RequestHandler):
                     tt = codecs.encode(r.tt, 'utf-8')
                     rt = rt + '<p>' + unicode(st, 'utf-8') + '</p>'
                     rt = rt + '<code>' + unicode(tt, 'utf-8') + '</code>'
+        stat_data = memcache.get('/dermundo/stats/' + language + '/' + username)
+        if stat_data is None:
+            if string.count(username, '.') > 1:
+                results = Translation.stats(remote_addr=username)
+            else:
+                results = Translation.stats(username=username)
+            if type(results) is dict:
+                stat_data = '<table>'
+                stat_data = stat_data + '<tr><td>' + g(language, 'Translations') + '</td><td>' + str(results['translations']) + '</td></tr>'
+                stat_data = stat_data + '<tr><td>' + g(language, 'Translated Words') + '</td><td>' + str(results['twords']) + '</td></tr>'
+                langlist = results['languages']
+                langlist.sort()
+                stat_data = stat_data + '<tr><td>' + g(language, 'Languages') + '</td><td>'
+                for l in langlist:
+                    stat_data = stat_data + ' ' + Languages.getname(l)
+                stat_data = stat_data + '</td></tr>'
+                stat_data = stat_data + '<tr><td>' + g(language, 'Cities') + '</td><td>'
+                cities = results['cities']
+                for c in cities:
+                    stat_data = stat_data + ' ' + c
+                stat_data = stat_data + '</td></tr>'
+                stat_data = stat_data + '</table>'
+            else:
+                stat_data = ''
+            if len(stat_data) > 0:
+                memcache.set('/dermundo/stats/' + language + '/' + username, stat_data, 600)
         w.get(usertemplate)
         w.replace(usertemplate, '[meta]', sharethis_header + snapshot_code)
         w.replace(usertemplate, '[google_analytics]', google_analytics_header)
@@ -977,6 +1008,8 @@ class UserProfile(webapp.RequestHandler):
         w.replace(usertemplate, '[about_worldwide_lexicon]', g(language,sidebar_about))
         w.replace(usertemplate, '[downloads_intro]', g(language, web_tools))
         w.replace(usertemplate, '[share_this_button]', sharethis_button)
+        w.replace(usertemplate, '[statistics]', g(language, 'Statistics'))
+        w.replace(usertemplate, '[statistics_data]', stat_data)
         w.replace(usertemplate, '[copyright]', standard_footer)
         w.replace(usertemplate, '[recent_translations]', g(language, 'Recent Translations'))
         w.replace(usertemplate, '[recent_translation_list]', rt)

@@ -252,7 +252,7 @@ class wwl():
             form_data = urllib.urlencode(f)
             url = wwl.server() + '/t?' + form_data
             try:
-                result = urlfetch.fetch(url=url)
+                result = urlfetch.fetch(url=url, deadline=2)
                 if result.status_code == 200:
                     tt = clean(result.content)
                     return tt

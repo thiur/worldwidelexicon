@@ -504,7 +504,7 @@ class Cache(db.Model):
     def purge():
         cdb = db.Query(Cache)
         cdb.filter('expirationdate < ', datetime.datetime.now())
-        results = cdb.fetch()
+        results = cdb.fetch(limit=250)
         db.delete(results)
         return True
 
@@ -2090,18 +2090,22 @@ class Translation(db.Model):
         results['translations']=len(records)
         results['users']=list()
         results['languages']=list()
+        results['cities']=list()
         for r in records:
             if r.swords is not None:
                 results['swords']=results['swords']+r.swords
+            if r.twords is not None:
                 results['twords']=results['twords']+r.twords
-                if r.username not in results['users']:
-                    results['users'].append(r.username)
-                if r.remote_addr not in results['users']:
-                    results['users'].append(r.remote_addr)
-                if r.sl not in results['languages']:
-                    results['languages'].append(r.sl)
-                if r.tl not in results['languages']:
-                    results['languages'].append(r.tl)
+            if r.username not in results['users']:
+                results['users'].append(r.username)
+            if r.remote_addr not in results['users']:
+                results['users'].append(r.remote_addr)
+            if r.sl not in results['languages']:
+                results['languages'].append(r.sl)
+            if r.tl not in results['languages']:
+                results['languages'].append(r.tl)
+            if r.city not in results['cities']:
+                results['cities'].append(r.city)
         return results
     @staticmethod
     def submit(sl='', st='', tl='', tt='', username='', remote_addr='', domain='', url='', city='', state='', country='', longitude=None, latitude=None, professional=False, spam=False, lsp='', proxy='n', apikey=''):
