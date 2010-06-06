@@ -31,3 +31,7 @@ cron:
 - description: reload landing page for dermundo.com/translate
   url: /translate/reload
   schedule: every 10 minutes
+
+- description: purge cache
+  url: /cache?purge=y
+  schedule: every 1 minutes

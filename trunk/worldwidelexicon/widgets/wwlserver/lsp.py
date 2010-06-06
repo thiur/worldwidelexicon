@@ -67,7 +67,7 @@ def clean(text):
 
 class LSP():
     @staticmethod
-    def get(sl, tl, st, domain='', url='', lsp='', lspusername='', lsppw='', ttl = 7200):
+    def get(sl, tl, st, domain='', url='', lsp='', lspusername='', lsppw='', ttl = 1800):
         """
         This function is checks memcached for a cached translation from the desired LSP and text,
         and if one is cached locally returns it. If the cache has expired or does not exist, it
@@ -113,8 +113,13 @@ class LSP():
                     parms['apikey']=apikey
                     parms['output']='json'
                     form_data = urllib.urlencode(parms)
-                    result = urlfetch.fetch(url=fullurl, payload = form_data, method = urlfetch.POST, headers = {'Content-Type' : 'application/x-www-form-urlencoded' , 'Accept-Charset' : 'utf-8'})
-                    if result.content == 200:
+                    try:
+                        result = urlfetch.fetch(url=fullurl, payload = form_data, method = urlfetch.POST, headers = {'Content-Type' : 'application/x-www-form-urlencoded' , 'Accept-Charset' : 'utf-8'})
+                        status_code = result.status_code
+                    except:
+                        result = None
+                        status_code = 500
+                    if status_code == 200:
                         tt = result.content
                     else:
                         tt = ''
@@ -130,7 +135,7 @@ class LSP():
                         results['st']=st
                         results['sl']=sl
                         results['tl']=tl
-                    if len(tt) > 0 and result.status_code == 200:
+                    if len(tt) > 0 and status_code == 200:
                         found = True
                         memcache.set('/lsp/' + lsp + '/' + guid, tt, ttl)
                         memcache.set('/lspd/' + lsp + '/' + guid, results, ttl)

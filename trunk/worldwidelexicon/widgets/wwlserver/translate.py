@@ -38,6 +38,7 @@ from google.appengine.api.labs import taskqueue
 import feedparser
 from excerpt_extractor import get_summary
 from database import APIKeys
+from database import Cache
 from database import Directory
 from database import Languages
 from database import Settings
@@ -64,7 +65,7 @@ def clean(text):
     return transcoder.clean(text)
 
 def g(tl, text, professional=True):
-    t = memcache.get('/wwlcache/' + tl + '/' + text)
+    t = Cache.getitem('/wwlcache/' + tl + '/' + text)
     if t is not None:
         return t
     else:
@@ -78,7 +79,7 @@ def g(tl, text, professional=True):
         else:
             t = clean(wwl.get('en', tl, text))
         if len(t) > 0:
-            memcache.set('/wwlcache/' + tl + '/' + text, t, 1800)
+            Cache.setitem('/wwlcache/' + tl + '/' + text, t, 1800)
             return t
         else:
             return text
@@ -343,10 +344,6 @@ class Translator(webapp.RequestHandler):
                 <li><a href=http://www.worldwidelexicon.org>' + g(language,'Tools For Webmasters') + '</a></li></ul>'
         if len(language) > 2:
             language = language[0:2]
-        t = memcache.get('/dermundo/cache/' + language)
-        if t is not None:
-            self.response.out.write(t)
-            return
         proxy_settings = '<meta name="allow_edit" content="y" />'        
         lsp = ''
         lspusername = ''
@@ -358,6 +355,10 @@ class Translator(webapp.RequestHandler):
             self.response.out.write('<h2>Page Not Found</h2>')
         else:
             #t = '<h1>' + language + '</h1>'
+            text = Cache.getitem('/dermundo/cache/' + language)
+            if text is not None:
+                self.response.out.write(text + '<p>This page is memcached</p>')
+                return
             w = web()
             w.get(template)
             w.replace(template,'[social_translation]', g(language,'Social Translation For The Web'))
@@ -431,7 +432,7 @@ class Translator(webapp.RequestHandler):
                 if len(t) > 0:
                     memcache.set('/dermundo/newpages', t, 240)
             w.replace(template,'[new_pages_list]', t)
-            memcache.set('/dermundo/cache/' + language, w.out(template), 650)
+            Cache.setitem('/dermundo/cache/' + language, w.out(template), 600)
             self.response.out.write(w.out(template))
     def post(self, p1='', p2='', p3=''):
         self.redirect('http://blog.worldwidelexicon.org')
@@ -447,11 +448,20 @@ class TranslateReloader(webapp.RequestHandler):
             p = self.request.get('p')
             if len(tl) > 0:
                 if len(p) < 1:
-                    urlfetch.fetch(url='http://www.dermundo.com/translate', headers={'Accept-Language': tl})
+                    try:
+                        urlfetch.fetch(url='http://www.dermundo.com/translate', headers={'Accept-Language': tl})
+                    except:
+                        pass
                 elif p == 'shorturl':
-                    urlfetch.fetch(url='http://www.dermundo.com/xwUBM', headers={'Accept-Language': tl})
+                    try:
+                        urlfetch.fetch(url='http://www.dermundo.com/xwUBM', headers={'Accept-Language': tl})
+                    except:
+                        pass
                 elif p == 'help':
-                    urlfetch.fetch(url='http://www.dermundo.com/help/firefox', headers={'Accept-Language': tl})
+                    try:
+                        urlfetch.fetch(url='http://www.dermundo.com/help/firefox', headers={'Accept-Language': tl})
+                    except:
+                        pass
                 else:
                     pass
             else:
@@ -565,20 +575,8 @@ class CrawlPage(webapp.RequestHandler):
         tdb.filter('url = ', u)
         item = tdb.get()
         if item is not None:
-            try:
-                item.title = title.decode('utf-8')
-            except:
-                try:
-                    item.title = clean(title)
-                except:
-                    item.title = title
-            try:
-                item.description = description.decode('utf-8')
-            except:
-                try:
-                    item.description = clean(description)
-                except:
-                    item.description = description
+            item.title = clean(title)
+            item.description = clean(description)
             title = string.lower(title)
             description = string.lower(description)
             language = TestLanguage.language(text=description)
@@ -587,11 +585,7 @@ class CrawlPage(webapp.RequestHandler):
             words = string.split(title) + string.split(description)
             item.tags = words
             item.indexed = True
-            try:
-                item.put()
-            except:
-                item.description = ''
-                item.put()
+            item.put()
         self.response.out.write(title + '\n' + description)
 
 class LandingPage(webapp.RequestHandler):
@@ -705,14 +699,14 @@ class LandingPage(webapp.RequestHandler):
         w.replace(dmtemplate, '[about]', g(language, 'About'))
         w.replace(dmtemplate, '[firefox_translator]', g(language, 'Firefox Translator'))
         w.replace(dmtemplate, '[firefox_translator_required]', g(language, 'Firefox translator addon is required'))
+        if string.count(url, 'http://') < 1:
+            url = 'http://' + url
         w.replace(dmtemplate, '[proxy_url]', 'http://proxy.worldwidelexicon.org?l=' + language + '&u=' + url)
         w.replace(dmtemplate, '[about_firefox_translator]', g(language, firefox_translator_prompt) + g(language, firefox_translator_prompt2))
         w.replace(dmtemplate, '[about_worldwide_lexicon]', g(language, sidebar_about))
         w.replace(dmtemplate, '[downloads_intro]', g(language, web_tools))
         w.replace(dmtemplate, '[instructions]', g(language, 'Instructions'))
         w.replace(dmtemplate, '[translator_instructions]', g(language, translator_instructions))
-        if string.count(url, 'http://') < 1:
-            url = 'http://' + url
         w.replace(dmtemplate, '[original_page]', g(language, 'Original Page'))
         w.replace(dmtemplate, '[source_url]', url)
         t = w.out(dmtemplate)
@@ -963,10 +957,10 @@ class UserProfile(webapp.RequestHandler):
                         else:
                             rt = rt + '<a href=http://' + r.domain + '>(' + r.domain + ')</a> '
                     rt = rt + '&rarr; ' + Languages.getname(r.tl) + '</h4>'
-                    st = clean(r.st)
-                    tt = clean(r.tt)
-                    rt = rt + '<p>' + st + '</p>'
-                    rt = rt + '<code>' + tt + '</code>'
+                    st = codecs.encode(r.st, 'utf-8')
+                    tt = codecs.encode(r.tt, 'utf-8')
+                    rt = rt + '<p>' + unicode(st, 'utf-8') + '</p>'
+                    rt = rt + '<code>' + unicode(tt, 'utf-8') + '</code>'
         w.get(usertemplate)
         w.replace(usertemplate, '[meta]', sharethis_header + snapshot_code)
         w.replace(usertemplate, '[google_analytics]', google_analytics_header)
