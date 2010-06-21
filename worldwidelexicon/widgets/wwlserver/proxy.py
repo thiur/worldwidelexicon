@@ -287,8 +287,22 @@ class ProxyRegister(webapp.RequestHandler):
             self.redirect(error_url)
         self.redirect(success_url + '/' + domain)
 
+class ProxyServer(webapp.RequestHandler):
+    def get(self):
+        tl = self.request.get('l')
+        url = self.request.get('u')
+        if string.count(url, ',http://') < 1:
+            url = 'http://' + url
+        result = urlfetch.fetch(url = url)
+        if result.status_code == 200:
+            text = clean(result.content)
+        else:
+            text = ''
+        self.response.out.write(text)
+
 application = webapp.WSGIApplication([('/proxy/register', ProxyRegister),
                                       ('/proxy/verify', ProxyVerify),
+                                      ('/proxy', ProxyServer),
                                       (r'/proxy/(.*)', ProxyController)],
                                      debug=True)
 
