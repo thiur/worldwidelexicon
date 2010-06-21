@@ -64,25 +64,32 @@ sidebar_url = 'http://www.dermundo.com/dermundocss/sidebar.html'
 def clean(text):
     return transcoder.clean(text)
 
-def g(tl, text, professional=True):
-    t = Cache.getitem('/wwlcache/' + tl + '/' + text)
-    if t is not None:
-        return t
-    else:
-        speaklikeusername = Settings.get('speaklikeusername')
-        speaklikepw = Settings.get('speaklikepw')
-        speaklikelangs = ['pt', 'ru', 'nl', 'de', 'cs', 'fr', 'it', 'ar', 'ja', 'es', 'zh', 'pl', 'el', 'da', 'pl']
-        if tl not in speaklikelangs:
-            professional = False
-        if professional:
-            t = clean(wwl.get('en', tl, text, lsp='speaklikeapi', lspusername=speaklikeusername, lsppw=speaklikepw))
-        else:
-            t = clean(wwl.get('en', tl, text))
-        if len(t) > 0:
-            Cache.setitem('/wwlcache/' + tl + '/' + text, t, 1800)
+def g(tl, text, professional=True, server_side=True):
+    if server_side:
+        t = Cache.getitem('/wwlcache/' + tl + '/' + text)
+        if t is not None:
             return t
         else:
-            return text
+            speaklikeusername = Settings.get('speaklikeusername')
+            speaklikepw = Settings.get('speaklikepw')
+            speaklikelangs = ['pt', 'ru', 'nl', 'de', 'cs', 'fr', 'it', 'ar', 'ja', 'es', 'zh', 'pl', 'el', 'da', 'pl']
+            if tl not in speaklikelangs:
+                professional = False
+            if professional:
+                t = clean(wwl.get('en', tl, text, lsp='speaklikeapi', lspusername=speaklikeusername, lsppw=speaklikepw))
+            else:
+                t = clean(wwl.get('en', tl, text))
+            if len(t) > 0:
+                Cache.setitem('/wwlcache/' + tl + '/' + text, t, 1800)
+                return t
+            else:
+                return text
+    else:
+        if tl != 'en' and len(text) > 1:
+            t = '<script type="text/javascript">include("/t?sl=en&tl=' + tl + '&st=' + urllib.quote_plus(text) + '")</script>'
+        else:
+            t = text
+        return t
 
 # Define default settings
 
@@ -354,6 +361,34 @@ class Translator(webapp.RequestHandler):
         elif p1 == 's':
             self.error(404)
             self.response.out.write('<h2>Page Not Found</h2>')
+        elif p1 == 'newpages':
+            pdb = db.Query(DerMundoProjects)
+            pdb.order('-createdon')
+            results = pdb.fetch(limit=20)
+            ctr = 0
+            t = memcache.get('/dermundo/newpages/' + language)
+            if t is None:
+                t = ''
+                for r in results:
+                    if ctr < 10:
+                        if r.indexed:
+                            try:
+                                title = codecs.encode(r.title,'utf-8')
+                            except:
+                                title = clean(r.title)
+                            try:
+                                description = codecs.encode(r.description, 'utf-8')
+                            except:
+                                description = clean(r.description)
+                            try:
+                                t = t + '<h4><a href=/x' + r.shorturl + '>' + title + '</a></h4>'
+                                t = t + '<code>' + g(language, description, server_side = False, professional = False) + '</code>'
+                                ctr = ctr + 1
+                            except:
+                                pass
+                if len(t) > 0:
+                    memcache.set('/dermundo/newpages/' + language, t, 240)
+            self.response.out.write(t)
         else:
             #t = '<h1>' + language + '</h1>'
             text = Cache.getitem('/dermundo/cache/' + language)
@@ -387,11 +422,11 @@ class Translator(webapp.RequestHandler):
             t = t + ' ' + g(language,'We will provide a temporary machine translation until then.')
             t = t + ' ' + g(language,'When completed, professional translations will be visible to other users.')
             t = t + '</td></tr>'
-            t = t + '<tr><td colspan=2><input type=submit value="' + g(language,'Translate!') + '"></td></tr>'
+            t = t + '<tr><td colspan=2><input type=submit value="' + g(language, 'Translate!', server_side=True) + '"></td></tr>'
             t = t + '</form></table><p>'
             w.replace(template,'[start_form]',t)
             w.replace(template,'[google_analytics]',google_analytics_header)
-            w.replace(template,'[title]','Der Mundo : ' + g(language,'The World In Your Language'))
+            w.replace(template,'[title]','Der Mundo : ' + g(language,'The World In Your Language', server_side=True))
             w.replace(template,'[meta]', sharethis_header + snapshot_code)
             w.replace(template,'[copyright]',standard_footer)
             w.replace(template,'[menu]',dmenus)
@@ -406,33 +441,7 @@ class Translator(webapp.RequestHandler):
             w.replace(template,'[firefox_translator]', g(language, 'Firefox Translator'))
             w.replace(template,'[about_firefox_translator]', g(language, firefox_translator_prompt) + g(language, firefox_translator_prompt2))
             w.replace(template,'[new_pages]', g(language, 'New Pages'))
-            pdb = db.Query(DerMundoProjects)
-            pdb.order('-createdon')
-            results = pdb.fetch(limit=20)
-            ctr = 0
-            t = memcache.get('/dermundo/newpages')
-            if t is None:
-                t = ''
-                for r in results:
-                    if ctr < 10:
-                        if r.indexed:
-                            try:
-                                title = codecs.encode(r.title,'utf-8')
-                            except:
-                                title = clean(r.title)
-                            try:
-                                description = codecs.encode(r.description, 'utf-8')
-                            except:
-                                description = clean(r.description)
-                            try:
-                                t = t + '<h4><a href=/x' + r.shorturl + '>' + title + '</a></h4>'
-                                t = t + '<code>' + description + '</code>'
-                                ctr = ctr + 1
-                            except:
-                                pass
-                if len(t) > 0:
-                    memcache.set('/dermundo/newpages', t, 240)
-            w.replace(template,'[new_pages_list]', t)
+            w.replace(template,'[new_pages_list]', '<script type="text/javascript">include("/dermundo/newpages")</script>')
             Cache.setitem('/dermundo/cache/' + language, w.out(template), 600)
             self.response.out.write(w.out(template))
     def post(self, p1='', p2='', p3=''):
@@ -559,7 +568,7 @@ class TranslationFrame(webapp.RequestHandler):
         lsppw = self.request.get('lsppw')
         self.response.out.write('<frameset rows="8%, 92%">')
         self.response.out.write('<frame src=http://www.dermundo.com/translate/translators?l=' + l + '&u=' + u + '>')
-        self.response.out.write('<frame src=http://proxy.worldwidelexicon.org?l=' + l + '&u=' + urllib.unquote_plus(u) + '>')
+        self.response.out.write('<frame src=http://proxy.worldwidelexicon.org?l=' + l + '&u=' + u + '>')
         self.response.out.write('</frameset>')
 
 class CrawlPage(webapp.RequestHandler):
@@ -735,6 +744,10 @@ class Sidebar(webapp.RequestHandler):
             al = 'en'
         url = self.request.get('url')
         language = TestLanguage.browserlanguage(al)
+        t = memcache.get('/firefox/sidebar/' + language + '/' + url)
+        if t is not None:
+            self.response.out.write(t)
+            return
         w = web()
         w.get(sidebar_url)
         w.replace(sidebar_url, '[google_analytics]', google_analytics_header)
@@ -742,8 +755,8 @@ class Sidebar(webapp.RequestHandler):
         w.replace(sidebar_url, '[firefox_sidebar_intro]', '<img src=http://www.dermundo.com/image/logo.png align=left>' + g(language,firefox_sidebar_intro))
         w.replace(sidebar_url, '[shortcut]', g(language, 'Shortcut'))
         w.replace(sidebar_url, '[recent_translators]', g(language, 'Recent Translators'))
-        w.replace(sidebar_url, '[statistics]', g(language, 'Statistics'))
-        w.replace(sidebar_url, '[statistics_data]', '<ul><li>Ipsum</li><li>Orum</li></ul>')
+        w.replace(sidebar_url, '[statistics]', '')
+        w.replace(sidebar_url, '[statistics_data]', '')
         shorturl = memcache.get('/dermundo/shorturl/' + url)
         if shorturl is None:
             pdb = db.Query(DerMundoProjects)
@@ -802,6 +815,7 @@ class Sidebar(webapp.RequestHandler):
                 text = ''
             w.replace(sidebar_url, '[recent_translator_list]', text)
         t = w.out(sidebar_url)
+        memcache.set('/firefox/sidebar/' + language + '/' + url, t, 120)
         self.response.out.write(t)
 
 class RecentTranslations(webapp.RequestHandler):
@@ -936,36 +950,37 @@ class UserProfile(webapp.RequestHandler):
             description = ''
             city = ''
             country = ''
-        rt = memcache.get('/dermundo/profile/recenttranslations/' + username)
-        if rt is None:
-            tdb = db.Query(Translation)
-            if string.count(username, '.') > 1:
-                tdb.filter('remote_addr = ', username)
-            else:
-                tdb.filter('username = ', username)
-            tdb.order('-date')
-            results = tdb.fetch(limit=10)
-            rt = ''
-            if len(results) > 0:
-                for r in results:
-                    if len(city) < 1:
-                        city = r.city
-                    if len(country) < 1:
-                        country = r.country
-                    rt = rt + '<h4>'
-                    if len(r.domain) > 0:
-                        if len(r.url) > 0:
-                            url = r.url
-                            if string.count(url, 'http://') < 1:
-                                url = url + 'http://'
-                            rt = rt + '<a href=' + url + '>(' + r.domain + ')</a> '
-                        else:
-                            rt = rt + '<a href=http://' + r.domain + '>(' + r.domain + ')</a> '
-                    rt = rt + '&rarr; ' + Languages.getname(r.tl) + '</h4>'
-                    st = codecs.encode(r.st, 'utf-8')
-                    tt = codecs.encode(r.tt, 'utf-8')
-                    rt = rt + '<p>' + unicode(st, 'utf-8') + '</p>'
-                    rt = rt + '<code>' + unicode(tt, 'utf-8') + '</code>'
+        w.get(usertemplate)
+        w.replace(usertemplate, '[meta]', sharethis_header + snapshot_code)
+        w.replace(usertemplate, '[google_analytics]', google_analytics_header)
+        w.replace(usertemplate, '[title]', title)
+        w.replace(usertemplate, '[tagline]', g(language, 'The World In Your Language'))
+        w.replace(usertemplate, '[menu]', dmenus)
+        w.replace(usertemplate, '[description]', g(language, description, professional=False))
+        w.replace(usertemplate, '[city]', city)
+        w.replace(usertemplate, '[country]', country)
+        w.replace(usertemplate, '[firefox_translator]', g(language, 'Firefox Translator'))
+        w.replace(usertemplate, '[about_firefox_translator]', g(language,firefox_translator_prompt) + g(language, firefox_translator_prompt2))
+        w.replace(usertemplate, '[about]', g(language, 'About'))
+        w.replace(usertemplate, '[share_this_page]', g(language, 'Share This Page'))
+        w.replace(usertemplate, '[about_worldwide_lexicon]', g(language,sidebar_about))
+        w.replace(usertemplate, '[downloads_intro]', g(language, web_tools))
+        w.replace(usertemplate, '[share_this_button]', sharethis_button)
+        w.replace(usertemplate, '[statistics]', g(language, 'Statistics'))
+        w.replace(usertemplate, '[statistics_data]', '<script type="text/javascript">include("/dermundo/statistics/' + username + '")</script>')
+        w.replace(usertemplate, '[copyright]', standard_footer)
+        w.replace(usertemplate, '[recent_translations]', g(language, 'Recent Translations'))
+        w.replace(usertemplate, '[recent_translation_list]', '<script type="text/javascript">include("/dermundo/recenttranslations/' + username + '")</script>')
+        w.replace(usertemplate, '[pages_translated]', '')
+        w.replace(usertemplate, '[pages_translated_list]', '')
+        self.response.out.write(w.out(usertemplate))
+
+class UserStats(webapp.RequestHandler):
+    def get(self, username=''):
+        try:
+            language = TestLanguage.browserlanguage(self.request.headers['Accept-Language'])
+        except:
+            language = 'en'
         stat_data = memcache.get('/dermundo/stats/' + language + '/' + username)
         if stat_data is None:
             if string.count(username, '.') > 1:
@@ -992,30 +1007,49 @@ class UserProfile(webapp.RequestHandler):
                 stat_data = ''
             if len(stat_data) > 0:
                 memcache.set('/dermundo/stats/' + language + '/' + username, stat_data, 600)
-        w.get(usertemplate)
-        w.replace(usertemplate, '[meta]', sharethis_header + snapshot_code)
-        w.replace(usertemplate, '[google_analytics]', google_analytics_header)
-        w.replace(usertemplate, '[title]', title)
-        w.replace(usertemplate, '[tagline]', g(language, 'The World In Your Language'))
-        w.replace(usertemplate, '[menu]', dmenus)
-        w.replace(usertemplate, '[description]', g(language, description, professional=False))
-        w.replace(usertemplate, '[city]', city)
-        w.replace(usertemplate, '[country]', country)
-        w.replace(usertemplate, '[firefox_translator]', g(language, 'Firefox Translator'))
-        w.replace(usertemplate, '[about_firefox_translator]', g(language,firefox_translator_prompt) + g(language, firefox_translator_prompt2))
-        w.replace(usertemplate, '[about]', g(language, 'About'))
-        w.replace(usertemplate, '[share_this_page]', g(language, 'Share This Page'))
-        w.replace(usertemplate, '[about_worldwide_lexicon]', g(language,sidebar_about))
-        w.replace(usertemplate, '[downloads_intro]', g(language, web_tools))
-        w.replace(usertemplate, '[share_this_button]', sharethis_button)
-        w.replace(usertemplate, '[statistics]', g(language, 'Statistics'))
-        w.replace(usertemplate, '[statistics_data]', stat_data)
-        w.replace(usertemplate, '[copyright]', standard_footer)
-        w.replace(usertemplate, '[recent_translations]', g(language, 'Recent Translations'))
-        w.replace(usertemplate, '[recent_translation_list]', rt)
-        self.response.out.write(w.out(usertemplate))
+        self.response.out.write(stat_data)
+
+class UserRecentTranslations(webapp.RequestHandler):
+    def get(self, username=''):
+        rt = memcache.get('/dermundo/profile/recenttranslations/' + username)
+        if rt is None:
+            tdb = db.Query(Translation)
+            if string.count(username, '.') > 1:
+                tdb.filter('remote_addr = ', username)
+            else:
+                tdb.filter('username = ', username)
+            tdb.order('-date')
+            results = tdb.fetch(limit=10)
+            rt = ''
+            city = ''
+            country = ''
+            if len(results) > 0:
+                for r in results:
+                    if len(city) < 1:
+                        city = r.city
+                    if len(country) < 1:
+                        country = r.country
+                    rt = rt + '<h4>'
+                    if len(r.domain) > 0:
+                        if len(r.url) > 0:
+                            url = r.url
+                            if string.count(url, 'http://') < 1:
+                                url = url + 'http://'
+                            rt = rt + '<a href=' + url + '>(' + r.domain + ')</a> '
+                        else:
+                            rt = rt + '<a href=http://' + r.domain + '>(' + r.domain + ')</a> '
+                    rt = rt + '&rarr; ' + Languages.getname(r.tl) + '</h4>'
+                    st = codecs.encode(r.st, 'utf-8')
+                    tt = codecs.encode(r.tt, 'utf-8')
+                    rt = rt + '<p>' + unicode(st, 'utf-8') + '</p>'
+                    rt = rt + '<code>' + unicode(tt, 'utf-8') + '</code>'
+            memcache.set('/dermundo/profile/recenttranslations/' + username, rt, 360)
+        self.response.out.write(rt)
                 
 application = webapp.WSGIApplication([('/translate', Translator),
+                                      (r'/dermundo/statistics/(.*)', UserStats),
+                                      (r'/dermundo/recenttranslations/(.*)', UserRecentTranslations),
+                                      (r'/dermundo/(.*)', Translator),
                                       ('/translate/view', TranslationFrame),
                                       ('/translate/crawl', CrawlPage),
                                       ('/translate/shortcut', GenerateShortCut),
