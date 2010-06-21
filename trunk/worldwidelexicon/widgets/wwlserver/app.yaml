@@ -1,12 +1,9 @@
 application: worldwidelexicon
-version: 4
+version: 3
 runtime: python
 api_version: 1
 
 handlers:
-
-- url: .*
-  script: downtime.py
     
 - url: /robots.txt
   script: admin.py
@@ -130,9 +127,6 @@ handlers:
 - url: /proxy/(.*)
   script: proxy.py
   secure: optional
-
-- url: /proxy
-  script: proxy.py
 
 - url: /purge/(.*)
   script: purge.py
