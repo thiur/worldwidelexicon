@@ -388,6 +388,10 @@ class SaveScore(webapp.RequestHandler):
                         LSP.score(guid, score, lsp=author)
                     if not professional:
                         result = UserScores.score(username=username, remote_addr=authorip, sl=sl, tl=tl, score=score, domain=domain)
+                    if item.professional and len(item.username) > 0:
+                        if len(ip) > 0:
+                            remote_addr = ip
+                        LSP.score(guid, score, lsp=item.username, remote_addr=remote_addr)
                     self.response.out.write('ok')
                 else:
                     self.response.out.write('error : translation not found')

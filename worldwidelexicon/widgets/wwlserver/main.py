@@ -353,6 +353,7 @@ class WebServer(webapp.RequestHandler):
             f = f + '<tr><td>SpeakLike Password</td><td><input type=text name=lsppw></td></tr>'
             f = f + '<tr><td colspan=2><input type=submit value="JOIN"></td></tr>'
             f = f + '</table></form>'
+            f = ''
             f = f + Feeds.get('http://blog.worldwidelexicon.org/?feed=rss2')
             w.replace(template,'[right_column]', r + f)
             self.response.out.write(w.out(template))
