@@ -12,7 +12,7 @@ LSPs can easily join the WWL network by requesting an API key (used to validate
 submissions), and then implement a very simple web API on their end to process
 requests for translations. 
 
-Copyright (c) 1998-2009, Worldwide Lexicon Inc.
+Copyright (c) 1998-2010, Worldwide Lexicon Inc.
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification,
