@@ -3,6 +3,9 @@ version: 3
 runtime: python
 api_version: 1
 
+derived_file_type:
+- python_precompiled
+
 handlers:
     
 - url: /robots.txt
