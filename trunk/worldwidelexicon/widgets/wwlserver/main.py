@@ -354,7 +354,9 @@ class WebServer(webapp.RequestHandler):
             f = f + '<tr><td colspan=2><input type=submit value="JOIN"></td></tr>'
             f = f + '</table></form>'
             f = ''
-            f = f + Feeds.get('http://blog.worldwidelexicon.org/?feed=rss2')
+            ft = Feeds.get('http://blog.worldwidelexicon.org/?feed=rss2')
+            if type(ft) is str:
+                f = f + ft
             w.replace(template,'[right_column]', r + f)
             self.response.out.write(w.out(template))
     def post(self, p1='', p2='', p3=''):
