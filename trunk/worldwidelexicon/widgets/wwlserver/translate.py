@@ -375,11 +375,17 @@ class Translator(webapp.RequestHandler):
                             try:
                                 title = codecs.encode(r.title,'utf-8')
                             except:
-                                title = clean(r.title)
+                                try:
+                                    title = clean(r.title)
+                                except:
+                                    title = ''
                             try:
                                 description = codecs.encode(r.description, 'utf-8')
                             except:
-                                description = clean(r.description)
+                                try:
+                                    description = clean(r.description)
+                                except:
+                                    description = ''
                             try:
                                 t = t + '<h4><a href=/x' + r.shorturl + '>' + title + '</a></h4>'
                                 t = t + '<code>' + g(language, description, server_side = False, professional = False) + '</code>'
@@ -399,7 +405,7 @@ class Translator(webapp.RequestHandler):
             w.get(template)
             w.replace(template,'[social_translation]', g(language,'Social Translation For The Web'))
             t = g(language, 'Machine translation is great, but we all know it often produces inaccurate (and sometimes funny) translations. ')
-            t = t + g(language, 'Der Mundo is the worldwide web, translated by people. We use machine translation (from Google Translate and Apertium) to produce a "rough draft". ')
+            t = t + g(language, 'Der Mundo is the worldwide web, translated by people. We use machine translation (from Google Translate and Apertium) to produce a rough draft. ')
             t = t + g(language, 'Then users take over to edit the translations, score translations from other users, and make them better.<p>')
             w.replace(template, '[introduction]', t)
             # generate form
@@ -459,17 +465,17 @@ class TranslateReloader(webapp.RequestHandler):
             if len(tl) > 0:
                 if len(p) < 1:
                     try:
-                        urlfetch.fetch(url='http://www.dermundo.com/translate', headers={'Accept-Language': tl})
+                        urlfetch.fetch(url='http://www.dermundo.com/translate', deadline=10, headers={'Accept-Language': tl})
                     except:
                         pass
                 elif p == 'shorturl':
                     try:
-                        urlfetch.fetch(url='http://www.dermundo.com/xwUBM', headers={'Accept-Language': tl})
+                        urlfetch.fetch(url='http://www.dermundo.com/xwUBM', deadline=10, headers={'Accept-Language': tl})
                     except:
                         pass
                 elif p == 'help':
                     try:
-                        urlfetch.fetch(url='http://www.dermundo.com/help/firefox', headers={'Accept-Language': tl})
+                        urlfetch.fetch(url='http://www.dermundo.com/help/firefox', deadline=10, headers={'Accept-Language': tl})
                     except:
                         pass
                 else:
@@ -580,23 +586,41 @@ class CrawlPage(webapp.RequestHandler):
         u = self.request.get('u')
         if string.count(u, 'http://') < 1 and string.count(u, 'https://') < 1:
             u = 'http://' + u
-        (title, description) = get_summary(u)
+        try:
+            (title, description) = get_summary(u)
+        except:
+            self.response.out.write('ok')
+            return
         tdb = db.Query(DerMundoProjects)
         tdb.filter('url = ', u)
         item = tdb.get()
         if item is not None:
-            item.title = clean(title)
-            item.description = clean(description)
-            title = string.lower(title)
-            description = string.lower(description)
-            language = TestLanguage.language(text=description)
-            if len(language) > 1 and len(language) < 4:
-                item.sl = language
-            words = string.split(title) + string.split(description)
-            item.tags = words
+            language = ''
+            try:
+                item.title = '' + clean(title)
+            except:
+                item.title = ''
+            try:
+                item.description = '' + clean(description)
+                language = TestLanguage.language(text=description)
+            except:
+                item.description = ''
+            try:
+                if len(title) > 0 and len(description) > 0:
+                    title = string.lower(title)
+                    description = string.lower(description)
+                    if len(language) > 1 and len(language) < 4:
+                        item.sl = language
+                    words = string.split(title) + string.split(description)
+                    item.tags = words
+            except:
+                pass
             item.indexed = True
             item.put()
-        self.response.out.write(title + '\n' + description)
+        if type(title) is str and type(description) is str:
+            self.response.out.write(title + '\n' + description)
+        else:
+            self.response.out.write('')
 
 class LandingPage(webapp.RequestHandler):
     def get(self, p1=''):

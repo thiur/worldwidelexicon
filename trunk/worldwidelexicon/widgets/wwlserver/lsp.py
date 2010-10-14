@@ -78,13 +78,13 @@ class LSP():
             lsp = 'speaklikeapi'
         if len(lsp) > 0 and len(sl) > 0 and len(tl) > 0 and len(st) > 0:
             baseurl = None
-            #baseurl = memcache.get('/lsp/url/' + lsp)
+            baseurl = memcache.get('/lsp/url/' + lsp)
             if baseurl is None:
                 baseurl = APIKeys.geturl(lsp=lsp)
                 if len(baseurl) > 0:
                     memcache.set('/lsp/url/' + lsp, baseurl, 1800)
             apikey = None
-            #apikey = memcache.get('/lsp/apikey/' + lsp)
+            apikey = memcache.get('/lsp/apikey/' + lsp)
             if apikey is None:
                 apikey = APIKeys.getapikey(lsp)
                 if len(apikey) > 0:
@@ -114,7 +114,7 @@ class LSP():
                     parms['output']='json'
                     form_data = urllib.urlencode(parms)
                     try:
-                        result = urlfetch.fetch(url=fullurl, payload = form_data, method = urlfetch.POST, headers = {'Content-Type' : 'application/x-www-form-urlencoded' , 'Accept-Charset' : 'utf-8'})
+                        result = urlfetch.fetch(url=fullurl, payload = form_data, deadline = 3, method = urlfetch.POST, headers = {'Content-Type' : 'application/x-www-form-urlencoded' , 'Accept-Charset' : 'utf-8'})
                         status_code = result.status_code
                     except:
                         result = None

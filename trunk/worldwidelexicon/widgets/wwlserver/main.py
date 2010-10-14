@@ -367,7 +367,10 @@ class Feeds():
     def get(url, fulltext=True, limit=10, maxlength=200):
         t = memcache.get('/feeds/' + url)
         if t is not None:
-            return t
+            if type(t) is str:
+                return t
+            else:
+                return t
         else:
             try:
                 f = feedparser.parse(url)
@@ -383,7 +386,10 @@ class Feeds():
                                 txt = clean(e.description)
                                 t = t + txt[0:maxlength] + ' ...'
                 memcache.set('/feeds/' + url, t, 300)
-                return t
+                if type(t) is str:
+                    return t
+                else:
+                    return ''
             except:
                 return ''
 
