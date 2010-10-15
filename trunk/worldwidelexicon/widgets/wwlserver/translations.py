@@ -792,6 +792,7 @@ class SimpleTranslation(webapp.RequestHandler):
                 self.response.headers['Content-Type']='text/plain'
                 self.response.out.write(tt)
                 text = tt
+                memcache.set('/t/' + md5hash + '/text', tt, 1200)
             elif output == 'google':
                 self.response.headers['Content-Type']='text/javascript'
                 response='{"responseData": {"translatedText":"[translation]"},"responseDetails": null, "responseStatus": 200}'

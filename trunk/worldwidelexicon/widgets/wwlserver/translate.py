@@ -65,8 +65,19 @@ def clean(text):
     return transcoder.clean(text)
 
 def g(tl, text, professional=True, server_side=True):
+    return text
+    # old inline translation code, disabled for now
     if server_side:
-        t = Cache.getitem('/wwlcache/' + tl + '/' + text)
+        m = md5.new()
+        m.update('en')
+        m.update(tl)
+        m.update(text)
+        m.update('y')
+        m.update('y')
+        if professional:
+            m.update('speaklikeapi')
+        md5hash = str(m.hexdigest())
+        t = Cache.getitem('/t/' + md5hash + '/text')
         if t is not None:
             return t
         else:
@@ -75,15 +86,19 @@ def g(tl, text, professional=True, server_side=True):
             speaklikelangs = ['pt', 'ru', 'nl', 'de', 'cs', 'fr', 'it', 'ar', 'ja', 'es', 'zh', 'pl', 'el', 'da', 'pl']
             if tl not in speaklikelangs:
                 professional = False
+            p = dict()
+            p['sl']='en'
+            p['tl']=tl
+            p['st']=text
+            p['allow_machine']='y'
+            p['allow_anonymous']='y'
+            p['output']='text'
             if professional:
-                t = clean(wwl.get('en', tl, text, lsp='speaklikeapi', lspusername=speaklikeusername, lsppw=speaklikepw))
+                p['lsp']='speaklikeapi'
+                taskqueue.add(url='/t', params=p)
             else:
-                t = clean(wwl.get('en', tl, text))
-            if len(t) > 0:
-                Cache.setitem('/wwlcache/' + tl + '/' + text, t, 1800)
-                return t
-            else:
-                return text
+                taskqueue.add(url='/t', params=p)
+            return text
     else:
         if tl != 'en' and len(text) > 1:
             t = '<script type="text/javascript">include("/t?sl=en&tl=' + tl + '&st=' + urllib.quote_plus(text) + '")</script>'
@@ -459,41 +474,7 @@ class TranslateReloader(webapp.RequestHandler):
     def post(self):
         self.requesthandler()
     def requesthandler(self):
-        try:
-            tl = self.request.get('tl')
-            p = self.request.get('p')
-            if len(tl) > 0:
-                if len(p) < 1:
-                    try:
-                        urlfetch.fetch(url='http://www.dermundo.com/translate', deadline=10, headers={'Accept-Language': tl})
-                    except:
-                        pass
-                elif p == 'shorturl':
-                    try:
-                        urlfetch.fetch(url='http://www.dermundo.com/xwUBM', deadline=10, headers={'Accept-Language': tl})
-                    except:
-                        pass
-                elif p == 'help':
-                    try:
-                        urlfetch.fetch(url='http://www.dermundo.com/help/firefox', deadline=10, headers={'Accept-Language': tl})
-                    except:
-                        pass
-                else:
-                    pass
-            else:
-                languages = ['es', 'fr', 'de', 'it', 'pt', 'ja', 'ar', 'ru', 'zh', 'cs', 'nl']
-                for l in languages:
-                    p = dict()
-                    p['tl']=l
-                    taskqueue.add(url='/translate/reload', params=p)
-                    p['p']='shorturl'
-                    taskqueue.add(url='/translate/reload', params=p)
-                    p['p']='help'
-                    taskqueue.add(url='/translate/reload', params=p)
-            self.response.out.write('ok')
-        except:
-            self.error(500)
-            self.response.out.write('Oh my. Something bad happened')
+        self.response.out.write('ok')
 
 class DisplayTranslators(webapp.RequestHandler):
     def get(self):
@@ -583,40 +564,44 @@ class CrawlPage(webapp.RequestHandler):
     def post(self):
         self.requesthandler()
     def requesthandler(self):
-        u = self.request.get('u')
-        if string.count(u, 'http://') < 1 and string.count(u, 'https://') < 1:
-            u = 'http://' + u
         try:
-            (title, description) = get_summary(u)
+            u = self.request.get('u')
+            if string.count(u, 'http://') < 1 and string.count(u, 'https://') < 1:
+                u = 'http://' + u
+            try:
+                (title, description) = get_summary(u)
+            except:
+                self.response.out.write('ok')
+                return
+            tdb = db.Query(DerMundoProjects)
+            tdb.filter('url = ', u)
+            item = tdb.get()
+            if item is not None:
+                language = ''
+                try:
+                    item.title = '' + clean(title)
+                except:
+                    item.title = ''
+                try:
+                    item.description = '' + clean(description)
+                    language = TestLanguage.language(text=description)
+                except:
+                    item.description = ''
+                try:
+                    if len(title) > 0 and len(description) > 0:
+                        title = string.lower(title)
+                        description = string.lower(description)
+                        if len(language) > 1 and len(language) < 4:
+                            item.sl = language
+                        words = string.split(title) + string.split(description)
+                        item.tags = words
+                except:
+                    pass
+                item.indexed = True
+                item.put()
         except:
-            self.response.out.write('ok')
-            return
-        tdb = db.Query(DerMundoProjects)
-        tdb.filter('url = ', u)
-        item = tdb.get()
-        if item is not None:
-            language = ''
-            try:
-                item.title = '' + clean(title)
-            except:
-                item.title = ''
-            try:
-                item.description = '' + clean(description)
-                language = TestLanguage.language(text=description)
-            except:
-                item.description = ''
-            try:
-                if len(title) > 0 and len(description) > 0:
-                    title = string.lower(title)
-                    description = string.lower(description)
-                    if len(language) > 1 and len(language) < 4:
-                        item.sl = language
-                    words = string.split(title) + string.split(description)
-                    item.tags = words
-            except:
-                pass
-            item.indexed = True
-            item.put()
+            title = ''
+            description = ''
         if type(title) is str and type(description) is str:
             self.response.out.write(title + '\n' + description)
         else:
