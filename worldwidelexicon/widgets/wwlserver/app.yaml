@@ -3,8 +3,8 @@ version: 3
 runtime: python
 api_version: 1
 
-derived_file_type:
-- python_precompiled
+builtins:
+- datastore_admin: on
 
 handlers:
     
@@ -37,6 +37,14 @@ handlers:
 
 - url: /dermundocss/images
   static_dir: dermundocss/images
+
+- url: /analytics/(.*)/(.*)
+  script: analytics.py
+  secure: optional
+
+- url: /analytics/(.*)
+  script: analytics.py
+  secure: optional
   
 - url: /api
   script: home.py

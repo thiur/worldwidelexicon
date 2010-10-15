@@ -94,7 +94,7 @@ document.write(unescape("%3Cscript src=\'\" + gaJsHost + \"google-analytics.com/
 try {\
 var pageTracker = _gat._getTracker("' + Settings.get('googleanalytics') + '");\
 pageTracker._trackPageview();\
-} catch(err) {}</script>'
+} catch(err) {}</script> <img src=http://www.worldwidelexicon.org/analytics/wwl width=1 height=1 border=0>'
 
 # Define default settings for Blueprint CSS framework, included with this package as the default style sheet
 

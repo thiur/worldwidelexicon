@@ -1,16 +1,73 @@
+# -*- coding: utf-8 -*-
 """
-Analytics.py
+Worldwide Lexicon Project
+Analytics Module (analytics.py)
+by Brian S McConnell <brian@worldwidelexicon.org>
 
-Language analytics module for Worldwide Lexicon web tracking and reporting.
+This module implements web services for language analytics. 
 
-Request handler at /analytics/customerid receives requests and logs them for
-processing.
+NOTE: this documentation is generated automatically, and directly from the current
+version of the WWL source code, via the PyDoc service. Because of the way App
+Engine works, the hyperlinks in these files will not work, so your best option
+is to print the documentation for offline review.
 
+Copyright (c) 1998-2010, Worldwide Lexicon Inc, Brian S McConnell.
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without modification,
+are permitted provided that the following conditions are met:
+
+    * Redistributions of source code must retain the above copyright notice,
+      this list of conditions and the following disclaimer. Web services
+      derived from this software must provide a link to www.worldwidelexicon.org
+      with a "translations powered by the Worldwide Lexicon" caption (or
+      appropriate translation.
+    * Redistributions in binary form must reproduce the above copyright notice,
+      this list of conditions and the following disclaimer in the documentation
+      and/or other materials provided with the distribution.
+    * Neither the name of the Worldwide Lexicon Inc/Worldwide Lexicon Project
+      nor the names of its contributors may be used to endorse or promote
+      products derived from this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT
+SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT
+OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR
+TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 """
-
+#
+# import Google App Engine modules
+#
+import wsgiref.handlers
+from google.appengine.ext import webapp
+from google.appengine.ext.webapp.util import run_wsgi_app
+from google.appengine.ext import db
+from google.appengine.api import urlfetch
+from google.appengine.api import memcache
+from google.appengine.api.labs import taskqueue
+#
+# import standard Python modules
+#
+import demjson
+import urllib
+import string
+import md5
+import datetime
+import time
+import pydoc
+import codecs
+import types
 # insert import statements here
-
+from geo import geo
+from transcoder import transcoder
 # insert declarations here
+
+def clean(text):
+    return transcoder.clean(text)
 
 maxmind_api = '...foo...'
 maxmind_url = ''
@@ -50,7 +107,7 @@ class AnalyticsLog(db.Model):
     This is the primary data store for the analytics service and functions as a raw log file for the language
     analytics service. Other data stores are used to store rolled up data for display in customer reports.
     """
-    guid = db.DateTimeProperty(default='')
+    guid = db.StringProperty(default='')
     timestamp = db.DateTimeProperty(auto_now_add=True)
     indexed = db.BooleanProperty(default=False)
     valid = db.BooleanProperty(default=False)
@@ -87,6 +144,79 @@ class AnalyticsLog(db.Model):
             item.put()
             return True
         return False
+
+class AnalyticsGeo(db.Model):
+    customerid = db.StringProperty(default='')
+    domain = db.StringProperty(default='')
+    year = db.StringProperty(default='')
+    month = db.StringProperty(default='')
+    day = db.StringProperty(default='')
+    country = db.StringProperty(default='')
+    city = db.StringProperty(default='')
+    requests = db.IntegerProperty(default=0)
+    @staticmethod
+    def inc(customerid, domain, country='', city=''):
+        country = string.lower(country)
+        city = string.lower(clean(city))
+        if len(customerid) > 0 and len(country) > 0:
+            try:
+                gdb = db.Query(AnalyticsGeo)
+                gdb.filter('customerid = ', customerid)
+                gdb.filter('domain = ', domain)
+                gdb.filter('country = ', country)
+                gdb.filter('city = ', 'all')
+                timestamp = datetime.datetime.now()
+                year = str(timestamp.year)
+                month = str(timestamp.month)
+                day = str(timestamp.day)
+                gdb.filter('year = ', year)
+                gdb.filter('month = ', month)
+                gdb.filter('day = ', day)
+                item = gdb.get()
+                if item is None:
+                    item = AnalyticsGeo()
+                    item.customerid = customerid
+                    item.domain = domain
+                    item.city = 'all'
+                    item.year = year
+                    item.month = month
+                    item.day = day
+                    item.requests = 1
+                else:
+                    item.requests = item.requests + 1
+                item.put()
+            except:
+                pass
+            if len(city) > 0:
+                try:
+                    gdb = db.Query(AnalyticsGeo)
+                    gdb.filter('customerid = ', customerid)
+                    gdb.filter('domain = ', domain)
+                    gdb.filter('country = ', country)
+                    gdb.filter('city = ', city)
+                    timestamp = datetime.datetime.now()
+                    year = str(timestamp.year)
+                    month = str(timestamp.month)
+                    day = str(timestamp.day)
+                    gdb.filter('year = ', year)
+                    gdb.filter('month = ', month)
+                    gdb.filter('day = ', day)
+                    item = gdb.get()
+                    if item is None:
+                        item = AnalyticsGeo()
+                        item.customerid = customerid
+                        item.domain = domain
+                        item.country = country
+                        item.city = city
+                        item.year = year
+                        item.month = month
+                        item.day = day
+                        item.requests = 1
+                    else:
+                        item.requests = item.requests + 1
+                    item.put()
+                except:
+                    pass
 
 class AnalyticsReports(db.Model):
     customerid = db.StringProperty(default='')
@@ -126,7 +256,7 @@ class AnalyticsLanguages(db.Model):
         year = str(timestamp.year)
         month = str(timestamp.month)
         day = str(timestamp.day)
-        if len(customerid) > 0 and len(domain) > 0 and (len(language) > 0 or len(locale) > 0):
+        if len(customerid) > 0 and len(locale) > 0:
             ldb = db.Query(AnalyticsLanguages)
             ldb.filter('customerid = ', customerid)
             ldb.filter('domain = ', domain)
@@ -175,14 +305,14 @@ class AnalyticsURLs(db.Model):
     month = db.StringProperty(default='')
     day = db.StringProperty(default='')
     locale = db.StringProperty(default='')
-    requests = db.StringProperty(default=0)
+    requests = db.IntegerProperty(default=0)
     @staticmethod
     def inc(customerid, url, locale):
         timestamp = datetime.datetime.now()
         year = str(timestamp.year)
         month = str(timestamp.month)
         day = str(timestamp.day)
-        if len(customerid) > 0 and len(url) > 0 and len(tl) > 0:
+        if len(customerid) > 0 and len(url) > 0 and len(locale) > 0:
             url = string.replace(url, 'https://', '')
             url = string.replace(url, 'http://', '')
             if len(locale) > 0:
@@ -203,6 +333,7 @@ class AnalyticsURLs(db.Model):
                     item.year = year
                     item.month = month
                     item.day = day
+                    item.requests = 1
                 else:
                     item.requests = item.requests + 1
                 item.put()
@@ -258,6 +389,10 @@ class AnalyticsVisitors(db.Model):
                 item.city = city
                 if type(locales) is list:
                     item.locales = locales
+            if len(locales) > 1:
+                item.bilingual = True
+            if len(locales) > 2:
+                item.multilingual = True
             urls = item.urls
             if url not in urls:
                 urls.append(url)
@@ -283,19 +418,24 @@ class AnalyticsVisitors(db.Model):
 class AnalyticsHandler(webapp.RequestHandler):
     def get(self, customer):
         # serve 1 pixel image
-        text = memcache.get('/images/1x1.gif')
+        text = memcache.get('http://www.worldwidelexicon.org/image/1x1.gif')
         if text is None:
-            text = urlfetch.fetch(url = 'http://www.worldwidelexicon.org/images/1x1.gif')
-            memcache.set('/images/1x1.gif')
+            response = urlfetch.fetch(url = 'http://www.worldwidelexicon.org/image/1x1.gif')
+            if response.status_code == 200:
+                text = response.content
+                memcache.set('http://www.worldwidelexicon.org/image/1x1.gif', text, 300)
         if text is not None:
+            self.response.headers['Content-Type']='image/gif'
+        #self.response.headers['Content-Length']='43'
+        #self.response.out.write('GIF89a.............!.......,...........D..;')
             self.response.out.write(text)
         # capture browser information, headers
         try:
-            url = self.request.headers['referrer']
+            url = self.request.headers['Referer']
         except:
             url = ''
         try:
-            locales = self.request.headers['Accept-Language']
+            locales = string.lower(self.request.headers['Accept-Language'])
         except:
             locales = ''
         try:
@@ -313,13 +453,6 @@ class AnalyticsHandler(webapp.RequestHandler):
         p['user_agent']=user_agent
         p['userip']=userip
         taskqueue.add(url='/analytics/visitors', params=p)
-        # serve 1 pixel image
-        text = memcache.get('/images/1x1.gif')
-        if text is None:
-            text = urlfetch.fetch(url = 'http://www.worldwidelexicon.org/images/1x1.gif')
-            memcache.set('/images/1x1.gif')
-        if text is not None:
-            self.response.out.write(text)
 
 class AnalyticsWorkerVisitors(webapp.RequestHandler):
     def get(self):
@@ -338,14 +471,14 @@ class AnalyticsWorkerVisitors(webapp.RequestHandler):
         else:
             domain = url
         locales = self.request.get('locales')
-        locales = string.split(locales, ',')
         user_agent = self.request.get('user_agent')
         userip = self.request.get('userip')
         # geolocate IP address
-        country = ''
-        city = ''
-        latitude = ''
-        longitude = ''
+        location = geo.get(userip)
+        country = string.lower(location.get('country', ''))
+        city = string.lower(clean(location.get('city','')))
+        latitude = location.get('latitude', '')
+        longitude = location.get('longitude', '')
         # schedule child tasks to count languages, URLs
         p = dict()
         p['customerid']=customerid
@@ -357,6 +490,7 @@ class AnalyticsWorkerVisitors(webapp.RequestHandler):
         p['city']=city
         p['latitude']=str(latitude)
         p['longitude']=str(longitude)
+        AnalyticsGeo.inc(customerid, domain, country=country, city=city)
         taskqueue.add(url='/analytics/languages',params=p)
         taskqueue.add(url='/analytics/urls', params=p)
         # update visitors data stores
@@ -389,7 +523,11 @@ class AnalyticsWorkerLanguages(webapp.RequestHandler):
             domain = url
         locales = string.split(locales, ',')
         for l in locales:
-            AnalyticsLanguages.inc(customerid, domain, locale=l, country=country)        
+            if string.count(l, '-') > 0:
+                lx = l[0:5]
+            else:
+                lx = l[0:2]
+            AnalyticsLanguages.inc(customerid, domain, locale=lx, country=country)        
         self.response.out.write('ok')
 
 class AnalyticsWorkerURLs(webapp.RequestHandler):
@@ -412,7 +550,11 @@ class AnalyticsWorkerURLs(webapp.RequestHandler):
         url = string.replace(url, 'https://','')
         url = string.replace(url, 'http://', '')
         for l in locales:
-            AnalyticsURLs.inc(customerid, url, l)
+            if string.count(l, '-') > 0:
+                lx = l[0:5]
+            else:
+                lx = l[0:2]
+            AnalyticsURLs.inc(customerid, url, lx)
         self.response.out.write('ok')
 
 class AnalyticsReport(webapp.RequestHandler):
@@ -431,3 +573,15 @@ class AnalyticsView(webapp.RequestHandler):
         text = AnalyticsReports.find(customerid)
         self.response.out.write(text)
 
+application = webapp.WSGIApplication([('/analytics/report/(.*)', AnalyticsReport),
+                                      ('/analytics/visitors', AnalyticsWorkerVisitors),
+                                      ('/analytics/languages', AnalyticsWorkerLanguages),
+                                      ('/analytics/urls', AnalyticsWorkerURLs),
+                                      ('/analytics/(.*)', AnalyticsHandler)],
+                                     debug=True)
+
+def main():
+    run_wsgi_app(application)
+
+if __name__ == "__main__":
+    main()

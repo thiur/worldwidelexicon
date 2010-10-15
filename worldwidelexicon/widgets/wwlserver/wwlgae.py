@@ -209,7 +209,7 @@ class wwl():
         else:
             return False
     @staticmethod
-    def get(sl, tl, st, domain='', allow_machine='y', allow_anonymous='y', require_professional = 'n', ip_filter='', lsp='', lspusername='', lsppw='', mtengine=''):
+    def get(sl, tl, st, domain='', async=False, allow_machine='y', allow_anonymous='y', require_professional = 'n', ip_filter='', lsp='', lspusername='', lsppw='', mtengine=''):
         """
         This function is used to get the best available translation for a text. It expects the following parameters:
 
