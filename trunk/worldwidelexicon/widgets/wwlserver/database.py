@@ -2306,6 +2306,17 @@ class Translation(db.Model):
         st = clean(st)
         if sl == tl:
             return st
+        m = md5.new()
+        m.update(sl)
+        m.update(tl)
+        m.update(st)
+        m.update(allow_anonymous)
+        m.update(allow_machine)
+        m.update(lsp)
+        key = str(m.hexdigest())
+        tt = memcache.get('/t/' + key)
+        if tt is not None:
+            return tt
         if len(sl) > 0 and len(tl) > 0 and len(st) > 0:
             # generate md5hash
             m = md5.new()
@@ -2322,11 +2333,13 @@ class Translation(db.Model):
             tdb.filter('professional = ', True)
             tt = ''
             item = tdb.get()
-            if item is not None:
+            if item is not None and len(clean(item.tt)) > 1:
                 tt = clean(item.tt)
+                memcache.set('/t/' + key, tt, 120)
+                return tt
             else:
                 if len(lsp) > 0 and lsp == 'speaklike':
-                    response=Translation.lsp(sl, tl, st, domain=domain, url=url, lsp=lsp, lspusername=lspusername, lsppw=lsppw)
+                    response=Translation.lsp(sl, tl, st, domain=domain, url=url, lsp='speaklikeapi', lspusername=lspusername, lsppw=lsppw)
             # next look for user translations
             if len(tt) < 1:
                 tdb = db.Query(Translation)
@@ -2335,27 +2348,18 @@ class Translation(db.Model):
                 tdb.filter('md5hash = ', md5hash)
                 tdb.order('-date')
                 item = tdb.get()
-                if item is not None:
+                if item is not None and len(clean(item.tt)) > 1:
                     tt = clean(item.tt)
+                    memcache.set('/' + key, tt, 120)
+                    return tt
             if len(tt) < 2 and allow_machine != 'n':
                 mt = MTWrapper()
-                tt = mt.getTranslation(sl, tl, st, userip=userip)
+                tt = clean(mt.getTranslation(sl, tl, st, userip=userip))
             if len(tt) > 0:
-                if output == 'text':
-                    text = tt
-                elif output == 'test':
-                    text = tt + '<p>' + response
-                elif output == 'json':
-                    text = tt
-                elif output == 'xml' or output == 'rss':
-                    text = tt
-                else:
-                    text = '<div class="translation">' + tt + '</div>'
+                memcache.set('/t/' + key, tt)
+                return tt
             else:
-                text = ''
-            if len(text) > 0:
-                memcache.set('lucky|sl=' + sl + '|tl=' + tl + '|md5hash=' + md5hash + '|output=' + output, text, 300)
-        return text
+                return ''
     @staticmethod
     def fetch(sl='', tl='', st='', md5hash='', domain='', url='', userip='', allow_machine='y', allow_anonymous='', min_score=0, max_blocked_votes=0, fuzzy = 'n', mtengine='', lsp='', lspusername='', lsppw=''):
         if len(url) > 500:

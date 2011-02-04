@@ -7,6 +7,9 @@ builtins:
 - datastore_admin: on
 
 handlers:
+
+- url: /
+  script: translate.py
     
 - url: /robots.txt
   script: admin.py
@@ -135,8 +138,8 @@ handlers:
 - url: /ngrams
   script: translations.py
   
-- url: /proxy/(.*)
-  script: proxy.py
+- url: /proxy/.*
+  script: mirror.py
   secure: optional
 
 - url: /purge/(.*)
@@ -233,15 +236,15 @@ handlers:
 - url: /(.*)/(.*)
   script: main.py
   secure: optional
+
+- url: /x(.*)
+  script: translate.py
+  secure: optional
   
 - url: /(.*)
   script: main.py
   secure: optional
 
-- url: /
-  script: main.py
-  secure: optional
-
 - url: .*
-  script: main.py
+  script: translate.py
   secure: optional

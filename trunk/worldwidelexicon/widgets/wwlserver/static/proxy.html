@@ -33,61 +33,19 @@ Installing and using the translation proxy server is easy. Just perform the foll
 <li>Memcache *recommended* (v 2.2.3)</li>
 </ul>
 
-<h3>INSTALLATION (PROXY SERVER)</h3>
+<h3>NEW RELEASE</h3>
 
-<ol>
-<li>Unzip the archive and FTP all the files into the base web directory on your server.</li>
-<li>Open includes/config.php in your favorite editor and:</li>
-<li>Define your server IP, home directory path, and log path</li>
-<li>If you have memcache, define the address, port, etc.</li>
-<li>Define which domains to translate in the whitelist / blacklist section</li>
-<li>Create /logs and /cache directories (if enabled) and set them editable by the server.</li>
-</ol>
-
-<h3>SETUP (WEBSITE TO TRANSLATE)</h3>
-
-<ol>
-<li>Go to your domain registrar and create an A-record pointing to the IP address of the Proxy:</li>
-<li>Set up one A-record using a wildcard (eg. *.mywebsite.com)</li>
-<li>OR set up multiple A-records, each with a 2-letter language code (ISO 639-1) as a subdomain</li>
-</ol>
-
-That's it!  Now you should be able to access http://**.mywebsite.com/ and see it another language<p>
-
-You can fine-tune setting using META tags:<p>
-<blockquote>Usage:  &lt;meta name="{setting_name}" content="{setting_value}" /&gt;</blockquote>
+We are currently preparing a new release of the proxy server, due for release with the launch of our open translation
+community. The new release includes a number of new features, including:
 
 <ul>
-<li>allow_machine  (y/n)</li>
-<li>allow_anonymous  (y/n)</li>
-<li>allow_edit  (y/n)</li>
-<li>require_professional (y/n)</li>
-<li>languages  (string, comma-separated list)</li>
-<li>machine_translation_languages  (string, comma-separated list)</li>
-<li>community_translation_languages  (string, comma-separated list)</li>
-<li>professional_translation_languages  (string, comma-separated list)</li>
-<li>lsp  (string)</li>
-<li>lspusername (string)</li>
-<li>lsppw  (string -- more secure way?)</li>
+<li>Support for right to left scripts</l1>
+<li>Support for more character encodings beyond UTF8</li>
+<li>Client side translation rendering, to quickly load and render translations for infrequently loaded pages</li>
+<li>Tag based controls enable you to alter proxy server behavior by embedding tags in your pages</li>
+<li>Batch translation and improved caching to further boost performance</li>
 </ul>
 
-Examples:<p>
-<blockquote>&lt;meta name="languages" content="es, fr, br, ar, de" /&gt;</blockquote>
-<blockquote>&lt;meta name="allow_edit" content="n" /&gt;</blockquote>
-
-You can fine-tune whether a give section of the page can be translated / edited using CSS:<p>
-<blockquote>Usage: &lt;{tag} class="{setting}"&gt; &lt;/{tag}&gt;</blockquote>
-
-<ul>
-<li>allow_edit</li>
-<li>disallow_edit</li>
-</ul>
-
-Examples:<p>
-<blockquote>&lt;div class="header disallow_edit"&gt; . . . . &;tl/div&gt;</blockquote>
-<blockquote>&lt;p id="callout" class="highlight allow_edit"&gt; . . . . &lt;/div&gt;</blockquote>
-
-<h3>Language Switcher</h3>
-You can insert a language-switching widget using a comment tag like so:<p>
-
-<blockquote>&lt;!-- wwl_language_selector --&gt;</blockquote>
+On a related note, we are also working on an Apache module which will provide the same functionality, except embedded in
+the webserver itself. If you are hosting a site or web app based on Apache, this will be an easy way to add on the fly
+translation.

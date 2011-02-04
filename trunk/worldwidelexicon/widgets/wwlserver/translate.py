@@ -59,51 +59,37 @@ template = 'http://www.dermundo.com/css/template.css'
 usertemplate = 'http://www.dermundo.com/dermundocss/profile.html'
 sidebar_url = 'http://www.dermundo.com/dermundocss/sidebar.html'
 
+userip =''
+
 # Define convenience functions
             
 def clean(text):
     return transcoder.clean(text)
 
 def g(tl, text, professional=True, server_side=True):
-    return text
-    # old inline translation code, disabled for now
-    if server_side:
-        m = md5.new()
-        m.update('en')
-        m.update(tl)
-        m.update(text)
-        m.update('y')
-        m.update('y')
-        if professional:
-            m.update('speaklikeapi')
-        md5hash = str(m.hexdigest())
-        t = Cache.getitem('/t/' + md5hash + '/text')
-        if t is not None:
-            return t
-        else:
-            speaklikeusername = Settings.get('speaklikeusername')
-            speaklikepw = Settings.get('speaklikepw')
-            speaklikelangs = ['pt', 'ru', 'nl', 'de', 'cs', 'fr', 'it', 'ar', 'ja', 'es', 'zh', 'pl', 'el', 'da', 'pl']
-            if tl not in speaklikelangs:
-                professional = False
-            p = dict()
-            p['sl']='en'
-            p['tl']=tl
-            p['st']=text
-            p['allow_machine']='y'
-            p['allow_anonymous']='y'
-            p['output']='text'
-            if professional:
-                p['lsp']='speaklikeapi'
-                taskqueue.add(url='/t', params=p)
-            else:
-                taskqueue.add(url='/t', params=p)
-            return text
+    m = md5.new()
+    m.update('en')
+    m.update(tl)
+    m.update(text)
+    m.update('y')
+    m.update('y')
+    if professional:
+        m.update('speaklikeapi')
+    md5hash = str(m.hexdigest())
+    t = Cache.getitem('/t/' + md5hash + '/text')
+    if t is not None and len(t) > 1:
+        return t
     else:
-        if tl != 'en' and len(text) > 1:
-            t = '<script type="text/javascript">include("/t?sl=en&tl=' + tl + '&st=' + urllib.quote_plus(text) + '")</script>'
+        speaklikeusername = Settings.get('speaklikeusername')
+        speaklikepw = Settings.get('speaklikepw')
+        speaklikelangs = ['pt', 'ru', 'nl', 'de', 'cs', 'fr', 'it', 'ar', 'ja', 'es', 'zh', 'pl', 'el', 'da', 'pl']
+        if tl not in speaklikelangs:
+            professional = False
+        if professional:
+            t = Translation.lucky('en', tl, text, lsp='speaklike', lspusername=speaklikeusername, lsppw=speaklikepw, userip=userip)
         else:
-            t = text
+            
+            t = Translation.lucky('en', tl, text, userip=userip)
         return t
 
 # Define default settings
@@ -194,7 +180,7 @@ web_tools =    'Make your website, blog or service accessible in any language. T
 
 instructions =  '<ol><li>Complete the short form to start a translation project</li>\
                 <li>DerMundo.com will assign a shortcut URL which you can share with your friends and other translators</li>\
-                <li>You can view and edit translations using the DerMundo.com translation server, or you can use the <a href=https://addons.mozilla.org/en-US/firefox/addon/13897>Firefox Social Translator></li>\
+                <li>You can also donate to pay to professionally translate a page and share it with the world.</li>\
                 </ol>'
 
 translator_instructions = 'You can view and edit translations in two ways. If you have our Firefox Translator addon (highly recommended), \
@@ -223,11 +209,9 @@ firefox_sidebar_no_shortcut = 'No shortcut address has been created for this web
 # standard footer and source code attribution, do not modify or hide
 standard_footer = 'Content management system and collaborative translation memory powered \
                   by the <a href=http://www.worldwidelexicon.org>Worldwide Lexicon Project</a> \
-                  (c) 1998-2010 Brian S McConnell and Worldwide Lexicon Inc. All rights reserved. \
+                  (c) 1998-2011 Brian S McConnell and Worldwide Lexicon Inc. All rights reserved. \
                   Professional translations for the Der Mundo interface and documentation produced \
-                  by <a href=http://www.speaklike.com>SpeakLike</a>. \
-                  WWL multilingual CMS and translation memory is open source software published \
-                  under a BSD style license. Contact: bsmcconnell on skype or gmail.'
+                  by <a href=http://www.speaklike.com>SpeakLike</a>.'
 
 class MyParser(sgmllib.SGMLParser):
     """
@@ -363,7 +347,6 @@ class Translator(webapp.RequestHandler):
         except:
             language = 'en'
         dmenus = '<ul><li><a href=http://www.worldwidelexicon.org>Worldwide Lexicon</a></li>\
-                <li><a href=http://blog.worldwidelexicon.org>' + g(language,'Blog') + '</a></li>\
                 <li><a href=http://www.worldwidelexicon.org>' + g(language,'Tools For Webmasters') + '</a></li></ul>'
         if len(language) > 2:
             language = language[0:2]
@@ -371,8 +354,13 @@ class Translator(webapp.RequestHandler):
         lsp = ''
         lspusername = ''
         lsppw = ''
+        userip = self.request.remote_addr
+        headers = self.request.headers
+        host = headers.get('host','')
         if p1 == 'blog':
             self.redirect('http://blog.worldwidelexicon.org')
+        elif host == 'www.worldwidelexicon.org':
+            self.redirect('http://www.worldwidelexicon.org/home')
         elif p1 == 's':
             self.error(404)
             self.response.out.write('<h2>Page Not Found</h2>')
@@ -412,57 +400,49 @@ class Translator(webapp.RequestHandler):
             self.response.out.write(t)
         else:
             #t = '<h1>' + language + '</h1>'
-            text = Cache.getitem('/dermundo/cache/' + language)
-            if text is not None:
-                self.response.out.write(text + '<p>This page is memcached</p>')
-                return
+##            text = Cache.getitem('/dermundo/cache/' + language)
+##            if text is not None:
+##                self.response.out.write(text + '<p>This page is memcached</p>')
+##                return
             w = web()
             w.get(template)
-            w.replace(template,'[social_translation]', g(language,'Social Translation For The Web'))
-            t = g(language, 'Machine translation is great, but we all know it often produces inaccurate (and sometimes funny) translations. ')
-            t = t + g(language, 'Der Mundo is the worldwide web, translated by people. We use machine translation (from Google Translate and Apertium) to produce a rough draft. ')
-            t = t + g(language, 'Then users take over to edit the translations, score translations from other users, and make them better.<p>')
+            w.replace(template,'[social_translation]', g(language,u'Social Translation'))
+            t = u''
+            t = t + g(language, u'Machine translation is great, but we all know it often produces inaccurate (and sometimes funny) translations. ')
+            t = t + g(language, u'Der Mundo is the worldwide web, translated by people. We use machine translation (from Google Translate and Apertium) to produce a rough draft. ')
+            t = t + g(language, u'Then users take over to edit the translations, score translations from other users, and make them better.<p>')
             w.replace(template, '[introduction]', t)
             # generate form
-            t = '<p><table><form action=/translate/view method=get>'
-            t = t + '<tr><td>' + g(language, 'Language') + '</td><td><select name=l>'
-            t = t + clean(Languages.select(selected=language)) + '</td></tr>'
+            t = u'<p><table><form action=/translate/view method=get>'
+            t = t + u'<tr><td>' + g(language, 'Language') + u'</td><td><select name=l>'
+            t = t + Languages.select(selected=language) + u'</td></tr>'
 #            t = t + '<tr><td></td><td><select name=allow_machine>'
 #            t = t + '<option selected value="y">' + g(language,'Display human and machine translations') + '</option>'
 #            t = t + '<option value="n">' + g(language, 'Only display human translations') + '</option>'
 #            t = t + '</select></td></tr>'
-            t = t + '<tr><td>URL</td><td><input type=text size=40 name=u value="http://www.nytimes.com"></td></tr>'
-            t = t + '<tr><td colspan=2>' + g(language, 'Create a social translation project and short URL') + ': '
-            t = t + '<input type=checkbox name=makeproject checked></td></tr>'
-            t = t + '<tr><td>' + g(language, 'Email Address') + '</td><td><input type=text name=email></td></tr>'
-            t = t + '<tr><td colspan=2>' + g(language, 'Optional professional translation by <a href=http://www.speaklike.com>SpeakLike</a>') + '</td></tr>'
-            t = t + '<tr><td>SpeakLike username</td><td><input type=text name=lspusername></td></tr>'
-            t = t + '<tr><td>SpeakLike password</td><td><input type=password name=lsppw></td></tr>'
-            t = t + '<tr><td></td><td>'
-            t = t + ' ' + g(language,'Professional translations are usually completed within 24 hours.')
-            t = t + ' ' + g(language,'We will provide a temporary machine translation until then.')
-            t = t + ' ' + g(language,'When completed, professional translations will be visible to other users.')
-            t = t + '</td></tr>'
-            t = t + '<tr><td colspan=2><input type=submit value="' + g(language, 'Translate!', server_side=True) + '"></td></tr>'
-            t = t + '</form></table><p>'
+            t = t + u'<tr><td>URL</td><td><input type=text size=40 name=u value="http://www.aljazeera.net"></td></tr>'
+            t = t + u'<tr><td colspan=2>' + g(language, 'Optional professional translation by <a href=http://www.speaklike.com>SpeakLike</a>') + '</td></tr>'
+            t = t + u'<tr><td>SpeakLike username</td><td><input type=text name=lspusername></td></tr>'
+            t = t + u'<tr><td>SpeakLike password</td><td><input type=password name=lsppw></td></tr>'
+            t = t + u'<tr><td></td><td>'
+            t = t + ' ' + g(language,u'Professional translations are usually completed within 24 hours.')
+            t = t + ' ' + g(language,u'We will provide a temporary machine translation until then.')
+            t = t + ' ' + g(language,u'When completed, professional translations will be visible to other users.')
+            t = t + u'</td></tr>'
+            t = t + u'<tr><td colspan=2><input type=submit value="' + g(language, 'Translate!', server_side=True) + '"></td></tr>'
+            t = t + u'</form></table><p>'
             w.replace(template,'[start_form]',t)
             w.replace(template,'[google_analytics]',google_analytics_header)
-            w.replace(template,'[title]','Der Mundo : ' + g(language,'The World In Your Language', server_side=True))
+            w.replace(template,'[title]','Der Mundo : ' + g(language,u'Translate the world with your friends', server_side=True))
             w.replace(template,'[meta]', sharethis_header + snapshot_code)
             w.replace(template,'[copyright]',standard_footer)
             w.replace(template,'[menu]',dmenus)
             w.replace(template,'[about]', g(language,'About'))
-            w.replace(template,'[about_worldwide_lexicon]', g(language, sidebar_about))
-            w.replace(template,'[downloads_intro]', g(language, web_tools))
-            w.replace(template,'[tagline]', g(language, 'The World In Your Language'))
-            w.replace(template,'[share_this_page]', g(language, 'Share This Page'))
+            w.replace(template,'[tagline]', g(language, u'Translate the world with your friends'))
+            w.replace(template,'[share_this_page]', g(language, u'Share This Page'))
             w.replace(template,'[share_this_button]', sharethis_button)
-            w.replace(template,'[instructions]', g(language, 'Instructions'))
+            w.replace(template,'[instructions]', g(language, u'Instructions'))
             w.replace(template,'[instructions_prompt]', g(language, instructions))
-            w.replace(template,'[firefox_translator]', g(language, 'Firefox Translator'))
-            w.replace(template,'[about_firefox_translator]', g(language, firefox_translator_prompt) + g(language, firefox_translator_prompt2))
-            w.replace(template,'[new_pages]', g(language, 'New Pages'))
-            w.replace(template,'[new_pages_list]', '<script type="text/javascript">include("/dermundo/newpages")</script>')
             Cache.setitem('/dermundo/cache/' + language, w.out(template), 600)
             self.response.out.write(w.out(template))
     def post(self, p1='', p2='', p3=''):
@@ -555,7 +535,7 @@ class TranslationFrame(webapp.RequestHandler):
         lsppw = self.request.get('lsppw')
         self.response.out.write('<frameset rows="8%, 92%">')
         self.response.out.write('<frame src=http://www.dermundo.com/translate/translators?l=' + l + '&u=' + u + '>')
-        self.response.out.write('<frame src=http://proxy.worldwidelexicon.org?l=' + l + '&u=' + u + '>')
+        self.response.out.write('<frame src=http://www.dermundo.com/proxy/?l=' + l + '&u=' + u + '>')
         self.response.out.write('</frameset>')
 
 class CrawlPage(webapp.RequestHandler):
@@ -695,7 +675,7 @@ class LandingPage(webapp.RequestHandler):
                 <li><a href=http://www.worldwidelexicon.org>' + g(language,'Tools For Webmasters') + '</a></li></ul>'
         w = web()
         w.get(dmtemplate)
-        w.replace(dmtemplate, '[tagline]', g(language, 'The world in your language'))
+        w.replace(dmtemplate, '[tagline]', g(language, 'Translate the world with your friends'))
         w.replace(dmtemplate, '[meta]', sharethis_header + snapshot_code)
         w.replace(dmtemplate, '[google_analytics]', google_analytics_header)
         w.replace(dmtemplate, '[menu]', dmenus)
@@ -1055,7 +1035,7 @@ class UserRecentTranslations(webapp.RequestHandler):
             memcache.set('/dermundo/profile/recenttranslations/' + username, rt, 360)
         self.response.out.write(rt)
                 
-application = webapp.WSGIApplication([('/translate', Translator),
+application = webapp.WSGIApplication([('/', Translator),
                                       (r'/dermundo/statistics/(.*)', UserStats),
                                       (r'/dermundo/recenttranslations/(.*)', UserRecentTranslations),
                                       (r'/dermundo/(.*)', Translator),

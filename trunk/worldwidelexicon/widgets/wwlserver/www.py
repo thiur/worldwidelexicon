@@ -74,7 +74,8 @@ def clean(text):
 class web():
     text = dict()
     def get(self, url):
-        text = memcache.get('/url/' + url)
+        #text = memcache.get('/url/' + url)
+        text = None
         if text is not None:
             self.text[url] = text
             return True

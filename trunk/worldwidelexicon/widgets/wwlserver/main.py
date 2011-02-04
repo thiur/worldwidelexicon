@@ -61,7 +61,6 @@ from database import UserScores
 from language import TestLanguage
 from proxy import ProxyDomains
 from transcoder import transcoder
-from translate import LandingPage
 from www import web
 from www import www
 
@@ -130,6 +129,7 @@ standard_footer = 'Content management system and collaborative translation memor
 
 class WebServer(webapp.RequestHandler):
     def get(self, p1='', p2='', p3=''):
+        headers = self.request.headers
         try:
             user_language = TestLanguage.browserlanguage(self.request.headers['Accept-Language'])
         except:
@@ -161,51 +161,7 @@ class WebServer(webapp.RequestHandler):
         elif p1 == 's':
             self.error(404)
             self.response.out.write('<h2>Page Not Found</h2>')
-        elif p1 == 'review':
-            t = '<h2>Review New Translators</h2>'
-            t = t + 'Help make the Worldwide Lexicon better by reviewing these translations which were '
-            t = t + 'submitted by new volunteer translators.<p>'
-            t = t + '<table><form action=/p/submit method=get>'
-            results = UserScores.peerreview(limit = 5)
-            for r in results:
-                tdb = db.Query(Translation)
-                if len(r.username) > 0:
-                    tdb.filter('username = ', r.username)
-                else:
-                    tdb.filter('remote_addr = ', r.remote_addr)
-                tdb.order('-date')
-                translations = tdb.fetch(limit=5)
-                ctr = 0
-                if len(translations) > 0:
-                    for tx in translations:
-                        ctr = ctr+1
-                        t = t + '<tr valign=top><td width=75%>'
-                        t = t + tx.st
-                        t = t + '<blockquote>' + tx.tt + '</blockquote>'
-                        t = t + '</td><td>'
-                        t = t + '<input type=hidden name=guid' + str(ctr) + ' value=' + tx.guid + '>'
-                        t = t + '<select name=score' + str(ctr) + '>'
-                        t = t + '<option selected value="">---</option>'
-                        t = t + '<option value=5>5</option>'
-                        t = t + '<option value=4>4</option>'
-                        t = t + '<option value=3>3</option>'
-                        t = t + '<option value=2>2</option>'
-                        t = t + '<option value=1>1</option>'
-                        t = t + '<option value=0>0/spam</option>'
-                        t = t + '</select></td></tr>'
-            t = t + '<tr><td colspan=2><input type=submit value="Submit Scores"></td></tr>'
-            t = t + '</table></form>'
-            w = web()
-            w.get(template1col)
-            w.replace(template1col,'[google_analytics]',google_analytics_header)
-            p1 = 'Worldwide Lexicon : Review New Translators'
-            w.replace(template1col,'[title]',p1)
-            w.replace(template1col,'[meta]', proxy_settings)
-            w.replace(template1col,'[footer]',standard_footer)
-            w.replace(template1col,'[menu]',menus)
-            w.replace(template1col,'[left_column]',t)
-            self.response.out.write(w.out(template1col))
-        elif len(p1) > 0:
+        elif len(p1) > 0 and p1 != 'home':
             page = 'http://www.worldwidelexicon.org/static/' + p1 + '.html'
             if p1 == 'profile':
                 username = urllib.unquote_plus(p2)
@@ -268,9 +224,6 @@ class WebServer(webapp.RequestHandler):
             self.response.out.write(w.out(template))
         else:
             headers = self.request.headers
-            host = headers.get('host','')
-            if host == 'www.dermundo.com':
-                self.redirect('/translate')
             w = web()
             w.get(template)
             w.replace(template,'[google_analytics]',google_analytics_header)
@@ -395,7 +348,6 @@ class Feeds():
 
 application = webapp.WSGIApplication([(r'/(.*)/(.*)/(.*)', WebServer),
                                       (r'/(.*)/(.*)', WebServer),
-                                      (r'/x(.*)', LandingPage),
                                       (r'/(.*)', WebServer),
                                       ('/', WebServer)],
                                      debug=True)
