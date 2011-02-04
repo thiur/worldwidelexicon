@@ -263,7 +263,7 @@ class MainPage(webapp.RequestHandler):
         w.get('http://www.worldwidelexicon.org/static/api_main.html')
         left = w.out('http://www.worldwidelexicon.org/static/api_main.html')
         w.replace(u, '[left_column]', left)
-        w.replace(u, '[right_column]', sidebar_about + sidebar_credits + Feeds.get())
+        w.replace(u, '[right_column]', sidebar_about + sidebar_credits)
         w.replace(u, '[footer]', 'Copyright 1998-2010, Brian S McConnell. Copyright 2008-2010, Worldwide Lexicon Inc')
         self.response.out.write(w.out(u))
     else:

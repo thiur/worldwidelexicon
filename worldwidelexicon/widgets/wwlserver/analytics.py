@@ -153,9 +153,10 @@ class AnalyticsGeo(db.Model):
     day = db.StringProperty(default='')
     country = db.StringProperty(default='')
     city = db.StringProperty(default='')
+    locales = db.ListProperty(str)
     requests = db.IntegerProperty(default=0)
     @staticmethod
-    def inc(customerid, domain, country='', city=''):
+    def inc(customerid, domain, country='', city='', locales=''):
         country = string.lower(country)
         city = string.lower(clean(city))
         if len(customerid) > 0 and len(country) > 0:
@@ -177,13 +178,27 @@ class AnalyticsGeo(db.Model):
                     item = AnalyticsGeo()
                     item.customerid = customerid
                     item.domain = domain
+                    item.country = country
                     item.city = 'all'
                     item.year = year
                     item.month = month
                     item.day = day
                     item.requests = 1
+                    localelist=list()
                 else:
                     item.requests = item.requests + 1
+                    localelist = item.locales
+                if len(locales) > 0:
+                    lx = string.lower(locales)
+                    lx = string.split(locales, ',')
+                    for l in lx:
+                        if string.count(l, '-') > 0:
+                            l = l[0:5]
+                        else:
+                            l = l[0:2]
+                        if l not in localelist:
+                            localelist.append(l)
+                    item.locales = localelist
                 item.put()
             except:
                 pass
@@ -212,8 +227,21 @@ class AnalyticsGeo(db.Model):
                         item.month = month
                         item.day = day
                         item.requests = 1
+                        localelist = list()
                     else:
                         item.requests = item.requests + 1
+                        localelist = item.locales
+                    if len(locales) > 0:
+                        lx = string.lower(locales)
+                        lx = string.split(locales, ',')
+                        for l in lx:
+                            if string.count(l, '-') > 0:
+                                l = l[0:5]
+                            else:
+                                l = l[0:2]
+                            if l not in localelist:
+                                localelist.append(l)
+                        item.locales = localelist
                     item.put()
                 except:
                     pass
@@ -362,44 +390,47 @@ class AnalyticsVisitors(db.Model):
     @staticmethod
     def inc(customerid, userip, domain='', url='', country='', city='', locales=None):
         if len(customerid) > 0 and len(userip) > 0:
-            timestamp = datetime.datetime.now()
-            year = str(timestamp.year)
-            month = str(timestamp.month)
-            day = str(timestamp.day)
-            vdb = db.Query(AnalyticsVisitors)
-            vdb.filter('customerid = ', customerid)
-            vdb.filter('userip = ', userip)
-            vdb.filter('domain = ', domain)
-            vdb.filter('year = ', year)
-            vdb.filter('month = ', month)
-            vdb.filter('day = ', day)
-            item = vdb.get()
-            if type(locales) is not list:
-                if locales is not None:
-                    locales = string.split(locales,',')
-            if item is None:
-                item = AnalyticsVisitors()
-                item.customerid = customerid
-                item.userip = userip
-                item.domain = domain
-                item.year = year
-                item.month = month
-                item.day = day
-                item.country = country
-                item.city = city
-                if type(locales) is list:
-                    item.locales = locales
-            if len(locales) > 1:
-                item.bilingual = True
-            if len(locales) > 2:
-                item.multilingual = True
-            urls = item.urls
-            if url not in urls:
-                urls.append(url)
-            item.urls = urls
-            item.requests = item.requests + 1
-            item.put()
-            return True
+            try:
+                timestamp = datetime.datetime.now()
+                year = str(timestamp.year)
+                month = str(timestamp.month)
+                day = str(timestamp.day)
+                vdb = db.Query(AnalyticsVisitors)
+                vdb.filter('customerid = ', customerid)
+                vdb.filter('userip = ', userip)
+                vdb.filter('domain = ', domain)
+                vdb.filter('year = ', year)
+                vdb.filter('month = ', month)
+                vdb.filter('day = ', day)
+                item = vdb.get()
+                if type(locales) is not list:
+                    if locales is not None:
+                        locales = string.split(locales,',')
+                if item is None:
+                    item = AnalyticsVisitors()
+                    item.customerid = customerid
+                    item.userip = userip
+                    item.domain = domain
+                    item.year = year
+                    item.month = month
+                    item.day = day
+                    item.country = country
+                    item.city = city
+                    if type(locales) is list:
+                        item.locales = locales
+                if len(locales) > 1:
+                    item.bilingual = True
+                if len(locales) > 2:
+                    item.multilingual = True
+                urls = item.urls
+                if url not in urls:
+                    urls.append(url)
+                item.urls = urls
+                item.requests = item.requests + 1
+                item.put()
+                return True
+            except:
+                return False
         return False
     @staticmethod
     def find(userip, customerid='', domain=''):
@@ -448,7 +479,7 @@ class AnalyticsHandler(webapp.RequestHandler):
         # schedule counter tasks
         p = dict()
         p['customerid']=customer
-        p['url']=url
+        p['url']=clean(url)
         p['locales']=locales
         p['user_agent']=user_agent
         p['userip']=userip
@@ -490,7 +521,7 @@ class AnalyticsWorkerVisitors(webapp.RequestHandler):
         p['city']=city
         p['latitude']=str(latitude)
         p['longitude']=str(longitude)
-        AnalyticsGeo.inc(customerid, domain, country=country, city=city)
+        AnalyticsGeo.inc(customerid, domain, country=country, city=city, locales=locales)
         taskqueue.add(url='/analytics/languages',params=p)
         taskqueue.add(url='/analytics/urls', params=p)
         # update visitors data stores

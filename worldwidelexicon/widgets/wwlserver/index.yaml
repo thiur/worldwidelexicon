@@ -1,5 +1,14 @@
 indexes:
 
+- kind: AnalyticsURLs
+  properties:
+  - name: customerid
+  - name: day
+  - name: locale
+  - name: month
+  - name: url
+  - name: year
+
 - kind: BlackList
   properties:
   - name: domain
