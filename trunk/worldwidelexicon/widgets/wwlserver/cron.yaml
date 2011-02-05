@@ -24,10 +24,6 @@ cron:
   url: /ngrams
   schedule: every 1 minutes
 
-- description: verify newly added proxy server clients
-  url: /proxy/verify
-  schedule: every 1 minutes
-
 - description: purge cache
   url: /cache?purge=y
   schedule: every 1 minutes
