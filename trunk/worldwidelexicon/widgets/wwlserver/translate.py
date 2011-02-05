@@ -84,7 +84,7 @@ def g(tl, text, professional=True, server_side=True):
     else:
         speaklikeusername = Settings.get('speaklikeusername')
         speaklikepw = Settings.get('speaklikepw')
-        speaklikelangs = ['pt', 'r', 'nl', 'de', 'cs', 'fr', 'it', 'ar', 'ja', 'es', 'zh', 'pl', 'el', 'da', 'pl']
+        speaklikelangs = ['pt', 'ru', 'nl', 'de', 'cs', 'fr', 'it', 'ar', 'ja', 'es', 'zh', 'pl', 'el', 'da']
         if tl not in speaklikelangs:
             professional = False
         if professional:
@@ -163,17 +163,22 @@ sidebar_about = clean('The Worldwide Lexicon is an open source collaborative tra
                 enabling people to create translation communities around their favorite webites, topics or \
                 groups.')
 
-firefox_translator = clean('<h1>Firefox Translator</h1>')
+webmasters = clean('Webmasters')
 
-firefox_translator_prompt = clean('<img src=/image/firefoxlogo.jpg align=left><a href=https://addons.mozilla.org/en-US/firefox/addon/13897>\
+firefox = clean('Firefox')
+
+firefox_prompt = clean('<a href=https://addons.mozilla.org/en-US/firefox/addon/13897>\
                 Download our social translator for Firefox</a>. This free addon enables you to explore the \
-                foreign language web. It translates web pages using the best available translations from \
+                foreign language web, edit translations and share them with other users worldwide. \
+                It translates web pages using the best available translations from \
                 machines and from other users.<p>')
 
-firefox_translator_prompt2 = clean('The Firefox Translator is an ideal way to view and contribute translations. \
-                It automatically translates foreign language pages when it is needed, and when \
-                you edit translations to make them better, these changes are automatically shared with \
-                other users worldwide.<p>')
+wordpress = clean('WordPress')
+
+wordpress_prompt = clean('<a href=http://wordpress.org/extend/plugins/speaklike-worldwide-lexicon-translator/>\
+                Download our social translator for WordPress</a>. This add-on translates your WordPress website \
+                using machine translation, translations from your user community, and professional translators at \
+                <a href=http://www.speaklike.com>SpeakLike</a>.')
 
 web_tools =    clean('Make your website, blog or service accessible in any language. The Worldwide Lexicon makes high quality, \
                 open source translation tools for Word Press, Drupal and Firefox. You can also use the same software that \
@@ -251,10 +256,11 @@ class FBLocales():
     locales['cs']='cs_CZ'
     locales['cy']='cy_GB'
     locales['da']='da_DK'
+    locales['de']='de_DE'
     locales['eu']='eu_ES'
     locales['ck']='ck_US'
     locales['en']='en_US'
-    locales['es']='en_LA'
+    locales['es']='es_LA'
     locales['fi']='fi_FI'
     locales['fr']='fr_FR'
     locales['gl']='gl_ES'
@@ -277,6 +283,62 @@ class FBLocales():
     locales['ku']='ku_TR'
     locales['zh']='zh_CN'
     locales['ar']='ar_AR'
+    locales['af']='af_ZA'
+    locales['sq']='sq_AL'
+    locales['hy']='hy_AM'
+    locales['az']='az_AZ'
+    locales['be']='be_BY'
+    locales['bn']='bn_IN'
+    locales['bs']='bs_BA'
+    locales['bg']='bg_BG'
+    locales['hr']='hr_HR'
+    locales['eo']='eo_EO'
+    locales['et']='et_EE'
+    locales['fo']='fo_FO'
+    locales['el']='el_GR'
+    locales['gu']='gu_IN'
+    locales['hi']='hi_IN'
+    locales['is']='is_IS'
+    locales['id']='id_ID'
+    locales['jv']='jv_ID'
+    locales['kn']='kn_ID'
+    locales['kk']='kk_KZ'
+    locales['la']='la_VA'
+    locales['lv']='lv_LV'
+    locales['it']='it_IT'
+    locales['mk']='mk_MK'
+    locales['ms']='ms_MY'
+    locales['mt']='mt_MT'
+    locales['mn']='mn_MN'
+    locales['ne']='ne_NP'
+    locales['pa']='pa_IN'
+    locales['rm']='rm_CH'
+    locales['sa']='sa_IN'
+    locales['sr']='sr_RS'
+    locales['so']='so_SO'
+    locales['sw']='sw_KE'
+    locales['tl']='tl_PH'
+    locales['ta']='ta_IN'
+    locales['tt']='tt_RU'
+    locales['te']='te_IN'
+    locales['ml']='ml_IN'
+    locales['uk']='uk_UA'
+    locales['uz']='uz_UZ'
+    locales['vi']='vi_VN'
+    locales['xh']='xh_ZA'
+    locales['zu']='zu_ZA'
+    locales['km']='km_KH'
+    locales['tg']='tg_TJ'
+    locales['he']='he_IL'
+    locales['ur']='ur_PK'
+    locales['fa']='fa_IR'
+    locales['sy']='sy_SY'
+    locales['yi']='yi_DE'
+    locales['gn']='gn_PY'
+    locales['qu']='qu_PE'
+    locales['ay']='ay_BO'
+    locales['se']='se_NO'
+    locales['ps']='ps_AF'
     def lookup(self,language):
         locale = self.locales.get(language,'')
         if len(locale) > 0:
@@ -387,18 +449,27 @@ class Translator(webapp.RequestHandler):
     def get(self, p1='', p2='', p3=''):
         slu = Settings.get('speaklikeusername')
         slp = Settings.get('speaklikepw')
-        language = self.request.get('tl')
         try:
-            language = TestLanguage.browserlanguage(self.request.headers['Accept-Language'])
+            locales = string.split(self.request.headers['Accept-Language'],',')
         except:
+            locales = 'en-us'
+        found_locale = False
+        language = ''
+        locale = ''
+        for l in locales:
+            langloc = string.split(l, '-')
+            if len(language) < 1:
+                language = langloc[0]
+            if not found_locale:
+                f = FBLocales()
+                locale = f.lookup(langloc[0])
+                if locale is not None:
+                    if len(locale) > 1:
+                        found_locale=True
+        if not found_locale:
+            locale = 'en_US'
+        if len(language) < 1:
             language = 'en'
-        locales = string.split(self.request.headers['Accept-Language'],',')
-        locale = locales[0]
-        if len(locales[1]) < 2:
-            f = FBLocales()
-            locale=f.lookup(locales[0])
-        else:
-            locale=locales[0] + '_' + string.upper(locales[1])
         dmenus = '<ul><li><a href=http://www.worldwidelexicon.org>Worldwide Lexicon</a></li>\
                 <li><a href=http://www.worldwidelexicon.org>' + g(language,clean('Tools For Webmasters')) + '</a></li></ul>'
         if len(language) > 2:
@@ -417,46 +488,7 @@ class Translator(webapp.RequestHandler):
         elif p1 == 's':
             self.error(404)
             self.response.out.write('<h2>Page Not Found</h2>')
-        elif p1 == 'newpages':
-            pdb = db.Query(DerMundoProjects)
-            pdb.order('-createdon')
-            results = pdb.fetch(limit=20)
-            ctr = 0
-            t = memcache.get('/dermundo/newpages/' + language)
-            if t is None:
-                t = ''
-                for r in results:
-                    if ctr < 10:
-                        if r.indexed:
-                            try:
-                                title = codecs.encode(r.title,'utf-8')
-                            except:
-                                try:
-                                    title = clean(r.title)
-                                except:
-                                    title = ''
-                            try:
-                                description = codecs.encode(r.description, 'utf-8')
-                            except:
-                                try:
-                                    description = clean(r.description)
-                                except:
-                                    description = ''
-                            try:
-                                t = t + '<h4><a href=/x' + r.shorturl + '>' + title + '</a></h4>'
-                                t = t + '<code>' + g(language, description, server_side = False, professional = False) + '</code>'
-                                ctr = ctr + 1
-                            except:
-                               pass
-                if len(t) > 0:
-                    memcache.set('/dermundo/newpages/' + language, t, 240)
-            self.response.out.write(t)
         else:
-            #t = '<h1>' + language + '</h1>'
-##            text = Cache.getitem('/dermundo/cache/' + language)
-##            if text is not None:
-##                self.response.out.write(text + '<p>This page is memcached</p>')
-##                return
             w = web()
             w.get(template)
             w.replace(template,'[social_translation]', clean(g(language,'Social Translation')))
@@ -465,13 +497,7 @@ class Translator(webapp.RequestHandler):
             t = t + clean(g(language, 'Der Mundo is the worldwide web, translated by people. We use machine translation (from Google Translate and Apertium) to produce a rough draft. '))
             t = t + clean(g(language, 'Then users take over to edit the translations, score translations from other users, and make them better.<p>'))
             w.replace(template, '[introduction]', t)
-            # generate form
             t = '<p><table><form action=/translate/project method=get>'
-            t = t + '<tr><td>' + clean(g(language, 'Language')) + '</td><td><select name=l>'
-            t = t + clean(Languages.select(selected=language)) + '</td></tr>'
-#            t = t + '<tr><td></td><td><select name=allow_machine>'
-#            t = t + '<option selected value="y">' + g(language,'Display human and machine translations') + '</option>'
-#            t = t + '<option value="n">' + g(language, 'Only display human translations') + '</option>'
             t = t + '</select></td></tr>'
             t = t + '<tr><td>URL</td><td><input type=text size=40 name=u value="http://www.aljazeera.net"></td></tr>'
             t = t + '<tr><td colspan=2>' + g(language, 'Optional professional translation by <a href=http://www.speaklike.com>SpeakLike</a>') + '</td></tr>'
@@ -496,6 +522,48 @@ class Translator(webapp.RequestHandler):
             w.replace(template,'[share_this_button]', sharethis_button)
             w.replace(template,'[instructions]', g(language, 'Instructions'))
             w.replace(template,'[instructions_prompt]', g(language, instructions))
+            w.replace(template,'[language]', language)
+            w.replace(template,'[wordpress]', g(language, wordpress))
+            w.replace(template,'[wordpress_prompt]', g(language, wordpress_prompt))
+            w.replace(template,'[firefox]', g(language, firefox))
+            w.replace(template,'[firefox_prompt]', g(language,firefox_prompt))
+            text = """<div id="fb-root"></div>
+            <script src="http://connect.facebook.net/""" + locale + """/all.js"></script>
+            <script>
+            FB.init({
+            appId  : '140342715320',
+            status : true, // check login status
+            cookie : true, // enable cookies to allow the server to access the session
+            xfbml  : true  // parse XFBML
+            });
+            </script>
+            <fb:login-button autologoutlink="true"></fb:login-button>
+            """
+            user = FBUser.lookup(self.request.cookies)
+            if user is not None:
+                text = text + '<p><a href=' + user.get('profile_url','') + '><img src=http://graph.facebook.com/' + user.get('id ','')+ '/picture?type=square/></a></p>'
+            text = text + """
+            <div id="fb-root"></div>
+            <script>
+            window.fbAsyncInit = function() {
+            FB.init({appId: '140342715320', status: true, cookie: true,
+                     xfbml: true});
+            FB.Event.subscribe('{% if current_user %}auth.logout{% else %}auth.login{% endif %}', function(response) {
+              window.location.reload();
+            });
+            };
+            (function() {
+            var e = document.createElement('script');
+            e.type = 'text/javascript';
+            e.src = document.location.protocol + '//connect.facebook.net/""" + locale + """/all.js';
+            e.async = true;
+            document.getElementById('fb-root').appendChild(e);
+            }());
+            </script>
+            """
+            w.replace(template,'[facebook_login]',text)
+            text = '<script src="http://connect.facebook.net/' + locale + '/all.js#xfbml=1"></script><fb:like show_faces="true" width="450"></fb:like><br>'
+            w.replace(template,'[facebook_like]',text)
             Cache.setitem('/dermundo/cache/' + language, w.out(template), 600)
             self.response.out.write(w.out(template))
     def post(self, p1='', p2='', p3=''):
@@ -510,25 +578,26 @@ class DisplayTranslators(webapp.RequestHandler):
         url = urllib.unquote_plus(self.request.get('u'))
         output = self.request.get('output')
         try:
-            language=TestLanguage.browserlanguage(self.request.headers['Accept-Language'])
+            locales = string.split(self.request.headers['Accept-Language'],',')
         except:
-            language='en'
-        locales = string.split(self.request.headers['Accept-Language'],',')
+            locales = 'en-us'
         found_locale = False
+        language = ''
+        locale = ''
         for l in locales:
-            locale=''
+            langloc = string.split(l, '-')
+            if len(language) < 1:
+                language = langloc[0]
             if not found_locale:
-                langloc = string.split(l, '-')
-                if len(langloc) > 1:
-                    locale = string.lower(langloc[0]) + '_' + string.upper(langloc[1])
-                else:
-                    f = FBLocales()
-                    locale = f.lookup(langloc[0])
+                f = FBLocales()
+                locale = f.lookup(langloc[0])
                 if locale is not None:
                     if len(locale) > 1:
-                        foundlocale=True
-        if not foundlocale:
+                        found_locale=True
+        if not found_locale:
             locale = 'en_US'
+        if len(language) < 1:
+            language = 'en'
         if len(shorturl) > 0:
             url = DerMundoProjects.geturl(shorturl)
             shorturl = clean('http://www.dermundo.com/x' + shorturl)
@@ -572,6 +641,7 @@ class DisplayTranslators(webapp.RequestHandler):
                 proxy_template = 'http://www.dermundo.com/dermundocss/proxy.html'
                 w = web()
                 w.get(proxy_template)
+                w.replace(proxy_template,'[language]', language)
                 w.replace(proxy_template,'[title]', clean('Der Mundo'))
                 w.replace(proxy_template,'[google_analytics]', google_analytics_header)
                 w.replace(proxy_template,'[tagline]', g(language, clean('Translate the world with your friends')))
@@ -579,6 +649,7 @@ class DisplayTranslators(webapp.RequestHandler):
                 if len(shorturl) > 0:
                     text = text + ' ' + g(language, clean('The shortcut for this social translation project is: '))
                     text = text + '<a href=' + shorturl + ' target=_new>' + string.replace(shorturl, 'http://', '') + '</a><br>'
+                    text = text + '<script src="http://connect.facebook.net/' + locale + '/all.js#xfbml=1"></script><fb:like show_faces="true" width="450"></fb:like><br>'
                 text = text + g(language, clean('This page has been translated by <a href=http://www.dermundo.com>Der Mundo</a>, using <a href=http://www.google.com/translate>Google Translate</a>, <a href=http://www.apertium.org>Apertium</a>, and by Internet users worldwide.'))
                 if len(translatorskeys) > 0:
                     text = text + '<hr>' + g(language,clean('Recent Translators')) + '<br>'
