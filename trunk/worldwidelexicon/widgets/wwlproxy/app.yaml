@@ -8,6 +8,15 @@ builtins:
 
 handlers:
 
+- url: /mt/(.*)/(.*)/(.*)
+  script: mt.py
+
+- url: /mt/(.*)/(.*)
+  script: mt.py
+
+- url: /mt/(.*)
+  script: mt.py
+
 - url: /mt
   script: mt.py
 
