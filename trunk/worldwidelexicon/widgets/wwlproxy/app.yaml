@@ -1,9 +1,21 @@
-application: YOUR_APP_ID
+application: wwlapi
 version: secureable
 runtime: python
 api_version: 1
 
+builtins:
+- datastore_admin: on
+
 handlers:
+
+- url: /mt
+  script: mt.py
+
+- url: /u
+  script: relay.py
+
+- url: /submit
+  script: relay.py
 
 - url: /.*
   script: mirror.py
