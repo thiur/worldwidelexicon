@@ -92,186 +92,12 @@ from transcoder import transcoder
 def clean(text):
     return transcoder.clean(text)
 
-# 
-# Machine Translation Settings
-#
-# Language Pair --> Translation Engine Assignments
-#
-
-# Define default engine
 default_engine = 'google'
-
-# Define language specific settings
-#
-# These predefined default settings will be overridden if you
-# manage your machine translation settings via the admin web
-# interface at /admin on your WWL server. 
-#
-lp = dict()
-lp['es-en']='google'
-lp['en-es']='google'
-lp['en-ca']='google'
-lp['en-gl']='apertium'
-
-lp['es-gl']='apertium'
-lp['es-ca']='apertium'
-lp['es-fr']='apertium'
-lp['es-oc']='apertium'
-lp['es-pt']='apertium'
-
-lp['ca-en']='apertium'
-lp['ca-es']='apertium'
-lp['ca-fr']='apertium'
-lp['ca-oc']='apertium'
-
-lp['cy-en']='apertium'
-
-lp['fr-ca']='apertium'
-lp['fr-es']='apertium'
-
-lp['gl-en']='apertium'
-lp['gl-es']='apertium'
-lp['gl-pt']='apertium'
-
-lp['oc-ca']='apertium'
-lp['oc-es']='apertium'
-
-lp['pt-es']='apertium'
-lp['pt-fr']='apertium'
-
-lp['eu-es']='apertium'
-
-lp['sv-da']='apertium'
-lp['nn-nb']='apertium'
-lp['nb-nn']='apertium'
-lp['no-nb']='apertium'
-lp['nb-no']='apertium'
 
 baseurls=dict()
 baseurls['google']='http://ajax.googleapis.com/ajax/services/language/translate'
 baseurls['apertium']='http://api.apertium.org/json/translate'
-
-class MT(db.Model):
-    langpair = db.StringProperty(default='')
-    mtengine = db.StringProperty(default='')
-    url = db.StringProperty(default='')
-    output = db.StringProperty(default='')
-    @staticmethod
-    def add(sl, tl, mtengine):
-        if len(sl) > 1 and len(tl) > 1:
-            mdb = db.Query(MT)
-            mdb.filter('langpair = ', sl + '-' + tl)
-            item = mdb.get()
-            if item is None:
-                item = MT()
-                item.langpair = sl + '-' + tl
-            item.mtengine = mtengine
-            item.put()
-            memcache.delete('/mtengines')
-            memcache.set('/mtengines/' + sl + '-' + tl, mtengine,300)
-            return True
-        else:
-            return False
-    @staticmethod
-    def defaults():
-        lpkeys = lp.keys()
-        for l in lpkeys:
-            mdb = db.Query(MT)
-            mdb.filter('langpair = ', l)
-            item = mdb.get()
-            if item is None:
-                item = MT()
-                item.langpair = l
-            item.mtengine = lp[l]
-            item.put()
-            memcache.set('/mtengines/' + l, lp[l], 300)
-    @staticmethod
-    def find():
-        results = memcache.get('/mtengines')
-        if results is not None:
-            return results
-        mdb = db.Query(MT)
-        mdb.order('langpair')
-        results = mdb.fetch(limit=200)
-        if len(results) < 1:
-            MT.defaults()
-            mdb = db.Query(MT)
-            mdb.order('langpair')
-            results = mdb.fetch(limit=200)
-            memcache.set('/mtengines', results, 300)
-            return results
-        else:
-            memcache.set('/mtengines', results, 300)
-            return results
-    @staticmethod
-    def pickengine(sl, tl):
-        mtengine = memcache.get('/mtengines/' + sl + '-' + tl)
-        if mtengine is not None:
-            return mtengine
-        else:
-            mdb = db.Query(MT)
-            mdb.filter('langpair = ', sl + '-' + tl)
-            item = mdb.get()
-            if item is not None:
-                memcache.set('/mtengines/' + sl + '-' + tl, item.mtengine, 300)
-                return item.mtengine
-            else:
-                mtengine = memcache.get('/mtengines/default-default')
-                if mtengine is not None:
-                    return mtengine
-                else:
-                    mdb = db.Query(MT)
-                    mdb.filter('langpair = ', 'default-default')
-                    item = mdb.get()
-                    if item is not None:
-                        mtengine = item.mtengine
-                        memcache.set('/mtengines/default-default', mtengine,900)
-                        return mtengine
-                    else:
-                        memcache.set('/mtengines/default-default', 'google', 900)
-                        return 'google'
-    @staticmethod
-    def geturl(sl,tl):
-        mtengine=MT.pickengine(sl,tl)
-        url = baseurls.get(mtengine,'')
-        if len(mtengine) > 0:
-            t = 'mtengine=' + mtengine + '\nurl=' + url + '\nformat=google'
-        else:
-            t = ''
-        return t
-    @staticmethod
-    def remove(langpair):
-        if len(langpair) > 2:
-            mdb = db.Query(MT)
-            mdb.filter('langpair = ', langpair)
-            item = mdb.get()
-            if item is not None:
-                item.delete()
-                memcache.delete('/mtengines')
-                memcache.delete('/mtengines/' + langpair)
-                return True
-            else:
-                return False
-        else:
-            return False
-    @staticmethod
-    def select():
-        engines = list()
-        engines.append('apertium')
-        engines.append('google')
-        engines.append('moses')
-        engines.append('worldlingo')
-        t = '<select name=mtengine>'
-        defaultengine = MT.pickengine('default', 'default')
-        if len(defaultengine) < 1:
-            defaultengine = 'google'
-        t = t + '<option selected value="' + defaultengine + '">' + string.capitalize(defaultengine) + '</option>'
-        for e in engines:
-            if e != defaultengine:
-                t = t + '<option value="' + e + '">' + string.capitalize(e) + '</option>'
-        t = t + '</select>'
-        return t
-
+                
 class MTWrapper():
     """
     This is a wrapper class that encapsulates methods to make HTTP queries to other
@@ -299,19 +125,7 @@ class MTWrapper():
         except:
             sl = ''
         return sl
-    def pickEngine(self,sl,tl):
-        """
-        Decides which translation engine to use based on language pairs,
-        use default_engine if no specific setting is found
-        Returns a string with the name of the selected translation engine,
-        which is used, in turn, to decide which
-        MT proxy class to call to submit an external CGI query. 
-        """
-        engine = MT.pickengine(sl,tl)
-        return engine
-    def geturl(self, sl, tl):
-        return MT.geturl(sl,tl)
-    def getTranslation(self,sl='en',tl='es',st='',mtengine='',domain='',url='', mode='text', userip=''):
+    def getTranslation(self,sl='en',tl='es',st='',mtengine='google',domain='',url='', mode='text', userip=''):
       """
       Fetches machine translation, if mtengine is specified then override automatic MT engine selection
       calls selected MT engine via wrapper class, returns text or empty string to calling function.
@@ -325,8 +139,6 @@ class MTWrapper():
             response['engine']=''
             response['tt']=st
             return response
-      if len(mtengine) < 1:
-          mtengine=self.pickEngine(sl,tl)
       st = clean(st)
       if len(st) < 2:
         if mode == 'text':
@@ -340,7 +152,7 @@ class MTWrapper():
       m.update(tl)
       m.update(st)
       md5hash = str(m.hexdigest())
-      tt = memcache.get('/mt/' + sl + '/' + tl + '/' + md5hash)
+      tt = memcache.get('/mt/' + mtengine + '/' + md5hash)
       if tt is not None:
           if len(tt) > 0:
               if mode == 'text':
@@ -349,49 +161,17 @@ class MTWrapper():
                 response['engine']=mtengine
                 response['tt']=tt
                 return response
-          else:
-              if mode == 'text':
-                return st
-              else:
-                response['engine']=''
-                response['tt']=tt
-                return response
       tt = ''
       if mtengine=='google':
         mt = GoogleMTProxy()
-        tt = mt.getTranslation(sl,tl,st,userip)
-      if mtengine=='babelfish':
-        mt = BabelfishMTProxy()
-        tt = mt.getTranslation(sl,tl,st,userip)
+        tt = mt.getTranslation(sl,tl,st,userip=userip)
       if mtengine=='apertium':
         mt = ApertiumProxy()
-        tt = mt.getTranslation(sl,tl,st,userip)
-      if mtengine=='worldlingo':
-        mt = WorldLingoProxy()
-        tt = mt.getTranslation(sl,tl,st,userip)
-      if mtengine=='moses':
-        mt = MosesProxy()
-        tt = mt.getTranslation(sl,tl,st,userip)
-      # parse return results
+        tt = mt.getTranslation(sl,tl,st,userip=userip)
       if tt is not None:
         tt = clean(tt)
         if len(tt) > 0:
-            if len(url) > 0:
-                p = dict()
-                p['sl']=sl
-                p['tl']=tl
-                p['st']=st
-                p['tt']=tt
-                p['domain']=domain
-                p['url']=url
-                p['mtengine']=mtengine
-                taskqueue.add(url = '/cache', params=p)
-            if len(md5hash) > 0:
-                memcache.set('/mt/' + sl + '/' + tl + '/' + md5hash, tt, 3600)
-            elif len(st) < 200:
-                memcache.set('/mt/' + sl + '/' + tl + '/' + st, tt, 3600)
-            else:
-                pass
+            memcache.set('/mt/' + mtengine + '/' + md5hash, tt, 7200)
             if mode == 'text':
                 return tt
             else:
@@ -400,40 +180,18 @@ class MTWrapper():
                 return response
         else:
             if mode == 'text':
-                return st
+                return ''
             else:
-                response['engine']=''
+                response['engine']=mtengine
                 response['tt']=st
       else:
         if mode == 'text':
-            return st
+            return ''
         else:
-            response['engine']=''
-            response['tt']=st
+            response['engine']=mtengine
+            response['tt']=''
             return response
     
-class BabelfishMTProxy():
-    """
-    Makes query to Babelfish MT Engine
-    """
-    def getTranslation(self,sl='en',tl='ca',st='',userip=''):
-      url="http://babelfish.yahoo.com/translate_txt"
-      form_fields = {
-        "intl" : "1",
-        "lp" : sl + '_' + tl,
-        "urltext" : st
-      }
-      form_data = urllib.urlencode(form_fields)
-      try:
-          result = urlfetch.fetch(url=url,
-                              payload=form_data,
-                              method=urlfetch.POST,
-                              headers={'Content-Type' : 'application/x-www-form-urlencoded','Accept-Charset' : 'utf-8'})
-          tt = result.content
-      except:
-          tt=''
-      return clean(tt)
-
 class GoogleMTProxy():
     """
     Makes query to and parses response from Google Translate machine translation
@@ -448,19 +206,16 @@ class GoogleMTProxy():
         "ie" : "UTF8",
         "userip" : userip
       }
-      form_fields
       form_data = urllib.urlencode(form_fields)
+      #try:
+      result = urlfetch.fetch(url=url,
+                        payload=form_data,
+                        method=urlfetch.POST,
+                        headers={'Content-Type': 'application/x-www-form-urlencoded'})
+      results = demjson.decode(clean(result.content))
       try:
-          result = urlfetch.fetch(url=url,
-                            payload=form_data,
-                            method=urlfetch.POST,
-                            headers={'Content-Type': 'application/x-www-form-urlencoded'})
-          results = demjson.decode(result.content)
-          try:
-              tt = results['responseData']['translatedText']
-          except:
-              tt = ''
-          return clean(tt)
+          tt = results['responseData']['translatedText']
+          return tt
       except:
           return ''
         
@@ -485,111 +240,10 @@ class ApertiumProxy():
                               method=urlfetch.POST,
                               headers={'Content-Type' : 'application/x-www-form-urlencoded','Accept-Charset' : 'utf-8'})
           results = demjson.decode(result.content)
-          try:
-              tt = results['responseData']['translatedText']
-          except:
-              tt = ''
-          return clean(tt)
+          tt = clean(results['responseData']['translatedText'])
+          return tt
       except:
           return ''
-
-#
-# Some addition stubs for other machine translation systems (not yet implemented)
-#
-# As you can see, it is pretty straightforward to add additional MT engines as needed. For now language pair --> engine mappings
-# are defined in code, but at some point, we will implement a web control panel for this.
-#
-
-class MosesProxy():
-    """
-    Wrapper class for Moses statistical machine translation systems
-    (will probably need to be modified on case by case basis)
-    """
-    def getTranslation(self,sl='en',tl='',st='',userip=''):
-        url = 'http://demo.statmt.org/translate.php'
-        form_fields = {
-            "langpair": sl + '|' + tl,
-            "v" : "1.0",
-            "q": st,
-            "ie" : "UTF8"
-        }
-        form_data = urllib.urlencode(form_fields)
-        try:
-            result = urlfetch.fetch(url=url,
-                            payload=form_data,
-                            method=urlfetch.POST,
-                            headers={'Content-Type': 'application/x-www-form-urlencoded'})
-            results = demjson.decode(result.content)
-            try:
-                tt = results['responseData']['translatedText']
-            except:
-                tt = ''
-            return clean(tt)
-        except:
-            return ''
-
-class WorldLingoProxy():
-    """
-    Makes query to and parses response from WorldLingo machine translation
-    service (requires user credentials)
-    """
-    def getTranslation(self, sl='en', tl='es',st = '',userip=''):
-        if len(st) > 0:
-            sl = WorldLingoLanguage(sl)
-            tl = WorldLingoLanguage(tl)
-            subscription = Settings.get('worldlingosubscription')
-            pw = Settings.get('worldlingopw')
-            baseurl = 'http://www.worldlingo.com/' + subscription + '/api?'
-            ust = urllib.quote_plus(st)
-            suffix = 'wl_password=' + pw + '&wl_srclang=' + sl + '&wl_trglang=' + tl + '&wl_opt=0&wl_errorstyle=1&' + '&wl_data=' + ust
-            url = baseurl + suffix
-            response = urlfetch.fetch(url=url)
-            try:
-                tt = response.content
-                return clean(tt)
-            except:
-                return ''
-        else:
-            return ''
-        
-def WorldLingoLanguage(l):
-    if l == 'bg':
-        l = 'lwa_bg'
-    if l == 'cs':
-        l = 'lwa_cs'
-    if l == 'da':
-        l = 'lwa_da'
-    if l == 'fi':
-        l = 'lwa_fi'
-    if l == 'ha':
-        l = 'lwa_ha'
-    if l == 'he':
-        l = 'lwa_he'
-    if l == 'hi':
-        l = 'lwa_hi'
-    if l == 'hu':
-        l = 'lwa_hu'
-    if l == 'no':
-        l = 'lwa_no'
-    if l == 'ps':
-        l = 'lwa_ps'
-    if l == 'fa':
-        l = 'lwa_fa'
-    if l == 'pl':
-        l = 'lwa_pl'
-    if l == 'ro':
-        l = 'lwa_ro'
-    if l == 'sr':
-        l = 'lwa_sr'
-    if l == 'so':
-        l = 'lwa_so'
-    if l == 'th':
-        l = 'lwa_th'
-    if l == 'tr':
-        l = 'lwa_tr'
-    if l == 'ur':
-        l = 'lwa_ur'
-    return l
 
 class MTServer(webapp.RequestHandler):
     """
@@ -653,11 +307,12 @@ class MTServer(webapp.RequestHandler):
             tl = self.request.get('tl')
             mode = 'rest'
         if len(st) > 0:
-            st = transcoder.clean(st)
-            st = string.replace(st, '+', ' ')
-        if len(st) < 1:
+            st = clean(st)
+        else:
             st = clean(self.request.get('st'))
         mtengine = self.request.get('mtengine')
+        if len(mtengine) < 2:
+            mtengine = 'google'
         output = self.request.get('output')
         q = clean(self.request.get('q'))
         langpair = self.request.get('langpair')
@@ -687,7 +342,7 @@ class MTServer(webapp.RequestHandler):
                 response=string.replace(response,'[translation]', string.replace(tt, '\"', '\''))
                 self.response.out.write(response)
         else:
-            t = '<form action=/mt method=post><table>'
+            t = '<form action=/mt method=get><table>'
             t = t + '<tr><td>Source Language Code</td><td><input type=text name=sl></td></tr>'
             t = t + '<tr><td>Target Language Code</td><td><input type=text name=tl></td></tr>'
             t = t + '<tr><td>Machine Translation Engine</td><td><input type=text name=mtengine></td></tr>'
@@ -710,3 +365,6 @@ application = webapp.WSGIApplication([('/mt', MTServer),
 
 def main():
   run_wsgi_app(application)
+
+if __name__ == "__main__":
+  main()
