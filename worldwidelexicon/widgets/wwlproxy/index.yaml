@@ -10,3 +10,10 @@ indexes:
 # automatically uploaded to the admin console when you next deploy
 # your application using appcfg.py.
 
+- kind: Translation
+  properties:
+  - name: md5hash
+  - name: sl
+  - name: tl
+  - name: date
+    direction: desc
