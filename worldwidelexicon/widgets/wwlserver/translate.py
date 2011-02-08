@@ -47,13 +47,13 @@ from database import Translation
 from database import Users
 from database import UserScores
 from language import TestLanguage
-from proxy import ProxyDomains
 from transcoder import transcoder
 from webappcookie import Cookies
 from wwlgae import wwl
 from www import web
 from www import www
 from shorturl import UrlEncoder
+from BeautifulSoup import BeautifulSoup
 import sgmllib
 
 template = 'http://www.dermundo.com/css/template.css'
@@ -343,6 +343,42 @@ class FBLocales():
         locale = self.locales.get(language,'')
         if len(locale) > 0:
             return locale
+	
+class DerMundoHeaders(db.Model):
+    shorturl = db.StringProperty(default='')
+    language = db.StringProperty(default='')
+    description = db.TextProperty(default='')
+    title = db.StringProperty(default='')
+    keywords = db.ListProperty(str)
+    createdon = db.DateTimeProperty(auto_now_add = True)
+    @staticmethod
+    def add(shorturl, language, title, description = '', keywords=None):
+	hdb = db.Query(DerMundoHeaders)
+	hdb.filter('shorturl = ', shorturl)
+	hdb.filter('language = ', language)
+	item = hdb.get()
+	if item is None:
+	    item = DerMundoHeaders()
+	    item.shorturl = shorturl
+	    item.language = language
+	    item.title = title
+	    item.description = description
+	    item.put()
+	    return True
+	return False
+    @staticmethod
+    def find(shorturl, language):
+	hdb = db.Query(DerMundoHeaders)
+	hdb.filter('shorturl = ', shorturl)
+	hdb.filter('language = ', language)
+	item = hdb.get()
+	if item is None:
+	    return
+	else:
+	    result = dict()
+	    result['title']=item.title
+	    result['description']=item.description
+	    return result
 
 class DerMundoProjects(db.Model):
     domain = db.StringProperty(default='')
@@ -500,6 +536,7 @@ class Translator(webapp.RequestHandler):
             t = '<p><table><form action=/translate/project method=get>'
             t = t + '</select></td></tr>'
             t = t + '<tr><td>URL</td><td><input type=text size=40 name=u value="http://www.aljazeera.net"></td></tr>'
+#	    t = t + '<tr><td>Require encryption</td><td><input type=checkbox value=y name=secure></td></tr>'
             t = t + '<tr><td colspan=2>' + g(language, 'Optional professional translation by <a href=http://www.speaklike.com>SpeakLike</a>') + '</td></tr>'
             t = t + '<tr><td>SpeakLike username</td><td><input type=text name=lspusername></td></tr>'
             t = t + '<tr><td>SpeakLike password</td><td><input type=password name=lsppw></td></tr>'
@@ -570,11 +607,11 @@ class Translator(webapp.RequestHandler):
         self.redirect('http://blog.worldwidelexicon.org')
 
 class DisplayTranslators(webapp.RequestHandler):
-    def get(self, shorturl=''):
-        self.requesthandler(shorturl)
-    def post(self, shorturl=''):
-        self.requesthandler(shorturl)
-    def requesthandler(self, shorturl=''):
+    def get(self, shorturl='', tl=''):
+        self.requesthandler(shorturl, tl)
+    def post(self, shorturl='', tl=''):
+        self.requesthandler(shorturl, tl)
+    def requesthandler(self, shorturl='', tl=''):
         url = urllib.unquote_plus(self.request.get('u'))
         output = self.request.get('output')
         try:
@@ -584,18 +621,25 @@ class DisplayTranslators(webapp.RequestHandler):
         found_locale = False
         language = ''
         locale = ''
-        for l in locales:
-            langloc = string.split(l, '-')
-            if len(language) < 1:
-                language = langloc[0]
-            if not found_locale:
-                f = FBLocales()
-                locale = f.lookup(langloc[0])
-                if locale is not None:
-                    if len(locale) > 1:
-                        found_locale=True
-        if not found_locale:
-            locale = 'en_US'
+        force_language = False
+        if len(tl) > 1:
+            language = tl
+            f = FBLocales()
+            locale = f.lookup(language)
+            force_language = True
+	if not force_language:
+	    for l in locales:
+		langloc = string.split(l, '-')
+		if len(language) < 1:
+		    language = langloc[0]
+		if not found_locale:
+		    f = FBLocales()
+		    locale = f.lookup(langloc[0])
+		    if locale is not None:
+			if len(locale) > 1:
+			    found_locale=True
+	    if not found_locale:
+		locale = 'en_US'
         if len(language) < 1:
             language = 'en'
         if len(shorturl) > 0:
@@ -611,6 +655,21 @@ class DisplayTranslators(webapp.RequestHandler):
                 shorturl = clean('http://www.dermundo.com/x' + DerMundoProjects.add(url))
             else:
                 shorturl = ''
+	if len(url) > 0:
+	    metadata = DerMundoHeaders.find(shorturl, language)
+	    if metadata is not None:
+		title = metadata.get('title','')
+		description = metadata.get('description','')
+	    else:
+		response = urlfetch.fetch(url=url)
+		try:
+		    soup = BeautifulSoup(response.content)
+		    html = soup.renderContents()
+		    titletag = soup.html.head.title
+		    title = g(language, '(' + titletag.string + ') Translate the world with your friends')
+		    DerMundoHeaders.add(shorturl, language, title)
+		except:
+		    pass
         if len(url) > 0:
             m = md5.new()
             m.update(language)
@@ -642,6 +701,8 @@ class DisplayTranslators(webapp.RequestHandler):
                 w = web()
                 w.get(proxy_template)
                 w.replace(proxy_template,'[language]', language)
+		w.replace(proxy_template,'[title]', title)
+		w.replace(proxy_template,'[description]', '')
                 w.replace(proxy_template,'[title]', clean('Der Mundo'))
                 w.replace(proxy_template,'[google_analytics]', google_analytics_header)
                 w.replace(proxy_template,'[tagline]', g(language, clean('Translate the world with your friends')))
@@ -876,6 +937,7 @@ application = webapp.WSGIApplication([('/', Translator),
                                       ('/translate/project', CreateProject),
                                       ('/translate/view', DisplayTranslators),
                                       ('/translate/shortcut', GenerateShortCut),
+                                      (r'/x(.*)/(.*)', DisplayTranslators),
                                       (r'/x(.*)', DisplayTranslators),
                                       ('/translate/translators', DisplayTranslators),
                                       ('/sidebar', Sidebar),
