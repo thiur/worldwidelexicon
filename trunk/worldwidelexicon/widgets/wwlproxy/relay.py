@@ -278,6 +278,32 @@ class GeoLocate(webapp.RequestHandler):
         except:
             text = ''
         self.response.out.write(text)
+        
+class IM(webapp.RequestHandler):
+    def get(self, md5hash):
+        messages = memcache.get('/im/' + md5hash)
+        if messages is None:
+            self.response.out.write('')
+        else:
+            for m in messages:
+                self.response.out.write(m.key + '|' + m + '\n')
+    def post(self, md5hash):
+        msg = self.request.get('msg')
+        if len(msg) > 0:
+            messages = memcache.get('/im/' + md5hash)
+            if messages is None:
+                messages = list()
+            if type(messages) is list:
+                messages.append(msg)
+                memcache.set('/im/' + md5hash, messages)
+                self.response.out.write('ok')
+            else:
+                self.error(400)
+                self.response.out.write('error')
+        else:
+            self.response.out.write('<form action=/wwl/im/' + md5hash + ' method=post>')
+            self.response.out.write('<input type=text name=msg>')
+            self.response.out.write('<input type=submit value=submit></form>')
 
 application = webapp.WSGIApplication([('/wwl/u', BatchTranslations),
                                       ('/wwl/t', FetchTranslation),
@@ -285,6 +311,7 @@ application = webapp.WSGIApplication([('/wwl/u', BatchTranslations),
                                       ('/wwl/submit', SubmitTranslation),
                                       ('/wwl/language', TestLanguage),
                                       ('/wwl/domain', TestDomain),
+                                      (r'/wwl/im/(.*)', IM),
                                       ('/wwl/scores/vote', SubmitScore)],
                                      debug=True)
 
