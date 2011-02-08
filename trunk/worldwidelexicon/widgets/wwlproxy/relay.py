@@ -42,9 +42,58 @@ import string
 import md5
 from www import www
 from transcoder import transcoder
+from BeautifulSoup import BeautifulSoup
+
+td = dict()
+td['eg']='ar'
+td['ly']='ar'
+td['sa']='ar'
+td['kw']='ar'
+td['jo']='ar'
+td['fr']='fr'
+td['de']='de'
+td['ru']='ru'
+td['jp']='ja'
+td['kr']='ko'
+td['cn']='zh'
+td['hk']='en'
+td['tw']='zh'
+td['au']='en'
+td['uk']='en'
+td['ie']='en'
+td['ca']='en'
+td['nz']='en'
+td['se']='sv'
+td['no']='nb'
+td['fi']='fi'
+td['it']='it'
+td['es']='es'
+td['gr']='el'
+td['cz']='cs'
+td['pl']='po'
+td['ch']='de'
+td['hu']='hu'
+td['tr']='tr'
+td['il']='he'
+td['pt']='pt'
+td['br']='pt'
+td['mx']='es'
+td['ni']='es'
+td['cr']='es'
+td['cl']='es'
+td['py']='es'
+td['pa']='es'
+td['cu']='es'
+td['ar']='es'
+td['bg']='bg'
+
+def utf(text):
+    soup = BeautifulSoup(text, smartQuotesTo=None)
+    return soup.contents[0]
 
 def clean(text):
-    return transcoder.clean(text)
+    return utf(text)
+    #return transcoder.clean(text)
 
 class BatchTranslations(webapp.RequestHandler):
     def get(self):
@@ -86,7 +135,33 @@ class SubmitTranslation(webapp.RequestHandler):
     def post(self):
         self.requesthandler()
     def requesthandler(self):
-        pass
+        sl = self.request.get('sl')
+        tl = self.request.get('tl')
+        st = clean(self.request.get('st'))
+        tt = clean(self.request.get('tt'))
+        url = self.request.get('url')
+        remote_addr = self.request.remote_addr
+        username = self.request.get('username')
+        burl="http://www.worldwidelexicon.org/submit"
+        form_fields = {
+            "sl" : sl,
+            "tl" : tl,
+            "st" : st,
+            "tt" : tt,
+            "url" : url,
+            "ip" : remote_addr,
+            "username" : username
+        }
+        form_data = urllib.urlencode(form_fields)
+        result = urlfetch.fetch(url=burl,
+        payload=form_data,
+        method=urlfetch.POST,
+        headers={'Content-Type' : 'application/x-www-form-urlencoded','Accept-Charset' : 'utf-8'})
+        if result.status_code == 200:
+            self.response.out.write('ok')
+        else:
+            self.error(result.status_code)
+            self.response.out.write('error')
 
 class SubmitScore(webapp.RequestHandler):
     def get(self):
@@ -94,11 +169,109 @@ class SubmitScore(webapp.RequestHandler):
     def post(self):
         self.requesthandler()
     def requesthandler(self):
-        pass
+        guid = self.request.get('guid')
+        score = self.request.get('score')
+        remote_addr = self.request.remote_addr
+        burl="http://www.worldwidelexicon.org/scores/vote"
+        form_fields = {
+            "guid" : guid,
+            "score" : score,
+            "ip" : remote_addr
+        }
+        form_data = urllib.urlencode(form_fields)
+        result = urlfetch.fetch(url=burl,
+        payload=form_data,
+        method=urlfetch.POST,
+        headers={'Content-Type' : 'application/x-www-form-urlencoded','Accept-Charset' : 'utf-8'})
+        if result.status_code == 200:
+            self.response.out.write('ok')
+        else:
+            self.error(result.status_code)
+            self.response.out.write('error')
+            
+class TestLanguage(webapp.RequestHandler):
+    def get(self):
+        text=self.request.get('text')
+        if len(text) > 0:
+            encodedtext = urllib.quote_plus(clean(text))
+            url = 'http://ajax.googleapis.com/ajax/services/language/detect?v=1.0&q=' + encodedtext
+            response = urlfetch.fetch(url = url)
+            if response.status_code == 200:
+                results = demjson.decode(response.content)
+            else:
+                results = ''
+            self.response.out.write(results)
+        else:
+            self.response.out.write(results)
 
-application = webapp.WSGIApplication([('/u', BatchTranslations),
-                                      ('/submit', SubmitTranslation),
-                                      ('/scores/submit', SubmitScore)],
+class TestDomain(webapp.RequestHandler):
+    def get(self):
+        domain = self.request.get('domain')
+        if len(domain) > 0:
+            sd = string.split(domain,'.')
+            tld = sd[len(sd)-1]
+            language = td.get(tld, '')
+            self.response.out.write(language)
+        else:
+            self.response.out.write('')
+            
+class FetchTranslation(webapp.RequestHandler):
+    def get(self):
+        self.requesthandler()
+    def post(self):
+        self.requesthandler()
+    def requesthandler(self):
+        sl = self.request.get('sl')
+        tl = self.request.get('tl')
+        st = clean(self.request.get('st'))
+        url = self.request.get('url')
+        lsp = self.request.get('lsp')
+        lspusername = self.request.get('lspusername')
+        lsppw = self.request.get('lsppw')
+        allow_machine = 'y'
+        output = 'json'
+        m = md5.new()
+        m.update(sl)
+        m.update(tl)
+        m.update(st)
+        md5hash = str(m.hexdigest())
+        text = memcache.get('/t/' + md5hash)
+        if text is not None:
+            self.response.out.write(text)
+        burl="http://www.worldwidelexicon.org/t"
+        form_fields = {
+            "sl" : sl,
+            "tl" : tl,
+            "st" : st,
+            "url" : url,
+            "lsp" : lsp,
+            "lspusername" : lspusername,
+            "lsppw" : lsppw,
+            "allow_machine" : allow_machine,
+            "output" : output
+        }
+        form_data = urllib.urlencode(form_fields)
+        try:
+            result = urlfetch.fetch(url=burl,
+            payload=form_data,
+            method=urlfetch.POST,
+            headers={'Content-Type' : 'application/x-www-form-urlencoded','Accept-Charset' : 'utf-8'})
+            if result.status_code == 200:
+                memcache.set('/t/' + md5hash, text)
+                self.response.out.write(result.content)
+            else:
+                self.error(result.status_code)
+                self.response.out.write('error')
+        except:
+            self.error(400)
+            self.response.out.write('error')
+
+application = webapp.WSGIApplication([('/wwl/u', BatchTranslations),
+                                      ('/wwl/t', FetchTranslation),
+                                      ('/wwl/submit', SubmitTranslation),
+                                      ('/wwl/language', TestLanguage),
+                                      ('/wwl/domain', TestDomain),
+                                      ('/wwl/scores/vote', SubmitScore)],
                                      debug=True)
 
 def main():
