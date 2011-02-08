@@ -7,7 +7,7 @@ builtins:
 - datastore_admin: on
 
 handlers:
-    
+  
 - url: /dermundocss
   static_dir: dermundocss
 
@@ -17,10 +17,10 @@ handlers:
 - url: /dermundoimage
   static_dir: dermundoimage
   
-- url: /
+- url: /translate/view
   script: translate.py
   
-- url: /translate/(.*)
+- url: /translate/project
   script: translate.py
   
 - url: /language
@@ -32,20 +32,11 @@ handlers:
 - url: /help/firefox
   script: translate.py
   
-- url: /x(*.)/(.*)
+- url: /x(.*)/(.*)
   script: translate.py
   
 - url: /x(.*)
   script: translate.py
-
-- url: /wwl/mt/(.*)/(.*)/(.*)
-  script: mt.py
-
-- url: /wwl/mt/(.*)/(.*)
-  script: mt.py
-
-- url: /wwl/mt/(.*)
-  script: mt.py
 
 - url: /wwl/mt
   script: mt.py
@@ -74,9 +65,8 @@ handlers:
 - url: /wwl/im/(.*)
   script: relay.py
   
-- url: /(.*)
-  script: mirror.py
-  secure: optional
+- url: /
+  script: translate.py
 
 - url: /.*
   script: mirror.py

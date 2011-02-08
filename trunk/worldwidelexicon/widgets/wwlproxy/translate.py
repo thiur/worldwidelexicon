@@ -60,6 +60,12 @@ template = 'http://www.dermundo.com/css/template.css'
 usertemplate = 'http://www.dermundo.com/dermundocss/profile.html'
 sidebar_url = 'http://www.dermundo.com/dermundocss/sidebar.html'
 
+FACEBOOK_APP_ID = Settings.get('facebook_app_id')
+FACEBOOK_APP_SECRET = Settings.get('facebook_app_secret')
+
+SPEAKLIKE_USERNAME = Settings.get('speaklike_username')
+SPEAKLIKE_PW = Settings.get('speaklike_pw')
+
 userip =''
 
 # Define convenience functions
@@ -88,7 +94,7 @@ def g(tl, text, professional=True, server_side=True):
         if tl not in speaklikelangs:
             professional = False
         if professional:
-            t = Translation.lucky('en', tl, text, lsp='speaklike', lspusername=speaklikeusername, lsppw=speaklikepw, userip=userip)
+            t = Translation.lucky('en', tl, text, lsp='speaklike', lspusername=SPEAKLIKE_USERNAME, lsppw=SPEAKLIKE_PW, userip=userip)
         else:
             
             t = Translation.lucky('en', tl, text, userip=userip)
@@ -728,7 +734,7 @@ class Translator(webapp.RequestHandler):
             </script>
             <fb:login-button autologoutlink="true"></fb:login-button>
             """
-            user = FBUser.lookup(self.request.cookies)
+            user = FBUser.lookup(self.request.cookies, self.request.remote_addr)
             if user is not None:
                 text = text + '<p><a href=' + user.get('profile_url','') + '><img src=http://graph.facebook.com/' + user.get('id ','')+ '/picture?type=square/></a></p>'
             text = text + """
@@ -885,7 +891,7 @@ class DisplayTranslators(webapp.RequestHandler):
     </script>
     <fb:login-button autologoutlink="true"></fb:login-button>
     """
-                user = FBUser.lookup(self.request.cookies)
+                user = FBUser.lookup(self.request.cookies, self.request.remote_addr)
                 if user is not None:
                     text = text + '<p><a href=' + user.get('profile_url','') + '><img src=http://graph.facebook.com/' + user.get('id ','')+ '/picture?type=square/></a></p>'
                 text = text + """
@@ -1085,7 +1091,6 @@ class Help(webapp.RequestHandler):
             self.response.out.write(text)
                 
 application = webapp.WSGIApplication([('/', Translator),
-                                      (r'/dermundo/(.*)', Translator),
                                       ('/translate/project', CreateProject),
                                       ('/translate/view', DisplayTranslators),
                                       ('/translate/shortcut', GenerateShortCut),

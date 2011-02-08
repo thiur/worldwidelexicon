@@ -304,6 +304,14 @@ class IM(webapp.RequestHandler):
             self.response.out.write('<form action=/wwl/im/' + md5hash + ' method=post>')
             self.response.out.write('<input type=text name=msg>')
             self.response.out.write('<input type=submit value=submit></form>')
+            
+class UserLogout(webapp.RequestHandler):
+    def get(self):
+        self.requesthandler()
+    def post(self):
+        self.requesthandler()
+    def requesthandler(self):
+        self.response.out.write('ok')
 
 application = webapp.WSGIApplication([('/wwl/u', BatchTranslations),
                                       ('/wwl/t', FetchTranslation),
@@ -312,7 +320,8 @@ application = webapp.WSGIApplication([('/wwl/u', BatchTranslations),
                                       ('/wwl/language', TestLanguage),
                                       ('/wwl/domain', TestDomain),
                                       (r'/wwl/im/(.*)', IM),
-                                      ('/wwl/scores/vote', SubmitScore)],
+                                      ('/wwl/scores/vote', SubmitScore),
+                                      ('/users/logout', UserLogout)],
                                      debug=True)
 
 def main():
