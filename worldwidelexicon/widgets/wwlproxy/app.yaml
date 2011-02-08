@@ -1,5 +1,5 @@
 application: wwlapi
-version: securable
+version: secureable
 runtime: python
 api_version: 1
 
@@ -69,6 +69,9 @@ handlers:
   script: relay.py
   
 - url: /wwl/domain
+  script: relay.py
+  
+- url: /wwl/im/(.*)
   script: relay.py
   
 - url: /(.*)

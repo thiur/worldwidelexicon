@@ -24,6 +24,8 @@ import time
 import urllib
 import wsgiref.handlers
 
+from translate import DerMundoProjects
+
 from google.appengine.api import memcache
 from google.appengine.api import urlfetch
 from google.appengine.ext import db
@@ -222,6 +224,8 @@ class HomeHandler(BaseHandler):
 
 class MirrorHandler(BaseHandler):
   def get(self, base_url):
+    if base_url[0] == 'x':
+      base_url = DerMundoProjects.geturl(base_url[1:20])
     assert base_url
     
     # Log the user-agent and referrer, to see who is linking to us.
