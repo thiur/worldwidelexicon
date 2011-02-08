@@ -1,5 +1,5 @@
 queue:
 - name: default
-  rate: 50/s
+  rate: 20/s
 - name: housekeeping
-  rate: 50/s
+  rate: 20/s

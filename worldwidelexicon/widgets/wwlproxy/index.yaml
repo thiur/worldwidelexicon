@@ -17,3 +17,11 @@ indexes:
   - name: tl
   - name: date
     direction: desc
+    
+- kind: Translation
+  properties:
+  - name: tl
+  - name: url
+  - name: date
+    direction: desc
+
