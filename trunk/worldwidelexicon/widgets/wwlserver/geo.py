@@ -166,3 +166,21 @@ class geo():
                         pass
                     memcache.set('geo|' + remote_addr, location, 1800)
                 return location
+            
+class GetLocation(webapp.RequestHandler):
+    def get(self):
+        ip = self.request.get('ip')
+        location = geo.get(ip)
+        self.response.out.write(location.get('city','') + '\n')
+        self.response.out.write(location.get('country','') + '\n')
+        self.response.out.write(str(location.get('latitude','')) + '\n')
+        self.response.out.write(str(location.get('longitude','')) + '\n')
+            
+application = webapp.WSGIApplication([('/geo', GetLocation)],
+                                     debug=False)
+
+def main():
+  run_wsgi_app(application)
+
+if __name__ == "__main__":
+  main()
