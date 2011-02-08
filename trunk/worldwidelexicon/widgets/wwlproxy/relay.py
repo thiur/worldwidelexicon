@@ -265,9 +265,23 @@ class FetchTranslation(webapp.RequestHandler):
         except:
             self.error(400)
             self.response.out.write('error')
+            
+class GeoLocate(webapp.RequestHandler):
+    def get(self):
+        ip = self.request.remote_addr
+        try:
+            result = urlfetch.fetch(url='http://www.worldwidelexicon.org/geo?ip=' + ip)
+            if result.status_code == 200:
+                text = result.content
+            else:
+                text = ''
+        except:
+            text = ''
+        self.response.out.write(text)
 
 application = webapp.WSGIApplication([('/wwl/u', BatchTranslations),
                                       ('/wwl/t', FetchTranslation),
+                                      ('/wwl/geo', GeoLocate),
                                       ('/wwl/submit', SubmitTranslation),
                                       ('/wwl/language', TestLanguage),
                                       ('/wwl/domain', TestDomain),
