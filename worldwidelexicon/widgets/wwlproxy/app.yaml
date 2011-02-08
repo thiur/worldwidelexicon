@@ -1,5 +1,5 @@
 application: wwlapi
-version: secureable
+version: securable
 runtime: python
 api_version: 1
 
@@ -7,24 +7,70 @@ builtins:
 - datastore_admin: on
 
 handlers:
+    
+- url: /dermundocss
+  static_dir: dermundocss
 
-- url: /mt/(.*)/(.*)/(.*)
+- url: /dermundocss/css
+  static_dir: dermundocss/css
+  
+- url: /dermundoimage
+  static_dir: dermundoimage
+  
+- url: /
+  script: translate.py
+  
+- url: /translate/(.*)
+  script: translate.py
+  
+- url: /language
+  script: language.py
+  
+- url: /sidebar
+  script: translate.py
+  
+- url: /help/firefox
+  script: translate.py
+  
+- url: /x(*.)/(.*)
+  script: translate.py
+  
+- url: /x(.*)
+  script: translate.py
+
+- url: /wwl/mt/(.*)/(.*)/(.*)
   script: mt.py
 
-- url: /mt/(.*)/(.*)
+- url: /wwl/mt/(.*)/(.*)
   script: mt.py
 
-- url: /mt/(.*)
+- url: /wwl/mt/(.*)
   script: mt.py
 
-- url: /mt
+- url: /wwl/mt
   script: mt.py
 
-- url: /u
+- url: /wwl/u
+  script: relay.py
+  
+- url: /wwl/t
   script: relay.py
 
-- url: /submit
+- url: /wwl/submit
   script: relay.py
+  
+- url: /wwl/scores/vote
+  script: relay.py
+  
+- url: /wwl/language
+  script: relay.py
+  
+- url: /wwl/domain
+  script: relay.py
+  
+- url: /(.*)
+  script: mirror.py
+  secure: optional
 
 - url: /.*
   script: mirror.py
