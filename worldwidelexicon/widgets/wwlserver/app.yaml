@@ -81,12 +81,6 @@ handlers:
   
 - url: /cron/(.*)
   script: cron.py
-
-- url: /dermundo/(.*)/(.*)
-  script: translate.py
-
-- url: /dermundo/(.*)
-  script: translate.py
   
 - url: /domains/(.*)
   script: admin.py
@@ -95,8 +89,8 @@ handlers:
 - url: /f
   script: translations.py
   
-- url: /facebook
-  script: facebookhandler.py
+- url: /geo
+  script: geo.py
   
 - url: /headers
   script: admin.py
@@ -105,9 +99,6 @@ handlers:
 - url: /heartbeat
   script: purge.py
   secure: optional
-
-- url: /help/firefox
-  script: translate.py
   
 - url: /hosts/auth/(.*)
   script: hosts.py
@@ -141,12 +132,8 @@ handlers:
 - url: /ngrams
   script: translations.py
   
-- url: /proxy/(.*)
-  script: proxy.py
-  secure: optional
-  
-- url: /proxy
-  script: proxy.py
+- url: /proxy/.*
+  script: mirror.py
   secure: optional
 
 - url: /purge/(.*)
@@ -238,10 +225,6 @@ handlers:
 
 - url: /(.*)/(.*)/(.*)
   script: main.py
-  secure: optional
-
-- url: /x(.*)/(.*)
-  script: translate.py
   secure: optional
   
 - url: /(.*)/(.*)
