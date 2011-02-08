@@ -95,6 +95,9 @@ handlers:
 - url: /f
   script: translations.py
   
+- url: /facebook
+  script: facebookhandler.py
+  
 - url: /headers
   script: admin.py
   secure: optional
@@ -138,8 +141,12 @@ handlers:
 - url: /ngrams
   script: translations.py
   
-- url: /proxy/.*
-  script: mirror.py
+- url: /proxy/(.*)
+  script: proxy.py
+  secure: optional
+  
+- url: /proxy
+  script: proxy.py
   secure: optional
 
 - url: /purge/(.*)
@@ -231,6 +238,10 @@ handlers:
 
 - url: /(.*)/(.*)/(.*)
   script: main.py
+  secure: optional
+
+- url: /x(.*)/(.*)
+  script: translate.py
   secure: optional
   
 - url: /(.*)/(.*)

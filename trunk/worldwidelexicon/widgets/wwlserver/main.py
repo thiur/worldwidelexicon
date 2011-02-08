@@ -59,7 +59,6 @@ from database import Settings
 from database import Translation
 from database import UserScores
 from language import TestLanguage
-from proxy import ProxyDomains
 from transcoder import transcoder
 from www import web
 from www import www
@@ -213,11 +212,6 @@ class WebServer(webapp.RequestHandler):
             w.replace(template,'[footer]',standard_footer)
             w.replace(template,'[menu]',menus)
             w.replace(template,'[left_column]',t)
-            if p1 == 'hostedtranslationwelcome' and len(p2) > 0:
-                secretcode = ProxyDomains.secretcode(p2)
-                w.replace(template, '[secret_code]',secretcode)
-                nickname = ProxyDomains.domain2nickname(p2)
-                w.replace(template, '[nickname]', nickname)
             r = sidebar_about
             r = r + Feeds.get('http://blog.worldwidelexicon.org/?feed=rss2')
             w.replace(template,'[right_column]', r)
