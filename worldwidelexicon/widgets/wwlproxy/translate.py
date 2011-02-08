@@ -93,6 +93,25 @@ def g(tl, text, professional=True, server_side=True):
             
             t = Translation.lucky('en', tl, text, userip=userip)
         return t
+    
+def geolocate(ip):
+    location = memcache.get('/geo/' + ip)
+    if location is not None:
+	result = urlfetch.fetch(url='http://www.worldwidelexicon.org/geo?ip=' + ip)
+	try:
+	    text = result.content
+	except:
+	    text = ''
+	if len(text) > 0:
+	    data = string.split(text,'\n')
+	    location = dict()
+	    location['city']=data[0]
+	    location['country']=data[1]
+	    location['latitude']=data[2]
+	    location['longitude']=data[3]
+	else:
+	    location = None
+    return location
 
 # Define default settings
 
@@ -220,6 +239,145 @@ standard_footer = clean('Content management system and collaborative translation
                   Professional translations for the Der Mundo interface and documentation produced \
                   by <a href=http://www.speaklike.com>SpeakLike</a>.')
 
+class Users(db.Model):
+    ip = db.StringProperty(default='')
+    country = db.StringProperty(default='')
+    city = db.StringProperty(default='')
+    latitude = db.FloatProperty()
+    longitude = db.FloatProperty()
+    facebookid = db.StringProperty(default='')
+    email = db.StringProperty(default='')
+    name = db.StringProperty(default='')
+    gender = db.StringProperty(default='')
+    @staticmethod
+    def add(ip, facebookid=None, email=None, name=None, gender=None):
+	location = geolocate(ip)
+	country = location.get('country','')
+	city = location.get('city','')
+	try:
+	    latitude = float(location.get('latitude',''))
+	    longitude = float(location.get('longitude',''))
+	except:
+	    latitude = None
+	    longitude = None
+	udb = db.Query(Users)
+	if facebookid is not None or email is not None:
+	    anonymous = False
+	else:
+	    anonymous = True
+	if anonymous:
+	    udb.filter('ip = ', ip)
+	elif facebookid is not None:
+	    udb.filter('facebookid = ', facebookid)
+	else:
+	    udb.filter('email = ', email)
+	item = udb.get()
+	newuser = False
+	if item is None:
+	    newuser = True
+	    item = Users()
+	item.city = city
+	item.country = country
+	if latitude is not None:
+	    item.latitude = latitude
+	if longitude is not None:
+	    item.longitude = longitude
+	if facebookid is not None:
+	    item.facebookid = facebookid
+	if email is not None:
+	    item.email = email
+	if name is not None:
+	    item.name = name
+	if gender is not None:
+	    item.gender = gender
+	item.put()
+	if newuser:
+	    p = dict()
+	    url = 'http://www.dermundo.com/wwl/userstats'
+	    taskqueue.add(url=url, params=p)
+	return True
+    @staticmethod
+    def find(ip=None, facebookid=None):
+	if facebookid is not None:
+	    user = memcache.get('/facebookuser/' + facebookid)
+	    if user is not None:
+		return user
+	    else:
+		udb = db.Query(Users)
+		udb.filter ('facebookid = ', facebookid)
+		item = udb.get()
+		if item is not None:
+		    user = dict()
+		    user['name'] = item.name
+		    user['gender'] = item.gender
+		    user['city'] = item.city
+		    user['country'] = item.country
+		    user['latitude'] = item.latitude
+		    user['longitude'] = item.longitude
+		    user['link'] = item.link
+		    memcache.set('/facebookuser/' + facebookid, user, 3600)
+		    return user
+		else:
+		    return None
+	elif ip is not None:
+	    user = memcache.get('/facebookuser/' + facebookid)
+	    if user is not None:
+		return user
+	    else:
+		udb = db.Query(Users)
+		udb.filter ('ip = ', ip)
+		item = udb.get()
+		if item is not None:
+		    user = dict()
+		    user['name'] = item.name
+		    user['gender'] = item.gender
+		    user['city'] = item.city
+		    user['country'] = item.country
+		    user['latitude'] = item.latitude
+		    user['longitude'] = item.longitude
+		    user['link'] = item.link
+		    memcache.set('/facebookuser/' + facebookid, user, 3600)
+		    return user
+		else:
+		    return None
+	else:
+	    return None
+    
+class UserStats(db.Model):
+    globalcount = db.BooleanProperty(default=False)
+    year = db.StringProperty()
+    month = db.StringProperty()
+    day = db.StringProperty()
+    users = db.IntegerProperty(default = 0)
+    @staticmethod
+    def inc():
+	sdb = db.Query(UserStats)
+	sdb.filter('globalcount = ', True)
+	item = sdb.get()
+	if item is None:
+	    item = UserStats()
+	item.globalcount = True
+	item.users = item.users + 1
+	item.put()
+	timestamp = datetime.datetime.now()
+	year = timestamp.year
+	month = timestamp.month
+	day = timestamp.day
+	sdb = db.Query(UserStats)
+	sdb.filter('year = ', str(year))
+	sdb.filter('month = ', str(month))
+	sdb.filter('day = ', str(day))
+	sdb.filter('globalcount = ', False)
+	item = sdb.get()
+	if item is None:
+	    item = UserStats()
+	    item.year = str(year)
+	item.month = 'all'
+	item.day = 'all'
+	item.users = item.users + 1
+	item.put()
+	return True
+
 class FBUser(db.Model):
     id = db.StringProperty(required=True)
     created = db.DateTimeProperty(auto_now_add=True)
@@ -228,24 +386,18 @@ class FBUser(db.Model):
     profile_url = db.StringProperty(required=True)
     access_token = db.StringProperty(required=True)
     @staticmethod
-    def lookup(cookies):
-        cookie = facebook.get_user_from_cookie(cookies, Settings.get('facebook_app_id'), Settings.get('facebook_app_secret'))
+    def lookup(cookies, ip):
+        cookie = facebook.get_user_from_cookie(cookies, FACEBOOK_APP_ID, FACEBOOK_APP_SECRET)
         if cookie:
             # Store a local instance of the user data so we don't need
             # a round-trip to Facebook on every request
-            user = FBUser.get_by_key_name(cookie["uid"])
+	    user = Users.find(facebookid=cookie["uid"])
             if not user:
                 graph = facebook.GraphAPI(cookie["access_token"])
                 profile = graph.get_object("me")
-                user = FBUser(key_name=str(profile["id"]),
-                            id=str(profile["id"]),
-                            name=profile["name"],
-                            profile_url=profile["link"],
-                            access_token=cookie["access_token"])
-                user.put()
-            elif user.access_token != cookie["access_token"]:
-                user.access_token = cookie["access_token"]
-                user.put()
+		Users.add(ip, facebookid=str(profile['id']), name=profile['name'], profile_url=profile['link'])
+            else:
+		Users.add(ip, facebookid=str(profile['id']), name=profile['name'], profile_url=profile['link'])
             return profile
         else:
             return
