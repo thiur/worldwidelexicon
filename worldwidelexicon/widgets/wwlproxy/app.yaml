@@ -49,6 +49,9 @@ handlers:
 
 - url: /wwl/mt
   script: mt.py
+  
+- url: /wwl/geo
+  script: relay.py
 
 - url: /wwl/u
   script: relay.py
