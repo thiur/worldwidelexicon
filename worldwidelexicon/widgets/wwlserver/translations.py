@@ -375,6 +375,8 @@ class SubmitTranslation(webapp.RequestHandler):
     <li>domain - site domain or API key, optional but recommended (submit in nnn.com format)</li>
     <li>url - parent URL of source document, optional but recommended (submit full permalink)</li>
     <li>username - WWL or remote username, optional (system allows anonymous translations)</li>
+    <li>facebookid - optional facebook id</li>
+    <li>profile_url - optional profile url</li>
     <li>pw - WWL or remote user password</li>
     <li>proxy - if submission is being submitted via a proxy gateway, default = n if omitted
             (in proxy mode, we use you are filtering submissions upstream and will accept
@@ -403,14 +405,9 @@ class SubmitTranslation(webapp.RequestHandler):
         validquery = True
         emptyform = False
         remote_addr = self.request.remote_addr
-        # check if this IP address is rate limited, if yes return a 500 error
-        result = ip.allow(remote_addr)
-        if not result:
-            self.response.clear()
-            self.response.set_status(500)
-            self.response.out.write('Rate limit exceeded')
-            return
-        # IP address is not rate limited, proceed normally
+        userip = self.request.get('ip')
+        if len(userip) > 3:
+            remote_addr = userip
         cookies = Cookies(self,max_age=3600)
         try:
             session = cookies['session']
@@ -444,6 +441,8 @@ class SubmitTranslation(webapp.RequestHandler):
         ttitle = clean(self.request.get('ttitle'))
         description = clean(self.request.get('description'))
         tdescription = clean(self.request.get('tdescription'))
+        facebookid = self.request.get('facebookid')
+        profile_url = self.request.get('profile_url')
         headers = self.request.headers
         headerkeys = headers.keys()
         headerkeys.sort()
@@ -476,10 +475,6 @@ class SubmitTranslation(webapp.RequestHandler):
         if len(sl) < 1 and len(tl) < 1:
             emptyform = True
         doc = self.request.get('doc')
-        if proxy == 'y':
-            remote_addr = self.request.get('ip')
-        else:
-            remote_addr = self.request.remote_addr
         lsp = self.request.get('lsp')
         if doc == 'y':
             display_docs = True
@@ -531,7 +526,7 @@ class SubmitTranslation(webapp.RequestHandler):
             p['action']='translate'
             p['remote_addr']=self.request.remote_addr
             taskqueue.add(url = '/log', params = p)
-        result = Translation.submit(sl=sl, st=st, tl=tl, tt=tt, username=username, remote_addr=remote_addr, domain=domain, url=url, city=city, state=state, country=country, latitude=latitude, longitude=longitude, lsp=lsp, spam=spam, proxy=proxy, apikey=apikey)
+        result = Translation.submit(sl=sl, st=st, tl=tl, tt=tt, username=username, remote_addr=remote_addr, domain=domain, url=url, city=city, state=state, country=country, latitude=latitude, longitude=longitude, lsp=lsp, facebookid = facebookid, profile_url=profile_url, spam=spam, proxy=proxy, apikey=apikey)
         if len(title) > 0 and len(url) > 0:
             p = dict()
             p['remote_addr'] = remote_addr
