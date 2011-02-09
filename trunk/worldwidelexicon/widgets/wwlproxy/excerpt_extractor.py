@@ -61,8 +61,10 @@ def get_summary(url):
         text = ''.join(soup.findAll(text=True)).split('\n')
 #        description = ''
         description = max((len(i.strip()),i) for i in text)[1].strip()[0:255]
-
-    return (title, description)
+    metadata = dict()
+    metadata['title']=title
+    metadata['description']=description
+    return metadata
 
 if __name__ == "__main__":
     urllist=("http://www.sfgate.com/cgi-bin/article.cgi?f=/c/a/2009/06/04/DD7V1806SV.DTL&type=performance",

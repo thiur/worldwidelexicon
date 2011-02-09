@@ -51,7 +51,7 @@ handlers:
   script: relay.py
 
 - url: /wwl/submit
-  script: relay.py
+  script: translate.py
   
 - url: /wwl/scores/vote
   script: relay.py
@@ -64,6 +64,9 @@ handlers:
   
 - url: /wwl/im/(.*)
   script: relay.py
+  
+- url: /wwl/userstats
+  script: translate.py
   
 - url: /
   script: translate.py

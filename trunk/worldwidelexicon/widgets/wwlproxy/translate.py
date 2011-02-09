@@ -54,6 +54,7 @@ from www import web
 from www import www
 from shorturl import UrlEncoder
 from BeautifulSoup import BeautifulSoup
+from excerpt_extractor import get_summary
 import sgmllib
 
 template = 'http://www.dermundo.com/css/template.css'
@@ -72,6 +73,9 @@ userip =''
             
 def clean(text):
     return transcoder.clean(text)
+    
+def pro(tl, text):
+    return g(tl, text, professional=True)
 
 def g(tl, text, professional=True, server_side=True):
     text = clean(text)
@@ -94,7 +98,7 @@ def g(tl, text, professional=True, server_side=True):
         if tl not in speaklikelangs:
             professional = False
         if professional:
-            t = Translation.lucky('en', tl, text, lsp='speaklike', lspusername=SPEAKLIKE_USERNAME, lsppw=SPEAKLIKE_PW, userip=userip)
+            t = Translation.lucky('en', tl, text, lsp='speaklikeapi', lspusername=SPEAKLIKE_USERNAME, lsppw=SPEAKLIKE_PW, userip=userip)
         else:
             
             t = Translation.lucky('en', tl, text, userip=userip)
@@ -102,7 +106,7 @@ def g(tl, text, professional=True, server_side=True):
     
 def geolocate(ip):
     location = memcache.get('/geo/' + ip)
-    if location is not None:
+    if location is None:
 	result = urlfetch.fetch(url='http://www.worldwidelexicon.org/geo?ip=' + ip)
 	try:
 	    text = result.content
@@ -255,8 +259,15 @@ class Users(db.Model):
     email = db.StringProperty(default='')
     name = db.StringProperty(default='')
     gender = db.StringProperty(default='')
+    profile_url = db.StringProperty(default='')
+    native_language = db.StringProperty(default='')
+    languages = db.ListProperty(str)
+    words_translated = db.IntegerProperty(default=0)
+    translations_submitted = db.IntegerProperty(default=0)
+    last_login = db.DateTimeProperty()
+    date_created = db.DateTimeProperty(auto_now_add = True)
     @staticmethod
-    def add(ip, facebookid=None, email=None, name=None, gender=None):
+    def add(ip, facebookid=None, email=None, name=None, gender=None, profile_url=None, native_language=None):
 	location = geolocate(ip)
 	country = location.get('country','')
 	city = location.get('city','')
@@ -296,16 +307,20 @@ class Users(db.Model):
 	    item.name = name
 	if gender is not None:
 	    item.gender = gender
+	if profile_url is not None:
+	    item.profile_url = profile_url
+	item.last_login = datetime.datetime.now()
 	item.put()
 	if newuser:
 	    p = dict()
-	    url = 'http://www.dermundo.com/wwl/userstats'
+	    url = '/wwl/userstats'
 	    taskqueue.add(url=url, params=p)
 	return True
     @staticmethod
     def find(ip=None, facebookid=None):
 	if facebookid is not None:
-	    user = memcache.get('/facebookuser/' + facebookid)
+	    #user = memcache.get('/facebookuser/' + facebookid)
+	    user = None
 	    if user is not None:
 		return user
 	    else:
@@ -320,7 +335,7 @@ class Users(db.Model):
 		    user['country'] = item.country
 		    user['latitude'] = item.latitude
 		    user['longitude'] = item.longitude
-		    user['link'] = item.link
+		    user['profile_url'] = item.profile_url
 		    memcache.set('/facebookuser/' + facebookid, user, 3600)
 		    return user
 		else:
@@ -383,6 +398,15 @@ class UserStats(db.Model):
 	item.users = item.users + 1
 	item.put()
 	return True
+    
+class UserStatsWorker(webapp.RequestHandler):
+    def get(self):
+	self.requesthandler()
+    def post(self):
+	self.requesthandler()
+    def requesthandler(self):
+	UserStats.inc()
+	self.response.out.write('ok')
 
 class FBUser(db.Model):
     id = db.StringProperty(required=True)
@@ -398,13 +422,18 @@ class FBUser(db.Model):
             # Store a local instance of the user data so we don't need
             # a round-trip to Facebook on every request
 	    user = Users.find(facebookid=cookie["uid"])
-            if not user:
-                graph = facebook.GraphAPI(cookie["access_token"])
-                profile = graph.get_object("me")
-		Users.add(ip, facebookid=str(profile['id']), name=profile['name'], profile_url=profile['link'])
-            else:
-		Users.add(ip, facebookid=str(profile['id']), name=profile['name'], profile_url=profile['link'])
-            return profile
+	    try:
+		if not user:
+		    graph = facebook.GraphAPI(cookie["access_token"])
+		    profile = graph.get_object("me")
+		    Users.add(ip, facebookid=str(profile['id']), name=profile['name'], profile_url=profile['link'])
+		else:
+		    graph = facebook.GraphAPI(cookie["access_token"])
+		    profile = graph.get_object("me")
+		    Users.add(ip, facebookid=str(profile['id']), name=profile['name'], profile_url=profile['link'])
+		return profile
+	    except:
+		return
         else:
             return
 
@@ -519,8 +548,8 @@ class DerMundoHeaders(db.Model):
 	    item = DerMundoHeaders()
 	    item.shorturl = shorturl
 	    item.language = language
-	    item.title = title
-	    item.description = description
+	    item.title = clean(title)
+	    item.description = clean(description)
 	    item.put()
 	    return True
 	return False
@@ -534,8 +563,8 @@ class DerMundoHeaders(db.Model):
 	    return
 	else:
 	    result = dict()
-	    result['title']=item.title
-	    result['description']=item.description
+	    result['title']=clean(item.title)
+	    result['description']=clean(item.description)
 	    return result
 
 class DerMundoProjects(db.Model):
@@ -732,32 +761,14 @@ class Translator(webapp.RequestHandler):
             xfbml  : true  // parse XFBML
             });
             </script>
-            <fb:login-button autologoutlink="true"></fb:login-button>
-            """
+	    <fb:login-button autologoutlink="true" show-faces="true" width="200" max-rows="1">Login with Facebook</fb:login-button>"""
             user = FBUser.lookup(self.request.cookies, self.request.remote_addr)
-            if user is not None:
-                text = text + '<p><a href=' + user.get('profile_url','') + '><img src=http://graph.facebook.com/' + user.get('id ','')+ '/picture?type=square/></a></p>'
+            #if user is not None:
+            #    text = text + '<p><a href=' + user.get('profile_url','') + '><img src=http://graph.facebook.com/' + user.get('id ','')+ '/picture?type=square/></a></p>'
             text = text + """
-            <div id="fb-root"></div>
-            <script>
-            window.fbAsyncInit = function() {
-            FB.init({appId: '140342715320', status: true, cookie: true,
-                     xfbml: true});
-            FB.Event.subscribe('{% if current_user %}auth.logout{% else %}auth.login{% endif %}', function(response) {
-              window.location.reload();
-            });
-            };
-            (function() {
-            var e = document.createElement('script');
-            e.type = 'text/javascript';
-            e.src = document.location.protocol + '//connect.facebook.net/""" + locale + """/all.js';
-            e.async = true;
-            document.getElementById('fb-root').appendChild(e);
-            }());
-            </script>
             """
             w.replace(template,'[facebook_login]',text)
-            text = '<script src="http://connect.facebook.net/' + locale + '/all.js#xfbml=1"></script><fb:like show_faces="true" width="450"></fb:like><br>'
+            text = '<fb:like show_faces="true" width="450"></fb:like><br>'
             w.replace(template,'[facebook_like]',text)
             Cache.setitem('/dermundo/cache/' + language, w.out(template), 600)
             self.response.out.write(w.out(template))
@@ -813,114 +824,96 @@ class DisplayTranslators(webapp.RequestHandler):
                 shorturl = clean('http://www.dermundo.com/x' + DerMundoProjects.add(url))
             else:
                 shorturl = ''
-	if len(url) > 0:
-	    metadata = DerMundoHeaders.find(shorturl, language)
-	    if metadata is not None:
-		title = metadata.get('title','')
-		description = metadata.get('description','')
-	    else:
-		response = urlfetch.fetch(url=url)
-		try:
-		    soup = BeautifulSoup(response.content)
-		    html = soup.renderContents()
-		    titletag = soup.html.head.title
-		    title = g(language, '(' + titletag.string + ') Translate the world with your friends')
-		    DerMundoHeaders.add(shorturl, language, title)
-		except:
-		    pass
-        if len(url) > 0:
-            m = md5.new()
-            m.update(language)
-            m.update(url)
-            md5hash = str(m.hexdigest())
-            text = memcache.get('/dermundo/' + md5hash)
-            if text is not None:
-                self.response.out.write(text)
-            else:
-                tdb = db.Query(Translation)
-                tdb.filter('url = ', url)
-                if len(language) > 0:
-                    tdb.filter('tl = ', language)
-                tdb.order('-date')
-                results = tdb.fetch(limit = 500)
-                translators = dict()
-                translatorskeys = list()
-                for r in results:
-                    if len(r.username) > 0:
-                        if r.username not in translatorskeys:
-                            translatorskeys.append(r.username)
-                            translators[r.username]=r.city
-                    else:
-                        if r.remote_addr not in translatorskeys:
-                            translatorskeys.append(r.remote_addr)
-                            translators[r.remote_addr]=r.city
-                translatorskeys.sort()
-                proxy_template = 'http://www.dermundo.com/dermundocss/proxy.html'
-                w = web()
-                w.get(proxy_template)
-                w.replace(proxy_template,'[language]', language)
-		w.replace(proxy_template,'[title]', title)
-		w.replace(proxy_template,'[description]', '')
-                w.replace(proxy_template,'[title]', clean('Der Mundo'))
-                w.replace(proxy_template,'[google_analytics]', google_analytics_header)
-                w.replace(proxy_template,'[tagline]', g(language, clean('Translate the world with your friends')))
-                text = '<table border=0 cellspacing=2><tr><td width=70%>'
-                if len(shorturl) > 0:
-                    text = text + ' ' + g(language, clean('The shortcut for this social translation project is: '))
-                    text = text + '<a href=' + shorturl + ' target=_new>' + string.replace(shorturl, 'http://', '') + '</a><br>'
-                    text = text + '<script src="http://connect.facebook.net/' + locale + '/all.js#xfbml=1"></script><fb:like show_faces="true" width="450"></fb:like><br>'
-                text = text + g(language, clean('This page has been translated by <a href=http://www.dermundo.com>Der Mundo</a>, using <a href=http://www.google.com/translate>Google Translate</a>, <a href=http://www.apertium.org>Apertium</a>, and by Internet users worldwide.'))
-                if len(translatorskeys) > 0:
-                    text = text + '<hr>' + g(language,clean('Recent Translators')) + '<br>'
-                for t in translatorskeys:
-                    text = text + '<a href=/profile/' + t + '>' + t + '</a>'
-                    if len(translators.get(t)) > 0:
-                        text = text + ' (' + translators.get(t) + ') '
-                    else:
-                        text = text + ' '
-                text = text + '</td><td width=30%>'
-                text = text + """<div id="fb-root"></div>
-    <script src="http://connect.facebook.net/""" + locale + """/all.js"></script>
-    <script>
-    FB.init({
-    appId  : '140342715320',
-    status : true, // check login status
-    cookie : true, // enable cookies to allow the server to access the session
-    xfbml  : true  // parse XFBML
-    });
-    </script>
-    <fb:login-button autologoutlink="true"></fb:login-button>
-    """
-                user = FBUser.lookup(self.request.cookies, self.request.remote_addr)
-                if user is not None:
-                    text = text + '<p><a href=' + user.get('profile_url','') + '><img src=http://graph.facebook.com/' + user.get('id ','')+ '/picture?type=square/></a></p>'
-                text = text + """
-    <div id="fb-root"></div>
-    <script>
-    window.fbAsyncInit = function() {
-    FB.init({appId: '140342715320', status: true, cookie: true,
-             xfbml: true});
-    FB.Event.subscribe('{% if current_user %}auth.logout{% else %}auth.login{% endif %}', function(response) {
-      window.location.reload();
-    });
-    };
-    (function() {
-    var e = document.createElement('script');
-    e.type = 'text/javascript';
-    e.src = document.location.protocol + '//connect.facebook.net/""" + locale + """/all.js';
-    e.async = true;
-    document.getElementById('fb-root').appendChild(e);
-    }());
-    </script>
-    """
-                text = text + '</td></tr>'
-                text = text + '<tr><td colspan=2><iframe width=1000 height=3000 scrolling=yes src=http://www.dermundo.com/' + clean(string.replace(url,'http://','')) + '>'
-                text = text + '</td></tr></table>'
-                w.replace(proxy_template, '[meta]', '')
-                w.replace(proxy_template, '[content]', text)
-                w.replace(proxy_template, '[copyright]', standard_footer)
-                memcache.set('/dermundo/' + md5hash, w.out(proxy_template), 300)
-                self.response.out.write(w.out(proxy_template))
+	if url is not None:
+	    if len(url) > 0:
+		metadata = DerMundoHeaders.find(shorturl, language)
+		if metadata is not None:
+		    title = clean(metadata.get('title',''))
+		else:
+		    response = urlfetch.fetch(url=url)
+		    try:
+			soup = BeautifulSoup(response.content)
+			html = soup.renderContents()
+			titletag = soup.html.head.title
+			title = g(language, '(' + titletag.string + ') Translate the world with your friends')
+			DerMundoHeaders.add(shorturl, language, title)
+		    except:
+			pass
+	    if len(url) > 0:
+		m = md5.new()
+		m.update(language)
+		m.update(url)
+		md5hash = str(m.hexdigest())
+		text = memcache.get('/dermundo/' + md5hash)
+		if text is not None:
+		    self.response.out.write(text)
+		else:
+		    tdb = db.Query(Translation)
+		    tdb.filter('url = ', url)
+		    if len(language) > 0:
+			tdb.filter('tl = ', language)
+		    tdb.order('-date')
+		    results = tdb.fetch(limit = 500)
+		    translators = dict()
+		    translatorskeys = list()
+		    for r in results:
+			if len(r.username) > 0:
+			    if r.username not in translatorskeys:
+				translatorskeys.append(r.username)
+				translators[r.username]=r.city
+			else:
+			    if r.remote_addr not in translatorskeys:
+				translatorskeys.append(r.remote_addr)
+				translators[r.remote_addr]=r.city
+		    translatorskeys.sort()
+		    proxy_template = 'http://www.dermundo.com/dermundocss/proxy.html'
+		    w = web()
+		    w.get(proxy_template)
+		    w.replace(proxy_template,'[language]', language)
+		    w.replace(proxy_template,'[title]', title)
+		    w.replace(proxy_template,'[description]', '')
+		    w.replace(proxy_template,'[title]', clean('Der Mundo'))
+		    w.replace(proxy_template,'[google_analytics]', google_analytics_header)
+		    w.replace(proxy_template,'[tagline]', g(language, clean('Translate the world with your friends')))
+		    text = '<table border=0 cellspacing=2><tr><td width=70%>'
+		    if len(shorturl) > 0:
+			text = text + ' ' + g(language, clean('The shortcut for this social translation project is: '))
+			text = text + '<a href=' + shorturl + ' target=_new>' + string.replace(shorturl, 'http://', '') + '</a><br>'
+			text = text + '<script src="http://connect.facebook.net/' + locale + '/all.js#xfbml=1"></script><fb:like show_faces="true" width="450"></fb:like><br>'
+		    text = text + g(language, 'This page has been translated by <a href=http://www.dermundo.com>Der Mundo</a>, using <a href=http://www.google.com/translate>Google Translate</a>, <a href=http://www.apertium.org>Apertium</a>, and by Internet users worldwide.')
+		    if len(translatorskeys) > 0:
+			text = text + '<hr>' + g(language,clean('Recent Translators')) + '<br>'
+		    for t in translatorskeys:
+			text = text + t + ' '
+			if len(translators.get(t)) > 0:
+			    text = text + ' (' + translators.get(t) + ') '
+			else:
+			    text = text + ' '
+		    text = text + '</td><td width=30%>'
+		    text = text + """<div id="fb-root"></div>
+		    <script src="http://connect.facebook.net/""" + locale + """/all.js"></script>
+		    <script>
+		    FB.init({
+		    appId  : '140342715320',
+		    status : true, // check login status
+		    cookie : true, // enable cookies to allow the server to access the session
+		    xfbml  : true  // parse XFBML
+		    });
+		    </script>
+		    """
+		    user = FBUser.lookup(self.request.cookies, self.request.remote_addr)
+		    #if user is not None:
+			#text = text + '<p><a href=' + user.get('profile_url','') + '><img src=http://graph.facebook.com/' + user.get('id ','')+ '/picture?type=square/></a></p>'
+		    text = text + """
+		    <fb:login-button autologoutlink="true" show-faces="true" width="200" max-rows="1">Login with Facebook</fb:login-button>"""
+		    text = text + '</td></tr>'
+		    text = text + '<tr><td colspan=2><iframe width=1000 height=3000 scrolling=yes src=http://www.dermundo.com/' + clean(string.replace(url,'http://','')) + '>'
+		    text = text + '</td></tr></table>'
+		    w.replace(proxy_template, '[meta]', '')
+		    w.replace(proxy_template, '[content]', text)
+		    w.replace(proxy_template, '[copyright]', standard_footer)
+		    memcache.set('/dermundo/' + md5hash, w.out(proxy_template), 300)
+		    self.response.out.write(w.out(proxy_template))
 
 class GenerateShortCut(webapp.RequestHandler):
     def get(self):
@@ -1089,6 +1082,51 @@ class Help(webapp.RequestHandler):
             w.replace(template, '[new_pages]', '')
             text = w.out(template)
             self.response.out.write(text)
+	    
+class SubmitTranslation(webapp.RequestHandler):
+    def get(self):
+        self.requesthandler()
+    def post(self):
+        self.requesthandler()
+    def requesthandler(self):
+        sl = self.request.get('sl')
+        tl = self.request.get('tl')
+        st = clean(self.request.get('st'))
+        tt = clean(self.request.get('tt'))
+        url = self.request.get('url')
+        remote_addr = self.request.remote_addr
+        username = self.request.get('username')
+	user = FBUser.lookup(self.request.cookies, self.request.remote_addr)
+	if user is not None:
+	    facebookid = user['facebookid']
+	    profile_url = user['profile_url']
+	    username = user['name']
+	else:
+	    username = ''
+	    profile_url = ''
+	    facebookid = ''
+        burl="http://www.worldwidelexicon.org/submit"
+        form_fields = {
+            "sl" : sl,
+            "tl" : tl,
+            "st" : st,
+            "tt" : tt,
+            "url" : url,
+            "ip" : remote_addr,
+            "username" : username,
+	    "facebookid" : facebookid,
+	    "profile_url" : profile_url
+        }
+        form_data = urllib.urlencode(form_fields)
+        result = urlfetch.fetch(url=burl,
+        payload=form_data,
+        method=urlfetch.POST,
+        headers={'Content-Type' : 'application/x-www-form-urlencoded','Accept-Charset' : 'utf-8'})
+        if result.status_code == 200:
+            self.response.out.write('ok')
+        else:
+            self.error(result.status_code)
+            self.response.out.write('error')
                 
 application = webapp.WSGIApplication([('/', Translator),
                                       ('/translate/project', CreateProject),
@@ -1098,6 +1136,8 @@ application = webapp.WSGIApplication([('/', Translator),
                                       (r'/x(.*)', DisplayTranslators),
                                       ('/translate/translators', DisplayTranslators),
                                       ('/sidebar', Sidebar),
+				      ('/wwl/userstats', UserStatsWorker),
+				      ('/wwl/submit', SubmitTranslation),
                                       ('/help/firefox', Help)],
                                      debug=True)
 

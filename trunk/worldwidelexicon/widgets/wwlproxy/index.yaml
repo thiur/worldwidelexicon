@@ -24,4 +24,11 @@ indexes:
   - name: url
   - name: date
     direction: desc
+    
+- kind: Translation
+  properties:
+  - name: url
+  - name: date
+    direction: desc
+
 
