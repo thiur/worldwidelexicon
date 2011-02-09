@@ -1858,6 +1858,8 @@ class Translation(db.Model):
     ngrams = db.ListProperty(str)
     spamvotes = db.IntegerProperty(default = 0)
     expirationdate = db.DateTimeProperty()
+    facebookid = db.StringProperty(default='')
+    profile_url = db.StringProperty(default='')
     @staticmethod
     def author(guid):
         if len(guid) > 0:
@@ -2108,7 +2110,7 @@ class Translation(db.Model):
                 results['cities'].append(r.city)
         return results
     @staticmethod
-    def submit(sl='', st='', tl='', tt='', username='', remote_addr='', domain='', url='', city='', state='', country='', longitude=None, latitude=None, professional=False, spam=False, lsp='', proxy='n', apikey=''):
+    def submit(sl='', st='', tl='', tt='', username='', remote_addr='', domain='', url='', city='', state='', country='', longitude=None, latitude=None, professional=False, spam=False, facebookid='', profile_url='', lsp='', proxy='n', apikey=''):
         if len(sl) > 0 and len(st) > 0 and len(tl) > 0 and len(tt) > 0:
             validquery = True
         else:
@@ -2190,6 +2192,8 @@ class Translation(db.Model):
             tdb.country = country
             tdb.professional = professional
             tdb.spam = spam
+            tdb.facebookid = facebookid
+            tdb.profile_url = profile_url
             if ipscores is not None and ipavgscore is not None:
                 tdb.userscores = ipscores
                 tdb.useravgscore = ipavgscore
