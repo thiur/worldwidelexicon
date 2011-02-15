@@ -36,6 +36,7 @@ from google.appengine.ext.webapp.util import run_wsgi_app
 from google.appengine.ext import db
 from google.appengine.api import urlfetch
 from google.appengine.api import memcache
+from google.appengine.api.labs import taskqueue
 import demjson
 import urllib
 import string
@@ -140,8 +141,12 @@ class SubmitTranslation(webapp.RequestHandler):
         st = clean(self.request.get('st'))
         tt = clean(self.request.get('tt'))
         url = self.request.get('url')
+        url = string.replace(url, 'http://','')
+        url = string.replace(url, 'https://','')
         remote_addr = self.request.remote_addr
         username = self.request.get('username')
+        facebookid = self.request.get('facebookid')
+        profile_url = self.request.get('profile_url')
         burl="http://www.worldwidelexicon.org/submit"
         form_fields = {
             "sl" : sl,
@@ -150,7 +155,9 @@ class SubmitTranslation(webapp.RequestHandler):
             "tt" : tt,
             "url" : url,
             "ip" : remote_addr,
-            "username" : username
+            "username" : username,
+            "facebookid" : facebookid,
+            "profile_url" : profile_url,
         }
         form_data = urllib.urlencode(form_fields)
         result = urlfetch.fetch(url=burl,
@@ -162,6 +169,13 @@ class SubmitTranslation(webapp.RequestHandler):
         else:
             self.error(result.status_code)
             self.response.out.write('error')
+        p = dict(
+            url = url,
+            facebookid = facebookid,
+            words = len(string.split(tt, ' ')),
+            language = tl,
+        )
+        taskqueue.add(url='/wwl/meta/translation', params=p, queue_name='translations')
 
 class SubmitScore(webapp.RequestHandler):
     def get(self):

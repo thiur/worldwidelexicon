@@ -61,9 +61,11 @@ def get_summary(url):
         text = ''.join(soup.findAll(text=True)).split('\n')
 #        description = ''
         description = max((len(i.strip()),i) for i in text)[1].strip()[0:255]
-    metadata = dict()
-    metadata['title']=title
-    metadata['description']=description
+    
+    metadata = dict(
+        title = title,
+        description = description,
+    )
     return metadata
 
 if __name__ == "__main__":
@@ -73,5 +75,7 @@ if __name__ == "__main__":
               "http://www.elpais.es",
               "http://www.chloeveltman.com/blog/2009/06/child-prodigy-at-peabody-essex-museum.html#links")
     for u in urllist:
-        print get_summary(u)[1] + '\n'
+        metadata = get_summary(u)
+        print metadata.get('title','') + '\n'
+        print metadata.get('description', '') + '\n'
     

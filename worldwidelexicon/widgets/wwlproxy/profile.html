@@ -1,0 +1,128 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="{{ language }}" lang="{{ language }}" dir="{{ direction }}">
+
+<head>
+<script type=text/javascript>
+function include(url,id) {
+  var req = false;
+  // For Safari, Firefox, and other non-MS browsers
+  if (window.XMLHttpRequest) {
+    try {
+      req = new XMLHttpRequest();
+    } catch (e) {
+      req = false;
+    }
+  } else if (window.ActiveXObject) {
+    // For Internet Explorer on Windows
+    try {
+      req = new ActiveXObject("Msxml2.XMLHTTP");
+    } catch (e) {
+      try {
+        req = new ActiveXObject("Microsoft.XMLHTTP");
+      } catch (e) {
+        req = false;
+      }
+    }
+  }
+  if (req) {
+    // send out the response
+    req.open('GET', url, false); req.send(null);
+    // if the optional 'id' element is present, insert returned text into it, otherwise write to the page wherever it was called
+    document.getElementById(id) ? document.getElementById(id).innerHTML = req.responseText : document.write(req.responseText);
+  } else {
+    document.write('This browser does not support XMLHTTPRequest objects which are required for this page to work');
+  }
+}
+</script>
+<title>{{ profile.name }}</title>
+{{ metadata }}
+<meta http-equiv="content-type" content="application/xhtml+xml; charset=UTF-8" />
+<meta name="description" content="{{ tagline }}" />
+<meta name="keywords" content="translation, social, community, news" />
+<meta name="translate" content="n" />
+<link rel="stylesheet" type="text/css" media="screen" href="http://www.dermundo.com/dermundocss/css/screen.css" />
+{{ google_analytics }}
+<script type="text/javascript" src="http://w.sharethis.com/button/buttons.js"></script><script type="text/javascript">stLight.options({publisher:'902e01b2-5b17-45ca-9068-9bbeaf71ae2b'});</script>
+</head>
+<body>
+
+	<!-- header starts-->
+	<div id="header-wrap"><div id="header" class="container_16">						
+		<h1 id="logo-text"><a href=/ title="">Der Mundo</a></h1>
+		<p id="intro">{{ tagline }}</p>
+		<div id="header-image"></div>		
+	
+	<!-- header ends here -->
+	</div></div>
+      
+	<!-- content starts -->
+	<div id="content-outer"><div id="content-wrapper" class="container_16">
+	
+		<!-- main -->
+		<div id="main" class="grid_16">
+				
+			<a name="TemplateInfo"></a>
+			<!-- frame header -->
+			<table width=100% cellspacing=2 border=0>
+			  <tr valign=top><td width=75%>
+			  {% if profile.id %}
+			    <a href="{{ profile.profile_url }}">
+			    <img align=left src="http://graph.facebook.com/{{ profile.id }}/picture?type=square"/>
+			    </a>
+			    <a href="{{ profile.profile_url }}">{{ profile.name }}</a>
+			    <br>
+			    {{ profile.city }}, {{ profile.country }}
+                          {% else %}
+			    <h3>Blank Profile</h3>
+			  {% endif %}
+			  </td>
+			  <td width=25%>
+			  {{translations}} : {{translation_count}}<br>
+			  {{words}} : {{word_count}}
+			  </td></tr></table>
+			<!-- recent articles -->
+			{% if pages %}
+			  <h3>{{ recent_translation_projects }}</h3>
+			{% else %}
+			  <h3>Recent Translation Projects</h3>
+			{% endif %}
+			
+			{% if pages %}
+			  {% for p in pages %}
+			    <h4><a href=http://www.dermundo.com/{{ p.shorturl }}>{{ p.title }}</a></h4>
+			    {{ p.description }}
+			  {% endfor %}
+			{% endif %}
+			<div class="clear">&nbsp;</div>
+		
+		<!-- main ends -->
+		</div>		
+	
+	<!-- contents end here -->	
+	</div></div>
+
+	<!-- footer starts here -->	
+	<div id="footer-wrapper" class="container_16">
+		<div id="footer-bottom">
+	
+			<p class="bottom-left">			
+			&nbsp; &copy;1998-2010 {{ copyright }} &nbsp; &nbsp;
+			<a href="http://www.bluewebtemplates.com/" title="Website Templates">website templates</a> by <a href="http://www.styleshout.com/">styleshout</a>
+			</p>	
+			
+			<p class="bottom-right" >
+				<a href="index.html">Home</a> |
+				<a href="index.html">Sitemap</a> |
+				<a href="index.html">RSS Feed</a> |						
+				<a href="http://jigsaw.w3.org/css-validator/check/referer">CSS</a> | 
+		   	    <a href="http://validator.w3.org/check/referer">XHTML</a>
+			</p>
+	
+		</div>	
+			
+	</div>
+	<!-- footer ends here -->
+
+</body>
+</html>

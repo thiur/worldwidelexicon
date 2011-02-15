@@ -47,12 +47,14 @@ from google.appengine.ext.webapp.util import run_wsgi_app
 from google.appengine.ext import db
 from google.appengine.api import urlfetch
 from google.appengine.api import memcache
+from google.appengine.api.labs import taskqueue
 import demjson
 import urllib
 import string
 import md5
 import codecs
 from database import APIKeys
+from database import Settings
 from database import Translation
 from transcoder import transcoder
 try:
@@ -67,28 +69,20 @@ def clean(text):
 
 class LSP():
     @staticmethod
-    def get(sl, tl, st, domain='', url='', lsp='', lspusername='', lsppw='', ttl = 1800):
+    def get(sl, tl, st, domain='', url='', lsp='', lspusername='', lsppw='', ttl = 60, worker=False):
         """
         This function is checks memcached for a cached translation from the desired LSP and text,
         and if one is cached locally returns it. If the cache has expired or does not exist, it
         makes an HTTP/S call to the language service provider to request the translation. The LSP
         will return either a blank text, a completed translation or an HTTP error. 
         """
+        if sl == tl:
+            return ''
         if lsp == 'speaklike':
             lsp = 'speaklikeapi'
         if len(lsp) > 0 and len(sl) > 0 and len(tl) > 0 and len(st) > 0:
-            baseurl = None
-            baseurl = memcache.get('/lsp/url/' + lsp)
-            if baseurl is None:
-                baseurl = APIKeys.geturl(lsp=lsp)
-                if len(baseurl) > 0:
-                    memcache.set('/lsp/url/' + lsp, baseurl, 1800)
-            apikey = None
-            apikey = memcache.get('/lsp/apikey/' + lsp)
-            if apikey is None:
-                apikey = APIKeys.getapikey(lsp)
-                if len(apikey) > 0:
-                    memcache.set('/lsp/apikey/' + lsp, apikey, 1800)
+            baseurl = 'http://api.speaklike.com/wwl'
+            apikey = '321a3144f5df2d1ac61735e1f04c753d'
             if len(baseurl) > 0:
                 st = clean(st)
                 m = md5.new()
@@ -100,48 +94,46 @@ class LSP():
                 if text is not None:
                     return text
                 else:
-                    # generate and send HTTP query to language service provider
-                    fullurl = baseurl + '/t'
-                    parms = dict()
-                    parms['sl']=sl
-                    parms['tl']=tl
-                    parms['st']=st
-                    parms['domain']=domain
-                    parms['url']=url
-                    parms['lspusername']=lspusername
-                    parms['lsppw']=lsppw
-                    parms['apikey']=apikey
-                    parms['output']='json'
-                    form_data = urllib.urlencode(parms)
-                    try:
-                        result = urlfetch.fetch(url=fullurl, payload = form_data, deadline = 3, method = urlfetch.POST, headers = {'Content-Type' : 'application/x-www-form-urlencoded' , 'Accept-Charset' : 'utf-8'})
-                        status_code = result.status_code
-                    except:
-                        result = None
-                        status_code = 500
-                    if status_code == 200:
-                        tt = result.content
+                    if worker:
+                        # generate and send HTTP query to language service provider
+                        fullurl = baseurl + '/t'
+                        parms = dict()
+                        parms['sl']=sl
+                        parms['tl']=tl
+                        parms['st']=st
+                        parms['domain']=domain
+                        parms['url']=url
+                        parms['lspusername']=lspusername
+                        parms['lsppw']=lsppw
+                        parms['apikey']=apikey
+                        parms['output']='json'
+                        form_data = urllib.urlencode(parms)
+                        try:
+                            result = urlfetch.fetch(url=fullurl, payload = form_data, deadline = 3, method = urlfetch.POST, headers = {'Content-Type' : 'application/x-www-form-urlencoded' , 'Accept-Charset' : 'utf-8'})
+                            status_code = result.status_code
+                        except:
+                            result = None
+                            status_code = 500
+                        if status_code == 200:
+                            results = demjson.decode(clean(result.content))
+                        else:
+                            results = None
+                            tt = ''
+                        # check to see if response is in JSON format and contains
+                        # a guid field.
+                        if results is not None:
+                            if type(results) is dict:
+                                memcache.set('/lspd/' + lsp + '/' + guid, results, ttl)
+                                return results
                     else:
-                        tt = ''
-                    # check to see if response is in JSON format and contains
-                    # a guid field.
-                    try:
-                        results = demjson.decode(tt)
-                        tt = results.get('tt','')
-                    except:
-                        results = dict()
-                        results['guid']=''
-                        results['tt']=tt
-                        results['st']=st
-                        results['sl']=sl
-                        results['tl']=tl
-                    if len(tt) > 0 and status_code == 200:
-                        found = True
-                        memcache.set('/lsp/' + lsp + '/' + guid, tt, ttl)
-                        memcache.set('/lspd/' + lsp + '/' + guid, results, ttl)
-                    else:
-                        found = False
-                    return results
+                        p = dict()
+                        p['sl']=sl
+                        p['tl']=tl
+                        p['st']=st
+                        p['domain']=domain
+                        p['url']=url
+                        taskqueue.add(url='/lsp/worker',queue_name='speaklike',params=p)
+                        return ''
             else:
                     return ''
         else:
@@ -427,11 +419,27 @@ class SubmitTranslation(webapp.RequestHandler):
             t = t + '<tr><td colspan=2><input type=submit value="Submit"></td></tr>'
             t = t + '</table></form>'
             www.serve(self, t, sidebar = doc_text, title='/lsp/submit (LSP Submit Interface)')
+            
+class LSPWorker(webapp.RequestHandler):
+    def get(self):
+        self.requesthandler()
+    def post(self):
+        self.requesthandler()
+    def requesthandler(self):
+        sl = self.request.get('sl')
+        tl = self.request.get('tl')
+        st = self.request.get('st')
+        domain = self.request.get('domain')
+        url = self.request.get('url')
+        lspusername = Settings.get('speaklike_username')
+        lsppw = Settings.get('speaklike_pw')
+        self.response.out.write(LSP.get(sl, tl, st, domain=domain, url=url, lsp='speaklikeapi', lspusername=lspusername, lsppw=lsppw, worker=True))
 
 application = webapp.WSGIApplication([('/lsp/submit', SubmitTranslation),
                                       ('/lsp/testscore', TestScore),
                                       ('/lsp/testcomment', TestComment),
-                                      ('/lsp/test', TestTranslation)],
+                                      ('/lsp/test', TestTranslation),
+                                      ('/lsp/worker', LSPWorker)],
                                      debug=True)
 
 def main():

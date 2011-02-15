@@ -1,5 +1,13 @@
 queue:
 - name: default
-  rate: 20/s
+  rate: 1/s
 - name: housekeeping
-  rate: 20/s
+  rate: 1/s
+- name: counter
+  rate: 2/s
+- name: speaklike
+  rate: 5/s
+- name: spider
+  rate: 2/s
+- name: translations
+  rate: 5/s
