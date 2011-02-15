@@ -1,5 +1,5 @@
 application: wwlapi
-version: secureable
+version: 1
 runtime: python
 api_version: 1
 
@@ -7,6 +7,25 @@ builtins:
 - datastore_admin: on
 
 handlers:
+    
+- url: /favicon.ico
+  static_files: dermundoimage/favicon.ico
+  upload: dermundoimage/favicon.ico
+  
+- url: /admin
+  script: admin.py
+  
+- url: /admin/(.*)
+  script: admin.py
+    
+- url: /example
+  script: example.py
+  
+- url: /secret1940
+  script: home.py
+  
+- url: /beta/register
+  script: home.py
   
 - url: /dermundocss
   static_dir: dermundocss
@@ -17,44 +36,71 @@ handlers:
 - url: /dermundoimage
   static_dir: dermundoimage
   
-- url: /translate/view
-  script: translate.py
-  
+- url: /lsp/worker
+  script: lsp.py
+
 - url: /translate/project
-  script: translate.py
+  script: home.py
   
 - url: /language
   script: language.py
+  
+- url: /profile/(.*)
+  script: home.py
+  
+- url: /robots.txt
+  script: home.py
   
 - url: /sidebar
   script: translate.py
   
 - url: /help/firefox
-  script: translate.py
+  script: home.py
   
 - url: /x(.*)/(.*)
-  script: translate.py
+  script: home.py
   
 - url: /x(.*)
-  script: translate.py
+  script: home.py
+  
+- url: /wwl/email
+  script: email.py
+  
+- url: /wwl/meta/(.*)
+  script: home.py
+  
+- url: /wwl/mt/(.*)
+  script: mt.py
 
 - url: /wwl/mt
   script: mt.py
   
 - url: /wwl/geo
   script: relay.py
+  
+- url: /wwl/translationworker
+  script: home.py
+  
+- url: /wwl/purge
+  script: home.py
 
 - url: /wwl/u
-  script: relay.py
+  script: home.py
   
 - url: /wwl/t
-  script: relay.py
+  script: home.py
 
 - url: /wwl/submit
-  script: translate.py
+  script: home.py
+  
+- url: /wwl/submitworker
+  script: home.py
+  
+- url: /wwl/meta/translation
+  script: home.py
   
 - url: /wwl/scores/vote
-  script: relay.py
+  script: home.py
   
 - url: /wwl/language
   script: relay.py
@@ -62,14 +108,23 @@ handlers:
 - url: /wwl/domain
   script: relay.py
   
+- url: /wwl/login
+  script: home.py
+  
 - url: /wwl/im/(.*)
   script: relay.py
   
-- url: /wwl/userstats
-  script: translate.py
+- url: /wwl/userstatsworker
+  script: home.py
+  
+- url: /wwl/trafficworker
+  script: home.py
+  
+- url: /users/logout
+  script: relay.py
   
 - url: /
-  script: translate.py
+  script: home.py
 
 - url: /.*
   script: mirror.py

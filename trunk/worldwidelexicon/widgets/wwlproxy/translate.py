@@ -761,7 +761,7 @@ class Translator(webapp.RequestHandler):
             xfbml  : true  // parse XFBML
             });
             </script>
-	    <fb:login-button autologoutlink="true" show-faces="true" width="200" max-rows="1">Login with Facebook</fb:login-button>"""
+	    <fb:login-button autologoutlink="true" width="200">Login with Facebook</fb:login-button>"""
             user = FBUser.lookup(self.request.cookies, self.request.remote_addr)
             #if user is not None:
             #    text = text + '<p><a href=' + user.get('profile_url','') + '><img src=http://graph.facebook.com/' + user.get('id ','')+ '/picture?type=square/></a></p>'
@@ -879,7 +879,18 @@ class DisplayTranslators(webapp.RequestHandler):
 		    if len(shorturl) > 0:
 			text = text + ' ' + g(language, clean('The shortcut for this social translation project is: '))
 			text = text + '<a href=' + shorturl + ' target=_new>' + string.replace(shorturl, 'http://', '') + '</a><br>'
-			text = text + '<script src="http://connect.facebook.net/' + locale + '/all.js#xfbml=1"></script><fb:like show_faces="true" width="450"></fb:like><br>'
+			text = text + """<div id="fb-root"></div>
+			<script src="http://connect.facebook.net/""" + locale + """/all.js"></script>
+			<script>
+			FB.init({
+			appId  : '140342715320',
+			status : true, // check login status
+			cookie : true, // enable cookies to allow the server to access the session
+			xfbml  : true  // parse XFBML
+			});
+			</script>
+			"""
+			text = text + '<fb:like show_faces="true" width="450"></fb:like><br>'
 		    text = text + g(language, 'This page has been translated by <a href=http://www.dermundo.com>Der Mundo</a>, using <a href=http://www.google.com/translate>Google Translate</a>, <a href=http://www.apertium.org>Apertium</a>, and by Internet users worldwide.')
 		    if len(translatorskeys) > 0:
 			text = text + '<hr>' + g(language,clean('Recent Translators')) + '<br>'
@@ -890,22 +901,11 @@ class DisplayTranslators(webapp.RequestHandler):
 			else:
 			    text = text + ' '
 		    text = text + '</td><td width=30%>'
-		    text = text + """<div id="fb-root"></div>
-		    <script src="http://connect.facebook.net/""" + locale + """/all.js"></script>
-		    <script>
-		    FB.init({
-		    appId  : '140342715320',
-		    status : true, // check login status
-		    cookie : true, // enable cookies to allow the server to access the session
-		    xfbml  : true  // parse XFBML
-		    });
-		    </script>
-		    """
 		    user = FBUser.lookup(self.request.cookies, self.request.remote_addr)
 		    #if user is not None:
 			#text = text + '<p><a href=' + user.get('profile_url','') + '><img src=http://graph.facebook.com/' + user.get('id ','')+ '/picture?type=square/></a></p>'
 		    text = text + """
-		    <fb:login-button autologoutlink="true" show-faces="true" width="200" max-rows="1">Login with Facebook</fb:login-button>"""
+		    <fb:login-button autologoutlink="true" width="200">Login with Facebook</fb:login-button>"""
 		    text = text + '</td></tr>'
 		    text = text + '<tr><td colspan=2><iframe width=1000 height=3000 scrolling=yes src=http://www.dermundo.com/' + clean(string.replace(url,'http://','')) + '>'
 		    text = text + '</td></tr></table>'
@@ -933,6 +933,8 @@ class CreateProject(webapp.RequestHandler):
         self.requesthandler()
     def requesthandler(self):
         url = urllib.unquote_plus(self.request.get('u'))
+	if string.count(url, 'http://') < 1:
+	    url = 'http://' + url
         shorturl = DerMundoProjects.add(url)
         self.redirect('http://www.dermundo.com/x' + shorturl)
 

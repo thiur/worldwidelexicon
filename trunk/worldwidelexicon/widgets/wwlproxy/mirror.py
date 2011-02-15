@@ -22,6 +22,7 @@ import pickle
 import re
 import time
 import urllib
+import string
 import wsgiref.handlers
 
 from translate import DerMundoProjects
@@ -32,6 +33,12 @@ from google.appengine.ext import db
 from google.appengine.ext import webapp
 from google.appengine.ext.webapp import template
 from google.appengine.runtime import apiproxy_errors
+
+import facebook
+from home import User
+from database import Settings
+from home import geolocate
+from webappcookie import Cookies
 
 import transform_content
 
@@ -176,6 +183,70 @@ class MirroredContent(object):
 ################################################################################
 
 class BaseHandler(webapp.RequestHandler):
+  @property
+  def current_user(self):
+    if not hasattr(self, "_current_user"):
+        self._current_user = None
+        cookie = facebook.get_user_from_cookie(
+            self.request.cookies, Settings.get('facebook_app_id'), Settings.get('facebook_app_secret'))
+        if cookie:
+            # Store a local instance of the user data so we don't need
+            # a round-trip to Facebook on every request
+            user = User.get_by_key_name(cookie["uid"])
+            if not user:
+                location = geolocate(self.request.remote_addr)
+                localelist = string.split(self.request.headers['Accept-Language'],',')
+                locales = list()
+                for l in localelist:
+                    langloc = string.split(l, ';')
+                    locales.append(langloc[0])
+                if location is not None:
+                    city = location.get('city','')
+                    country = location.get('country','')
+                    try:
+                        latitude = float(location.get('latitude',''))
+                        longitude = float(location.get('longitude',''))
+                    except:
+                        latitude = None
+                        longitude = None
+                graph = facebook.GraphAPI(cookie["access_token"])
+                profile = graph.get_object("me")
+                if latitude is not None:
+                    user = User(key_name=str(profile["id"]),
+                                id=str(profile["id"]),
+                                name=profile["name"],
+                                gender=profile['gender'],
+                                city=city,
+                                country=country,
+                                latitude=latitude,
+                                longitude=longitude,
+                                locale = profile["locale"],
+                                locales = locales,
+                                profile_url=profile["link"],
+                                access_token=cookie["access_token"])
+                else:
+                    user = User(key_name=str(profile["id"]),
+                                id=str(profile["id"]),
+                                name=profile["name"],
+                                gender=profile['gender'],
+                                city=city,
+                                country=country,
+                                locale = profile["locale"],
+                                locales = locales,
+                                profile_url=profile["link"],
+                                access_token=cookie["access_token"])
+                user.put()
+                p=dict()
+                p['name']=profile['name']
+                p['city']=city
+                p['country']=country
+                p['locale']=profile['locale']
+                taskqueue.add(url='/wwl/userstatsworker', queue_name='counter', params=p)
+            elif user.access_token != cookie["access_token"]:
+                user.access_token = cookie["access_token"]
+                user.put()
+            self._current_user = user
+    return self._current_user
   def get_relative_url(self):
     slash = self.request.url.find("/", len(self.request.scheme + "://"))
     if slash == -1:
@@ -224,6 +295,10 @@ class HomeHandler(BaseHandler):
 
 class MirrorHandler(BaseHandler):
   def get(self, base_url):
+    if not self.current_user:
+      self.error(401)
+      self.response.out.write('Facebook login required to use this service.')
+      return
     if base_url[0] == 'x':
       base_url = DerMundoProjects.geturl(base_url[1:20])
     assert base_url
@@ -278,6 +353,9 @@ class MirrorHandler(BaseHandler):
     if not DEBUG:
       self.response.headers['cache-control'] = \
         'max-age=%d' % EXPIRATION_DELTA_SECONDS
+      
+    content.data = string.replace(content.data, '<img src=/', '<img src=http://')
+    content.data = string.replace(content.data, '<img src="/', '<img src="http://')
 
     self.response.out.write(content.data)
 

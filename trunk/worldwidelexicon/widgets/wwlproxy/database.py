@@ -59,6 +59,7 @@ from google.appengine.api.labs import taskqueue
 # import WWL modules
 from mt import MTWrapper
 from transcoder import transcoder
+from BeautifulSoup import BeautifulSoup
 import sgmllib
 
 class MyParser(sgmllib.SGMLParser):
@@ -95,6 +96,8 @@ class MyParser(sgmllib.SGMLParser):
             self.title = self.title + data + ' '
 
 def clean(text):
+    soup = BeautifulSoup(text)
+    return soup.contents[0]
     return transcoder.clean(text)
 
 class AccessControlList(db.Model):
@@ -1858,6 +1861,9 @@ class Translation(db.Model):
     ngrams = db.ListProperty(str)
     spamvotes = db.IntegerProperty(default = 0)
     expirationdate = db.DateTimeProperty()
+    facebookid = db.StringProperty(default='')
+    profile_url = db.StringProperty(default='')
+    mirrored = db.BooleanProperty(default=False)
     @staticmethod
     def author(guid):
         if len(guid) > 0:
@@ -1887,6 +1893,15 @@ class Translation(db.Model):
             return a
         else:
             return
+    @staticmethod
+    def getfbuser(guid):
+        tdb = db.Query(Translation)
+        tdb.filter('guid = ', guid)
+        item = tdb.get()
+        if item is not None:
+            facebookid = item.facebookid
+            if facebookid is not None:
+                return facebookid
     @staticmethod
     def comment(guid):
         if len(guid) < 1:
@@ -2108,7 +2123,10 @@ class Translation(db.Model):
                 results['cities'].append(r.city)
         return results
     @staticmethod
-    def submit(sl='', st='', tl='', tt='', username='', remote_addr='', domain='', url='', city='', state='', country='', longitude=None, latitude=None, professional=False, spam=False, lsp='', proxy='n', apikey=''):
+    def submit(guid = '', sl='', st='', tl='', tt='', username='', remote_addr='', domain='',\
+               url='', city='', state='', country='', longitude=None, latitude=None,\
+               professional=False, spam=False, lsp='', proxy='n', apikey='',\
+               facebookid='', profile_url='', overwrite = False):
         if len(sl) > 0 and len(st) > 0 and len(tl) > 0 and len(tt) > 0:
             validquery = True
         else:
@@ -2118,67 +2136,62 @@ class Translation(db.Model):
             # look up scores for the submitter by username and IP address
             # if the user has a significant scoring history, we may mark
             # the submission as spam (e.g. > 10 scores, avgscore < 2.5)
-            userscores = None
-            ipscores = None
-            useravgscore = None
-            ipavgscore = None
-            userrawscore = None
-            iprawscore = None
-            if userscores is not None and useravgscore is not None:
-                if userscores > 20 and useravgscore < 2.5:
-                    spam = True
-            if ipscores is not None and ipavgscore is not None:
-                if ipscores > 20 and ipavgscore < 2.5:
-                    spam = True
-            if len(username) > 0:
-                result = UserScores.getscore(username=username)
-                try:
-                    userscores = result['scores']
-                    useravgscore = result['avgscore']
-                    userrawscore = result['rawscore']
-                except:
-                    pass
-            if len(remote_addr) > 0:
-                result = UserScores.getscore(remote_addr=remote_addr)
-                try:
-                    ipscores = result['scores']
-                    ipavgscore = result['avgscore']
-                    iprawscore = result['rawscore']
-                except:
-                    pass
             st = clean(st)
             tt = clean(tt)
             twords = string.split(tt)
             swords = string.split(st)
-            m = md5.new()
-            m.update(tt)
-            m.update(str(datetime.datetime.now()))
-            guid = str(m.hexdigest())
+            if len(guid) < 1:
+                m = md5.new()
+                m.update(tt)
+                m.update(str(datetime.datetime.now()))
+                guid = str(m.hexdigest())
             n = md5.new()
             try:
                 n.update(st.decode('utf-8'))
             except:
                 n.update(st)
             md5hash = str(n.hexdigest())
+            if overwrite:
+                tdb = db.Query(Translation)
+                tdb.filter('md5hash = ', md5hash)
+                tdb.filter('tl = ', tl)
+                item = tdb.get()
+                if item is not None:
+                    item.sl = sl
+                    item.tl = tl
+                    item.st = st
+                    item.tt = tt
+                    item.md5hash = md5hash
+                    item.guid = guid
+                    item.url = url
+                    item.professional = professional
+                    item.human = True
+                    item.username = username
+                    item.facebookid = facebookid
+                    item.profile_url = profile_url
+                    item.put()
+                    return True
             tdb = Translation()
             tdb.md5hash = md5hash
             tdb.guid = guid
             tdb.sl = sl
             tdb.tl = tl
-            try:
-                tdb.st = st.decode('utf-8')
-            except:
-                try:
-                    tdb.st = clean(st)
-                except:
-                    tdb.st = st
-            try:
-                tdb.tt = tt.decode('utf-8')
-            except:
-                try:
-                    tdb.tt = clean(tt)
-                except:
-                    tdb.tt = tt
+            tdb.st = st
+            tdb.tt = tt
+            #try:
+            #    tdb.st = st.decode('utf-8')
+            #except:
+            #    try:
+            #        tdb.st = clean(st)
+            #    except:
+            #        tdb.st = st
+            #try:
+            #    tdb.tt = tt.decode('utf-8')
+            #except:
+            #    try:
+            #        tdb.tt = clean(tt)
+            #    except:
+            #        tdb.tt = tt
             tdb.domain = domain
             tdb.url = url
             tdb.username = username
@@ -2190,22 +2203,8 @@ class Translation(db.Model):
             tdb.country = country
             tdb.professional = professional
             tdb.spam = spam
-            if ipscores is not None and ipavgscore is not None:
-                tdb.userscores = ipscores
-                tdb.useravgscore = ipavgscore
-                tdb.userrawscore = iprawscore
-            if userscores is not None and useravgscore is not None:
-                tdb.userscores = userscores
-                tdb.useravgscore = useravgscore
-                tdb.userrawscore = userrawscore
-            if len(apikey) > 0:
-                username = APIKeys.getusername(apikey)
-                if len(username) > 0:
-                    tdb.professional = True
-                    tdb.anonymous = False
-                    tdb.reviewed = True
-                    tdb.username = username
-                    tdb.spam = False
+            tdb.facebookid = facebookid
+            tdb.profile_url = profile_url
             if lsp == 'speaklike':
                 tdb.professional = True
                 tdb.reviewed = True
@@ -2237,20 +2236,11 @@ class Translation(db.Model):
             words = string.replace(words, '\'', '')
             words = string.replace(words, '\"', '')
             ngrams = string.split(string.lower(words), ' ')
+            try:
+                tdb.ngrams = ngrams
+            except:
+                pass
             tdb.put()
-            result = UserScores.translate(username=username, remote_addr=remote_addr, sl=sl, tl=tl, domain=domain)
-            if len(username) > 0:
-                if type(latitude) is float and type(longitude) is float:
-                    Users.translate(username, len(twords), city=city, state=state, country=country, latitude=latitude, longitude=longitude)
-                else:
-                    try:
-                        latitude = float(latitude)
-                        longitude = float(longitude)
-                    except:
-                        latitude = None
-                        longitude = None
-                    Users.translate(username, len(twords), city=city, state=state, country=country, latitude=latitude, longitude=longitude)
-            p = dict()
             return guid
         else:
             return ''
@@ -2364,6 +2354,8 @@ class Translation(db.Model):
     def fetch(sl='', tl='', st='', md5hash='', domain='', url='', userip='', allow_machine='y', allow_anonymous='', min_score=0, max_blocked_votes=0, fuzzy = 'n', mtengine='', lsp='', lspusername='', lsppw=''):
         if len(url) > 500:
             url = url[0:499]
+        url = string.replace(url, 'http://', '')
+        url = string.replace(url, 'https://','')
         if len(st) > 0 or len(md5hash) > 0:
             if len(st) > 0:
                 m = md5.new()
@@ -2378,21 +2370,20 @@ class Translation(db.Model):
         if results is None and len(tt) < 1:
             sortdate = True
             tdb = db.Query(Translation)
-            tdb.filter('sl = ', sl)
-            tdb.filter('tl = ', tl)
+            if len(sl) > 0:
+                tdb.filter('sl = ', sl)
+            if len(tl) > 0:
+                tdb.filter('tl = ', tl)
             if fuzzy == 'y':
                 pass
             if len(st) > 0 or len(md5hash) > 0:
                 tdb.filter('md5hash = ', md5hash)
             else:
-                if len(domain) > 0:
-                    tdb.filter('domain = ', domain)
                 if len(url) > 0:
                     tdb.filter('url = ', url)
-                    sortdate = False
             if sortdate:
                 tdb.order('-date')
-            results = tdb.fetch(limit=100)
+            results = tdb.fetch(limit=500)
         filtered_results = list()
         professional_translation_found = False
         for r in results:
@@ -2444,6 +2435,19 @@ class Translation(db.Model):
             else:
                 memcache.set('translations|fetch|sl=' + sl + '|tl=' + tl + '|domain=' + domain + '|url=' + url, results, 120)
         return filtered_results
+    @staticmethod
+    def getbyurl(url, tl):
+        if len(url) > 0:
+            url = string.replace(url, 'http://','')
+            url = string.replace(url, 'https://','')
+            tdb = db.Query(Translation)
+            tdb.filter('url = ', url)
+            if len(tl) > 0:
+                tdb.filter('tl = ', tl)
+            tdb.order('-date')
+            results = tdb.fetch(500)
+            if results is not None:
+                return results
     @staticmethod
     def purgespam():
         threshold = Settings.get('min_spam_votes')

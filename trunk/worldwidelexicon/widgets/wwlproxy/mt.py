@@ -299,7 +299,6 @@ class MTServer(webapp.RequestHandler):
         self.requesthandler(sl, tl, st)
     def requesthandler(self, sl, tl, st):
         """Combined request handler for both GET and POST calls"""
-        mode = 'form'
         if len(sl) < 1:
             sl = self.request.get('sl')
             mode = 'rest'
@@ -313,7 +312,7 @@ class MTServer(webapp.RequestHandler):
         mtengine = self.request.get('mtengine')
         if len(mtengine) < 2:
             mtengine = 'google'
-        output = self.request.get('output')
+        output = 'json'
         q = clean(self.request.get('q'))
         langpair = self.request.get('langpair')
         if len(q) > 0 and len(langpair) > 0:
@@ -331,16 +330,14 @@ class MTServer(webapp.RequestHandler):
             m = MTWrapper()
             tt = m.getTranslation(sl, tl, st, mtengine=mtengine,userip=userip)
             tt = string.replace(tt, '\n', '')
-            if mode == 'rest' or output != 'google':
-                self.response.headers['Content-Type']='text/plain'
-                self.response.headers['Accept-Encoding']='utf-8'
-                self.response.out.write(tt)
-            else:
-                self.response.headers['Content-Type']='text/javascript'
-                self.response.headers['Accept-Encoding']='utf-8'
-                response='{"responseData": {"translatedText":"[translation]"},"responseDetails": null, "responseStatus": 200}'
-                response=string.replace(response,'[translation]', string.replace(tt, '\"', '\''))
-                self.response.out.write(response)
+            results = dict(
+                    sl = sl,
+                    tl = tl,
+                    st = st,
+                    tt = tt,
+                    mtengine = mtengine,
+                )
+            self.response.out.write(demjson.encode(results))
         else:
             t = '<form action=/mt method=get><table>'
             t = t + '<tr><td>Source Language Code</td><td><input type=text name=sl></td></tr>'
@@ -357,10 +354,25 @@ class MTGetUrl(webapp.RequestHandler):
         self.response.headers['Content-Type']='text/plain'
         if len(sl) > 0 and len(tl) > 0:
             self.response.out.write(MT.geturl(sl,tl))
+            
+class MTDetect(webapp.RequestHandler):
+    def get(self):
+        self.requesthandler()
+    def post(self):
+        self.requesthandler()
+    def requesthandler(self):
+        text = self.request.get('q')
+        encodedtext = clean(text)   
+        encodedtext = urllib.quote_plus(encodedtext)
+        url = 'http://ajax.googleapis.com/ajax/services/language/detect?v=1.0&q=' + encodedtext
+        response = urlfetch.fetch(url = url)
+        response.content
+        self.response.out.write(response.content)
 
-application = webapp.WSGIApplication([('/mt', MTServer),
-                                      (r'/mt/(.*)/(.*)/(.*)', MTServer),
-                                      (r'/mt/(.*)/(.*)',MTGetUrl)],
+application = webapp.WSGIApplication([('/wwl/mt', MTServer),
+                                      ('/wwl/mt/detect', MTDetect),
+                                      (r'/wwl/mt/(.*)/(.*)/(.*)', MTServer),
+                                      (r'/wwl/mt/(.*)/(.*)',MTGetUrl)],
                                      debug=True)
 
 def main():

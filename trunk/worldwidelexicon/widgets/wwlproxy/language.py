@@ -72,7 +72,7 @@ class TestLanguage(db.Model):
     tl = db.StringProperty(default='')
     date = db.DateTimeProperty(auto_now_add = True)
     @staticmethod
-    def language(d='', text=''):
+    def language(d='', text='', output=''):
         if len(text) > 0 and len(d) < 1:
             encodedtext = clean(text)
             encodedtext = urllib.quote_plus(encodedtext)
@@ -80,11 +80,14 @@ class TestLanguage(db.Model):
             response = urlfetch.fetch(url = url)
             if response.status_code == 200:
                 results = demjson.decode(response.content)
-            try:
-                sl = results['responseData']['language']
-            except:
-                sl = ''
-            return sl
+            if output == 'json':
+                return response.content
+            else:
+                try:
+                    sl = results['responseData']['language']
+                except:
+                    sl = ''
+                return sl
         else:
             if string.count(d, 'http://') > 0:
                 d = string.replace(d, 'http://', '')
