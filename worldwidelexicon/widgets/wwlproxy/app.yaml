@@ -1,5 +1,5 @@
 application: wwlapi
-version: 1
+version: 2
 runtime: python
 api_version: 1
 
@@ -36,8 +36,20 @@ handlers:
 - url: /dermundoimage
   static_dir: dermundoimage
   
+- url: /groups/(.*)
+  script: home.py
+  
+- url: /dermundo/(.*)
+  script: home.py
+  
 - url: /lsp/worker
   script: lsp.py
+  
+- url: /q
+  script: home.py
+  
+- url: /u
+  script: home.py
 
 - url: /translate/project
   script: home.py
@@ -51,8 +63,14 @@ handlers:
 - url: /robots.txt
   script: home.py
   
+- url: /stream
+  script: home.py
+  
 - url: /sidebar
-  script: translate.py
+  script: home.py
+  
+- url: /submit
+  script: home.py
   
 - url: /help/firefox
   script: home.py
@@ -63,8 +81,17 @@ handlers:
 - url: /x(.*)
   script: home.py
   
+- url: /wwl/deletemessage/(.*)
+  script: home.py
+  
 - url: /wwl/email
   script: email.py
+  
+- url: /wwl/crawler
+  script: crawler.py
+  
+- url: /wwl/localize
+  script: ui.py
   
 - url: /wwl/meta/(.*)
   script: home.py
@@ -78,24 +105,6 @@ handlers:
 - url: /wwl/geo
   script: relay.py
   
-- url: /wwl/translationworker
-  script: home.py
-  
-- url: /wwl/purge
-  script: home.py
-
-- url: /wwl/u
-  script: home.py
-  
-- url: /wwl/t
-  script: home.py
-
-- url: /wwl/submit
-  script: home.py
-  
-- url: /wwl/submitworker
-  script: home.py
-  
 - url: /wwl/meta/translation
   script: home.py
   
@@ -108,16 +117,10 @@ handlers:
 - url: /wwl/domain
   script: relay.py
   
-- url: /wwl/login
-  script: home.py
-  
 - url: /wwl/im/(.*)
   script: relay.py
   
-- url: /wwl/userstatsworker
-  script: home.py
-  
-- url: /wwl/trafficworker
+- url: /wwl/(.*)
   script: home.py
   
 - url: /users/logout

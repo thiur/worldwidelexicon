@@ -125,6 +125,17 @@ class DisplayTexts(webapp.RequestHandler):
             self.response.out.write(header())
             stats = memcache.get_stats()
             self.response.out.write('<div class="col1">')
+            self.response.out.write('<h3>Add/Update Text</h3>')
+            self.response.out.write('<form action=/admin/savetext method=post>')
+            self.response.out.write('<table>')
+            self.response.out.write('<tr><td>Label/Title</td><td><input type=text name=label></td></tr>')
+            self.response.out.write('<tr><td colspan=2>Text<br><textarea name=text rows=6 cols=60></textarea></td></tr>')
+            self.response.out.write('<tr><td>Is This A Blog Post?</td><td>')
+            self.response.out.write('<select name=blog><option selected value=n>No</option>')
+            self.response.out.write('<option value=y>Yes</option></select></td></tr>')
+            self.response.out.write('<tr><td>Language</td><td><input type=text name=language value=en></td></tr>')
+            self.response.out.write('<tr><td></td><td><input type=submit value=Save></td></tr>')
+            self.response.out.write('</table></form>')
             self.response.out.write('<h3>Texts</h3>')
             results = TextObjects.getall()
             if results is not None:
@@ -138,24 +149,13 @@ class DisplayTexts(webapp.RequestHandler):
                     else:
                         self.response.out.write('<td>n</td>')
                     self.response.out.write('<td></td></tr>')
-                self.response.out.write('</table><hr>')
-            self.response.out.write('<h3>Add/Update Text</h3>')
-            self.response.out.write('<form action=/admin/savetext method=get>')
-            self.response.out.write('<table>')
-            self.response.out.write('<tr><td>Label/Title</td><td><input type=text name=label></td></tr>')
-            self.response.out.write('<tr><td colspan=2>Text<br><textarea name=text rows=6 cols=60></textarea></td></tr>')
-            self.response.out.write('<tr><td>Is This A Blog Post?</td><td>')
-            self.response.out.write('<select name=blog><option selected value=n>No</option>')
-            self.response.out.write('<option value=y>Yes</option></select></td></tr>')
-            self.response.out.write('<tr><td>Language</td><td><input type=text name=language value=en></td></tr>')
-            self.response.out.write('<tr><td></td><td><input type=submit value=Save></td></tr>')
-            self.response.out.write('</table></form></div>')
+                self.response.out.write('</table></div>')
             self.response.out.write(footer())
         else:
             self.redirect('/admin')
 
 class SaveText(webapp.RequestHandler):
-    def get(self):
+    def post(self):
         if is_admin():
             label = self.request.get('label')
             text = self.request.get('text')

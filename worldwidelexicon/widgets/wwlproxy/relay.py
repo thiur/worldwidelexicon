@@ -36,6 +36,7 @@ from google.appengine.ext.webapp.util import run_wsgi_app
 from google.appengine.ext import db
 from google.appengine.api import urlfetch
 from google.appengine.api import memcache
+from google.appengine.api import channel
 from google.appengine.api.labs import taskqueue
 import demjson
 import urllib
@@ -326,6 +327,45 @@ class UserLogout(webapp.RequestHandler):
         self.requesthandler()
     def requesthandler(self):
         self.response.out.write('ok')
+        
+class SendMessage(webapp.RequestHandler):
+    def get(self):
+        self.requesthandler()
+    def post(self):
+        self.requesthandler()
+    def requesthandler(self):
+        msg = self.request.get('msg')
+        sender = self.request.get('sender')
+        profile_url = self.request.get('profile_url')
+        words = string.split(words, ' ')
+        tags = list()
+        for w in words:
+            if string.count(w, '#') > 0:
+                tags.append(string.replace(w, '#', ''))
+        for t in tags:
+            users = memcache.get('/stream/' + t)
+            if type(users) is list:
+                for u in users:
+                    channel.send_message(u, msg)
+        self.response.out.write('ok')
+        
+class Follow(webapp.RequestHandler):
+    def get(self):
+        self.requesthandler()
+    def post(self):
+        self.requesthandler()
+    def request(self):
+        tags = string.split(string.replace(self.request.get('tags'),' '),'#', '')
+        token = self.request.get('token')
+        for t in tags:
+            users = memcache.get('/stream/' + t)
+            if type(users) is list:
+                users.append(token)
+                memcache.set('/stream/' + t, users)
+            else:
+                users=list(t)
+                memcache.set('/stream/' + t, users)
+        self.response.out.write('ok')
 
 application = webapp.WSGIApplication([('/wwl/u', BatchTranslations),
                                       ('/wwl/t', FetchTranslation),
@@ -333,6 +373,8 @@ application = webapp.WSGIApplication([('/wwl/u', BatchTranslations),
                                       ('/wwl/submit', SubmitTranslation),
                                       ('/wwl/language', TestLanguage),
                                       ('/wwl/domain', TestDomain),
+                                      ('/wwl/follow', Follow),
+                                      ('/wwl/send', SendMessage),
                                       (r'/wwl/im/(.*)', IM),
                                       ('/wwl/scores/vote', SubmitScore),
                                       ('/users/logout', UserLogout)],

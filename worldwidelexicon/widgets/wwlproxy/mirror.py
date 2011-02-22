@@ -33,6 +33,7 @@ from google.appengine.ext import db
 from google.appengine.ext import webapp
 from google.appengine.ext.webapp import template
 from google.appengine.runtime import apiproxy_errors
+from google.appengine.api.labs import taskqueue
 
 import facebook
 from home import User
@@ -295,12 +296,18 @@ class HomeHandler(BaseHandler):
 
 class MirrorHandler(BaseHandler):
   def get(self, base_url):
-    if not self.current_user:
-      self.error(401)
-      self.response.out.write('Facebook login required to use this service.')
-      return
+    #if not self.current_user:
+    #  self.error(401)
+    #  self.response.out.write('Facebook login required to use this service.')
+    #  return
     if base_url[0] == 'x':
       base_url = DerMundoProjects.geturl(base_url[1:20])
+    p = dict()
+    p['url']=base_url
+    p['language']=self.language
+    p['remote_addr']=self.request.remote_addr
+    taskqueue.add(url='/wwl/proxycounter', params=p, queue_name='counter')
+    
     assert base_url
     
     # Log the user-agent and referrer, to see who is linking to us.
@@ -358,12 +365,20 @@ class MirrorHandler(BaseHandler):
     content.data = string.replace(content.data, '<img src="/', '<img src="http://')
 
     self.response.out.write(content.data)
+    
+class OfflineHandler(webapp.RequestHandler):
+  def get(self, path):
+    self.error(404)
+    self.response.out.write("The translation proxy server is currently offline, ")
+    self.response.out.write("and will be available when we begin our beta test in a few days.")
 
 
 app = webapp.WSGIApplication([
   (r"/", HomeHandler),
-  (r"/main", HomeHandler),
-  (r"/([^/]+).*", MirrorHandler)
+#  (r"/main", HomeHandler),
+  (r"/([^/]+).*", OfflineHandler)
+#  (r"/main", HomeHandler),
+#  (r"/([^/]+).*", MirrorHandler)
 ], debug=DEBUG)
 
 

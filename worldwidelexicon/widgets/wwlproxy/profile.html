@@ -35,68 +35,93 @@ function include(url,id) {
   }
 }
 </script>
-<title>{{ profile.name }}</title>
-{{ metadata }}
+<title>Der Mundo : {{ tagline }}</title>
+{{metadata}}
 <meta http-equiv="content-type" content="application/xhtml+xml; charset=UTF-8" />
-<meta name="description" content="{{ tagline }}" />
-<meta name="keywords" content="translation, social, community, news" />
+<meta name="author" content="Erwin Aligam - styleshout.com" />
+<meta name="description" content="{{ introduction }}" />
+<meta name="keywords" content="keywords, here" />
+<meta name="robots" content="index, follow, noarchive" />
+<meta name="googlebot" content="noarchive" />
 <meta name="translate" content="n" />
 <link rel="stylesheet" type="text/css" media="screen" href="http://www.dermundo.com/dermundocss/css/screen.css" />
-{{ google_analytics }}
+{{google_analytics}}
 <script type="text/javascript" src="http://w.sharethis.com/button/buttons.js"></script><script type="text/javascript">stLight.options({publisher:'902e01b2-5b17-45ca-9068-9bbeaf71ae2b'});</script>
 </head>
 <body>
 
 	<!-- header starts-->
 	<div id="header-wrap"><div id="header" class="container_16">						
+		
 		<h1 id="logo-text"><a href=/ title="">Der Mundo</a></h1>
 		<p id="intro">{{ tagline }}</p>
-		<div id="header-image"></div>		
+		
+		<!-- navigation -->
+		<div  id="nav">
+                        <ul>
+                        <li><a href=http://wordpress.org/extend/plugins/speaklike-worldwide-lexicon-translator/>{{ wordpress_translator }}</a></li>
+                        <li><a href=https://addons.mozilla.org/en-US/firefox/addon/13897>{{ firefox_translator }}</a></li>
+                        <li><a href=http://www.dermundo.com/dermundo/publishers>{{ for_publishers }}</a></li>
+                        <li><a href=http://www.dermundo.com/dermundo/journalists>{{ for_journalists }}</a></li>
+                        </ul>
+                </div>
+		
+		<div id="header-image"></div>			
 	
 	<!-- header ends here -->
 	</div></div>
-      
+	
 	<!-- content starts -->
 	<div id="content-outer"><div id="content-wrapper" class="container_16">
 	
 		<!-- main -->
-		<div id="main" class="grid_16">
-				
-			<a name="TemplateInfo"></a>
-			<!-- frame header -->
-			<table width=100% cellspacing=2 border=0>
-			  <tr valign=top><td width=75%>
-			  {% if profile.id %}
-			    <a href="{{ profile.profile_url }}">
-			    <img align=left src="http://graph.facebook.com/{{ profile.id }}/picture?type=square"/>
-			    </a>
-			    <a href="{{ profile.profile_url }}">{{ profile.name }}</a>
-			    <br>
-			    {{ profile.city }}, {{ profile.country }}
-                          {% else %}
-			    <h3>Blank Profile</h3>
-			  {% endif %}
-			  </td>
-			  <td width=25%>
-			  {{translations}} : {{translation_count}}<br>
-			  {{words}} : {{word_count}}
-			  </td></tr></table>
-			<!-- recent articles -->
-			{% if pages %}
-			  <h3>{{ recent_translation_projects }}</h3>
-			{% else %}
-			  <h3>Recent Translation Projects</h3>
-			{% endif %}
+		<div id="main" class="grid_8">
 			
-			{% if pages %}
-			  {% for p in pages %}
-			    <h4><a href=http://www.dermundo.com/{{ p.shorturl }}>{{ p.title }}</a></h4>
-			    {{ p.description }}
-			  {% endfor %}
-			{% endif %}
+			<!-- main stream and search results -->
+                        <h3>{{ news_feed }}</h3>
+                        {% if messages %}
+                        {% for m in messages %}
+                        <p>
+                        <!--
+                        <img align=left src=http://graph.facebook.com/{{ m.sender }}/picture?type=square>
+                        -->
+                        <a href={{ m.senderprofile }}>{{ m.sendername}}</a> (
+                        <a href=/?city={{ m.sendercity }}>
+                        {{ m.sendercity }}</a> , <a href=/?country={{ m.sendercountry }}>{{ m.sendercountry }}</a>) : 
+                        {{ m.message }}
+                        {% if current_user %}
+                        {% ifequal m.sender current_user.id %}
+                         <a href=/wwl/deletemessage/{{ m.guid }}>[{{ delete_message }}]</a>
+                         {% endifequal %}
+                         {% endif %}
+                        </p>
+                        {% endfor %}
+                        {% endif %}
 			<div class="clear">&nbsp;</div>
 		
 		<!-- main ends -->
+		</div>
+		
+		<!-- left-columns starts -->
+		<div id="left-columns" class="grid_8">
+		
+			<div class="grid_6 alpha">
+                        <h3>{{ profile.name }}</h3>
+                        <p>
+                        <img src=http://graph.facebook.com/{{ profile.id}}/picture?type=square&width=100&height=100>
+                        </p>
+                        <h3>{{ recent_visitors }}</h3>      
+                        {% if visitors %}
+                        {% for v in visitors %}
+                        <p>
+                        <img src=http://graph.facebook.com/{{ v.id }}/picture?type=square>
+                        <a href=/profile/{{ v.id }}>
+                        {{ v.name}}</a> 
+                        (<a href=/?city={{ v.city }}>{{ v.city }}</a>)</p>
+                        {% endfor %}
+                        {% endif %}
+                        </div>
+		<!-- end left-columns -->
 		</div>		
 	
 	<!-- contents end here -->	
@@ -104,10 +129,11 @@ function include(url,id) {
 
 	<!-- footer starts here -->	
 	<div id="footer-wrapper" class="container_16">
+	
 		<div id="footer-bottom">
 	
 			<p class="bottom-left">			
-			&nbsp; &copy;1998-2010 {{ copyright }} &nbsp; &nbsp;
+			&nbsp; &copy;1998-2011 {{ copyright }} &nbsp; &nbsp;
 			<a href="http://www.bluewebtemplates.com/" title="Website Templates">website templates</a> by <a href="http://www.styleshout.com/">styleshout</a>
 			</p>	
 			
