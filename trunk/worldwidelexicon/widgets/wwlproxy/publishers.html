@@ -36,7 +36,7 @@ function include(url,id) {
 }
 </script>
 <title>Der Mundo : {{ tagline }}</title>
-{{metadata}}
+{{ metadata }}
 <meta http-equiv="content-type" content="application/xhtml+xml; charset=UTF-8" />
 <meta name="author" content="Erwin Aligam - styleshout.com" />
 <meta name="description" content="{{ introduction }}" />
@@ -45,7 +45,7 @@ function include(url,id) {
 <meta name="googlebot" content="noarchive" />
 <meta name="translate" content="n" />
 <link rel="stylesheet" type="text/css" media="screen" href="http://www.dermundo.com/dermundocss/css/screen.css" />
-{{google_analytics}}
+{{ google_analytics }}
 <script type="text/javascript" src="http://w.sharethis.com/button/buttons.js"></script><script type="text/javascript">stLight.options({publisher:'902e01b2-5b17-45ca-9068-9bbeaf71ae2b'});</script>
 </head>
 <body>
@@ -60,14 +60,14 @@ function include(url,id) {
 		<div  id="nav">
                         <ul>
                         <li><a href=http://wordpress.org/extend/plugins/speaklike-worldwide-lexicon-translator/>{{ wordpress_translator }}</a></li>
-                        <li><a href=http://www.dermundo.com/dermundo/firefox>{{ firefox_translator }}</a></li>
+                        <li><a href=https://addons.mozilla.org/en-US/firefox/addon/13897>{{ firefox_translator }}</a></li>
                         <li><a href=http://www.dermundo.com/dermundo/publishers>{{ for_publishers }}</a></li>
                         <li><a href=http://www.dermundo.com/dermundo/journalists>{{ for_journalists }}</a></li>
-                        <li><a href=http://www.dermundo.com/dermundo/faq>FAQ</a></li>
                         </ul>
                 </div>
-		
-		<div id="header-image"></div>			
+                
+		<div id="header-image"></div>
+                
 	
 	<!-- header ends here -->
 	</div></div>
@@ -79,47 +79,14 @@ function include(url,id) {
 		<div id="main" class="grid_8">
 				
 			<a name="TemplateInfo"></a>
-                        <h3>Register For The DerMundo Beta</h3>
-                        <table width=90%>
-                        <form action=/beta/register method=get>
-                        <tr><td width=75%>
-                        {% if not current_user %}
-                        {{facebook_login }}
-                        {% endif %}
-                        </td><td>
-                          <fb:login-button autologoutlink="true" perms="email, publish_stream, user_about_me"></fb:login-button>                            
-                          <!--{% if current_user %}
-                            <p><a href="{{ current_user.profile_url }}"><img src="http://graph.facebook.com/{{ current_user.id }}/picture?type=square"/></a></p>
-                          {% endif %}-->
-                      
-                          <div id="fb-root"></div>
-                          <script>
-                            window.fbAsyncInit = function() {
-                              FB.init({appId: '{{ facebook_app_id }}', status: true, cookie: true, 
-                                       xfbml: true});
-                              FB.Event.subscribe('{% if current_user %}auth.logout{% else %}auth.login{% endif %}', function(response) {
-                                window.location.reload();
-                              });
-                            };
-                            (function() {
-                              var e = document.createElement('script');
-                              e.type = 'text/javascript';
-                              e.src = document.location.protocol + '//connect.facebook.net/{{ locale }}/all.js';
-                              e.async = true;
-                              document.getElementById('fb-root').appendChild(e);
-                            }());
-                          </script></p>
-                        </td></tr>
-                        </form></table>
-			<p>
-			<table border=0>
-                        <tr><td width=50%>
-                        <h4>{{ wordpress_translator }}</h4>
-                        {{ wordpress_prompt }}
-                        </td><td width=50%>
-                        <h4>{{ firefox_translator }}</h4>
-                        {{ firefox_prompt }}
-                        </td></tr></table></p>
+                        
+                        <p>{{ publishers_p1 }}</p>
+                        <p>{{ publishers_p2 }}</p>
+                        <p>{{ publishers_p3 }}</p>
+                        <p>{{ publishers_p4 }}</p>
+                        <p>{{ publishers_p5 }}</p>
+                        <p>{{ publishers_p6 }}</p>
+			
 			<div class="clear">&nbsp;</div>
 		
 		<!-- main ends -->
@@ -135,6 +102,9 @@ function include(url,id) {
 
                                 <h3>{{ share_this_page }}</h3>
                                 <p><span class="st_twitter_vcount" displayText="Tweet"></span><span class="st_facebook_vcount" displayText="Share"></span><span class="st_email_vcount" displayText="Email"></span><span class="st_sharethis_vcount" displayText="Share"></span></p>
+
+                                <h3>{{ instructions }}</h3>
+                                <p>{{ instructions_prompt }}</p>
 
 			</div>
 		

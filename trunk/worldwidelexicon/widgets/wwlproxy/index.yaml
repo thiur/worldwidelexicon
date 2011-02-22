@@ -10,6 +10,65 @@ indexes:
 # automatically uploaded to the admin console when you next deploy
 # your application using appcfg.py.
 
+- kind: DerMundoGroupMembers
+  properties:
+  - name: label
+  - name: joined
+    direction: desc
+    
+- kind: DerMundoGroupMembers
+  properties:
+  - name: id
+  - name: name
+
+- kind: DerMundoGuide
+  properties:
+  - name: tags
+  - name: score
+    direction: desc
+
+- kind: DerMundoGuide
+  properties:
+  - name: city
+  - name: score
+    direction: desc
+
+- kind: DerMundoMessages
+  properties:
+  - name: sendercity
+  - name: timestamp
+    direction: desc
+
+- kind: DerMundoMessages
+  properties:
+  - name: sendercountry
+  - name: timestamp
+    direction: desc
+
+- kind: DerMundoMessages
+  properties:
+  - name: label
+  - name: msgtype
+  - name: timestamp
+    direction: desc
+
+- kind: DerMundoMessages
+  properties:
+  - name: sender
+  - name: timestamp
+    direction: desc
+
+- kind: DerMundoMessages
+  properties:
+  - name: tags
+  - name: timestamp
+    direction: desc
+
+- kind: TextTranslations
+  properties:
+  - name: language
+  - name: label
+
 - kind: Translation
   properties:
   - name: md5hash
@@ -29,6 +88,18 @@ indexes:
   properties:
   - name: url
   - name: date
+    direction: desc
+
+- kind: User
+  properties:
+  - name: city
+  - name: updated
+    direction: desc
+
+- kind: User
+  properties:
+  - name: country
+  - name: updated
     direction: desc
 
 

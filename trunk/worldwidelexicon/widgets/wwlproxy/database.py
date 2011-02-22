@@ -1865,6 +1865,31 @@ class Translation(db.Model):
     profile_url = db.StringProperty(default='')
     mirrored = db.BooleanProperty(default=False)
     @staticmethod
+    def getusersbyurl(url, tl=''):
+        url = string.replace(url, 'http://','')
+        url = string.replace(url, 'https://','')
+        tdb = db.Query(Translation)
+        tdb.filter('url = ', url)
+        tdb.order('-date')
+        results = tdb.fetch(200)
+        users=list()
+        userlist=list()
+        if results is not None:
+            for r in results:
+                if r.username not in users and len(r.username) > 0:
+                    users.append(r.username)
+                    u = dict(
+                        username = r.username,
+                        profile_url = r.profile_url,
+                        tl = r.tl,
+                        city = r.city,
+                        country = r.country,
+                        facebookid = r.facebookid,
+                        id = r.facebookid,
+                    )
+                    userlist.append(u)
+        return userlist
+    @staticmethod
     def author(guid):
         if len(guid) > 0:
             tdb = db.Query(Translation)
@@ -2151,6 +2176,8 @@ class Translation(db.Model):
             except:
                 n.update(st)
             md5hash = str(n.hexdigest())
+            url = string.replace(url, 'http://','')
+            url = string.replace(url, 'https://','')
             if overwrite:
                 tdb = db.Query(Translation)
                 tdb.filter('md5hash = ', md5hash)
@@ -2250,6 +2277,18 @@ class Translation(db.Model):
     @staticmethod
     def userscore(remote_addr, username, upvotes, downvotes, blockedvotes, rawscore, scores):
         pass
+    @staticmethod
+    def isnewtranslation(facebookid, url):
+        if len(facebookid) > 6:
+            url = string.replace(url, 'http://','')
+            url = string.replace(url, 'https://','')
+            tdb = db.Query(Translation)
+            tdb.filter('facebookid = ', facebookid)
+            tdb.filter('url = ', url)
+            item = tdb.get()
+            if item is None:
+                return True
+        return False
     @staticmethod
     def wordcount(username, tl='', startdate=None, enddate=None):
         if len(username) > 0:

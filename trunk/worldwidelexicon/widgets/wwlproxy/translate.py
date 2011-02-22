@@ -665,7 +665,9 @@ class DerMundoProjects(db.Model):
                     shorturl = ue.encode_url(int(item.id))
                     item.shorturl = shorturl
                     item.put()
-                return 'http://www.dermundo.com/' + shorturl
+                return 'http://www.dermundo.com/x' + shorturl
+	    else:
+		return 'http://www.dermundo.com/x' + shorturl
         return ''
 
 class Translator(webapp.RequestHandler):

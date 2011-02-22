@@ -45,7 +45,7 @@ function include(url,id) {
 <meta name="googlebot" content="noarchive" />
 <meta name="translate" content="n" />
 <link rel="stylesheet" type="text/css" media="screen" href="http://www.dermundo.com/dermundocss/css/screen.css" />
-{{google_analytics}}
+{{ google_analytics }}
 <script type="text/javascript" src="http://w.sharethis.com/button/buttons.js"></script><script type="text/javascript">stLight.options({publisher:'902e01b2-5b17-45ca-9068-9bbeaf71ae2b'});</script>
 </head>
 <body>
@@ -60,7 +60,7 @@ function include(url,id) {
 		<div  id="nav">
                         <ul>
                         <li><a href=http://wordpress.org/extend/plugins/speaklike-worldwide-lexicon-translator/>{{ wordpress_translator }}</a></li>
-                        <li><a href=http://www.dermundo.com/dermundo/firefox>{{ firefox_translator }}</a></li>
+                        <li><a href=https://addons.mozilla.org/en-US/firefox/addon/13897>{{ firefox_translator }}</a></li>
                         <li><a href=http://www.dermundo.com/dermundo/publishers>{{ for_publishers }}</a></li>
                         <li><a href=http://www.dermundo.com/dermundo/journalists>{{ for_journalists }}</a></li>
                         <li><a href=http://www.dermundo.com/dermundo/faq>FAQ</a></li>
@@ -77,17 +77,56 @@ function include(url,id) {
 	
 		<!-- main -->
 		<div id="main" class="grid_8">
-				
-			<a name="TemplateInfo"></a>
-                        <h3>Register For The DerMundo Beta</h3>
-                        <table width=90%>
-                        <form action=/beta/register method=get>
-                        <tr><td width=75%>
-                        {% if not current_user %}
-                        {{facebook_login }}
+			
+			<!-- main stream and search results -->
+                        {% if current_user %}
+                        <h3>{{ news_feed }}</h3>
+                        <p>{{ send_message_prompt }}</p>
+                        <p><form action=/wwl/sendmessage method=get>
+                        <input type=hidden name=msgtype value=stream>
+                        <textarea name=msg rows=3 cols=60></textarea>
+                        <input type=submit value="{{ submit }}">
+                        </form></p>
                         {% endif %}
-                        </td><td>
-                          <fb:login-button autologoutlink="true" perms="email, publish_stream, user_about_me"></fb:login-button>                            
+                        <h3>{{ search }}</h3>
+                        <p>
+                        <form action=/ method=get>
+                        <input type=text name=q size=60 value=...>
+                        <input type=submit value="{{ search }}">
+                        </form></p>
+                        {% if messages %}
+                        {% for m in messages %}
+                        <p>
+                        <!--
+                        <img align=left src=http://graph.facebook.com/{{ m.sender }}/picture?type=square>
+                        -->
+                        <a href={{ m.senderprofile }}>{{ m.sendername}}</a> (
+                        <a href=/?city={{ m.sendercity }}>
+                        {{ m.sendercity }}</a> , <a href=/?country={{ m.sendercountry }}>{{ m.sendercountry }}</a>) : 
+                        {{ m.message }}
+                        {% if current_user %}
+                        {% ifequal m.sender current_user.id %}
+                         <a href=/wwl/deletemessage/{{ m.guid }}>[{{ delete_message }}]</a>
+                         {% endifequal %}
+                         {% endif %}
+                        </p>
+                        {% endfor %}
+                        {% endif %}
+			<div class="clear">&nbsp;</div>
+		
+		<!-- main ends -->
+		</div>
+		
+		<!-- left-columns starts -->
+		<div id="left-columns" class="grid_8">
+		
+			<div class="grid_6 alpha">
+<!--                          <p><a border=0 href=https://api.twitter.com/oauth/authenticate>
+                          <img src=/dermundoimage/twitter.png></a>-->
+                          {% if not current_user %}
+                          <p>{{ facebook_login_prompt }}</p>
+                          {% endif %}
+                          <p><fb:login-button autologoutlink="true" perms="email, publish_stream, user_about_me"></fb:login-button>                            
                           <!--{% if current_user %}
                             <p><a href="{{ current_user.profile_url }}"><img src="http://graph.facebook.com/{{ current_user.id }}/picture?type=square"/></a></p>
                           {% endif %}-->
@@ -109,35 +148,36 @@ function include(url,id) {
                               document.getElementById('fb-root').appendChild(e);
                             }());
                           </script></p>
-                        </td></tr>
-                        </form></table>
-			<p>
-			<table border=0>
-                        <tr><td width=50%>
-                        <h4>{{ wordpress_translator }}</h4>
-                        {{ wordpress_prompt }}
-                        </td><td width=50%>
-                        <h4>{{ firefox_translator }}</h4>
-                        {{ firefox_prompt }}
-                        </td></tr></table></p>
-			<div class="clear">&nbsp;</div>
-		
-		<!-- main ends -->
-		</div>
-		
-		<!-- left-columns starts -->
-		<div id="left-columns" class="grid_8">
-		
-			<div class="grid_6 alpha">
-                                <h3>{{ social_translation}} </h3>
-                                        
-                                <p>{{ introduction }}</p>
-
-                                <h3>{{ share_this_page }}</h3>
-                                <p><span class="st_twitter_vcount" displayText="Tweet"></span><span class="st_facebook_vcount" displayText="Share"></span><span class="st_email_vcount" displayText="Email"></span><span class="st_sharethis_vcount" displayText="Share"></span></p>
-
-			</div>
-		
+                          {% if not issearch %}
+                          <h3>{{ share_this_page }}</h3>
+                          <p><span class="st_twitter_vcount" displayText="Tweet"></span><span class="st_facebook_vcount" displayText="Share"></span><span class="st_email_vcount" displayText="Email"></span><span class="st_sharethis_vcount" displayText="Share"></span></p>
+                          {% endif %}
+                        <!--<h3>{{ recommend_site }}</h3>-->
+                        <!--<p>{{ recommend_site_prompt }}</p>-->
+                        <!--<p>-->
+                        <!--<form action=/wwl/guide method=post>-->
+                        <!--URL: <input type=text name=url size=40 maxlen=40></p>-->
+                        <!--<p>{{ input_title}}<input type=text name=title size=40 maxlen=40></p>-->
+                        <!--<p>{{ input_description }}<br>-->
+                        <!--<textarea name=description rows=3 cols=40 maxlen=100></textarea></p>-->
+                        <!--<p>{{ input_tags }}: <input type=text name=tags size=40></p>-->
+                        <!--<p>{{ input_language }}: <select name=language>-->
+                        <!--{{ language_select }}</select></p>-->
+                        <!--<p>{{ input_city }}: <input type=text name=city size=40></p>-->
+                        <!--<p><input type=submit value="{{ submit }}"></form</p>-->
+                        {% if not issearch %}
+                        <h3>{{ recent_visitors }}</h3>      
+                        {% if visitors %}
+                        {% for v in visitors %}
+                        <p>
+                        <img src=http://graph.facebook.com/{{ v.id }}/picture?type=square>
+                        <a href=/profile/{{ v.id }}>
+                        {{ v.name}}</a> 
+                        (<a href=/?city={{ v.city }}>{{ v.city }}</a>)</p>
+                        {% endfor %}
+                        {% endif %}
+                        {% endif %}
+                        </div>
 		<!-- end left-columns -->
 		</div>		
 	

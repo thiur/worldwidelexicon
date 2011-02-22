@@ -1,2 +1,5 @@
 cron:
 
+- description: update localization database
+  url: /wwl/localize
+  schedule: every 30 minutes
