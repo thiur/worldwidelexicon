@@ -130,14 +130,14 @@ td {
 
 /* form elements */
 form {
-	margin: 10px; 
-	padding: 15px 25px 25px 20px; 
+	margin: 2px; 
+	padding: 2px 2px 2px 2px; 
 	border: 1px solid #F0F0F0;
 	background: #f8f8f8;
 }
 form p {
 	border-bottom: 1px solid #E6E6E6;
-	padding: 12px 0 5px 0;	margin: 0;	
+	padding: 2px 0 2px 0;	margin: 0;	
 	color: #7BA857;
 }
 label {
@@ -145,8 +145,8 @@ label {
 	color: #7BA857;
 }
 input, select, textarea {
-	margin: 5px 0;
-	padding: 5px;
+	margin: 2px 0;
+	padding: 2px;
 	color: #6A6969;
 	border-width: 1px;
 	border-style: solid;
