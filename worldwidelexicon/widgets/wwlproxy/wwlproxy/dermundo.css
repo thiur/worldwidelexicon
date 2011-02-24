@@ -1,0 +1,212 @@
+.dmundo {
+    color: black;
+    font-size: 100%;
+}
+.dmundo div, .dmundo ul, .dmundo ol, .dmundo li, .dmundo h1, .dmundo h2, .dmundo h3, .dmundo h4, .dmundo h5, .dmundo h6, .dmundo pre, .dmundo code, .dmundo form, .dmundo fieldset, .dmundo legend, .dmundo input, .dmundo button, .dmundo textarea, .dmundo p, .dmundo blockquote {
+    margin: 0;
+    padding: 0;
+}
+.dmundo fieldset, .dmundo img {
+    border: 0 none;
+}
+.dmundo img {
+    display: inline;
+}
+.dmundo address, .dmundo caption, .dmundo cite, .dmundo code, .dmundo dfn, .dmundo em, .dmundo strong, .dmundo th, .dmundo var {
+    font-style: inherit;
+    font-weight: inherit;
+}
+.dmundo del, .dmundo ins {
+    text-decoration: none;
+}
+.dmundo li {
+    list-style: none outside none;
+}
+.dmundo caption, .dmundo th {
+    text-align: left;
+}
+.dmundo h1, .dmundo h2, .dmundo h3, .dmundo h4, .dmundo h5, .dmundo h6 {
+    font-size: 100%;
+    font-weight: normal;
+    letter-spacing: 0 !important;
+    text-transform: none !important;
+}
+.dmundo abbr, .dmundo acronym {
+    border: 0 none;
+    font-variant: normal;
+}
+.dmundo sup {
+    vertical-align: baseline;
+}
+.dmundo sub {
+    vertical-align: baseline;
+}
+.dmundo legend {
+    color: #000000;
+}
+.dmundo input, .dmundo button, .dmundo textarea, .dmundo select, .dmundo optgroup, .dmundo option {
+    font-family: inherit;
+    font-size: inherit;
+    font-style: inherit;
+    font-weight: inherit;
+}
+.dmundo input, .dmundo button, .dmundo textarea, .dmundo select {
+}
+#dmundo ul {
+    font-size: 13px;
+    list-style-position: inside;
+    margin-left: 10px;
+}
+#dmundo {
+    font-family: sans-serif;
+    text-align: left;
+}
+#dmundo .dmundo_bar {
+	display: block;
+	bottom: 0;
+	height: 37px;
+	left: 0;
+	padding: 0 40px 0 13px;
+	position: fixed;
+	z-index: 10000;
+}
+
+#dmundo .dmundo_bar_left {
+    background: url("/wwlproxy/img/background_toolbar_left.png") no-repeat scroll left top transparent;
+    float: left;
+    height: 37px;
+    margin: 0;
+    padding: 0;
+    width: 13px;
+}
+
+#dmundo .dmundo_bar_right {
+    background: url("/wwlproxy/img/background_toolbar_right.png") no-repeat scroll left top transparent;
+    float: left;
+    height: 37px;
+    margin: 0;
+    padding: 0;
+    width: 13px;
+}
+
+#dmundo .dmundo_bar_middle {
+    background: url("/wwlproxy/img/background_toolbar_middle.png") repeat-x scroll center top transparent;
+    float: left;
+    height: 37px;
+    margin: 0;
+    padding: 0;
+}
+
+#dmundo .dmundo_bar_section {
+	border-right: solid 2px;
+	color: #cccccc;
+	height: 28px;
+	float: left;
+	margin-top: 8px;
+}
+
+#dmundo .dmundo_bar_last_section {
+	color: #CCCCCC;
+	height: 28px;
+	float: left;
+	margin-top: 8px;
+}
+
+#dmundo .dmundo_bar_title {
+    color: #93B876;
+    font: 18px Georgia,'Times New Roman',Times,serif;
+    text-decoration: none;
+    margin: 5px 5px;
+}
+
+#dmundo .dmundo_bar a:link, .dmundo_bar a:visited, .dmundo_bar a:hover {
+	text-decoration: none;
+	cursor:pointer;
+    color: #93B876;
+}
+
+#dmundo .dmundo_bar_label {
+    color: #888888;
+    font: 12px Georgia,'Times New Roman',Times,serif;
+    text-decoration: none;
+    margin: 9px 5px 0;
+    float: left;
+}
+
+#dmundo .dmundo_bar select {
+    color: #999999;
+    font: 12px Georgia,'Times New Roman',Times,serif;
+    text-decoration: none;
+    margin: 2px 5px 0;
+    float: left;
+}
+
+#dmundo .dmundo_lang_dir {
+	float: left;
+	color: #888888;
+	font-family: Tahoma;
+	line-height: 30px;
+}
+
+#dmundo .dmundo_spinner_container {
+    margin: 7px 0px 0px 5px;
+    float: left;
+    width: 15px;
+}
+
+#dmundo .dmundo_spinner {
+    background: url("/wwlproxy/img/spinner.gif") no-repeat scroll center top transparent;
+    display: none;
+}
+
+#dmundo .dmundo_bar_status {
+    color: #999999;
+    font: 12px Georgia,'Times New Roman',Times,serif;
+    text-decoration: none;
+    margin: 9px 5px 0;
+    float: left;
+	width: 250px;
+}
+
+#dmundo .dmundo_bar_login {
+	position: relative;
+	top: 3px;
+	left: 3px;
+}
+
+.dmundo_button {
+    background-color: #93B876;
+    border-color: #D4D4D4 #EBEBEB #EBEBEB #D4D4D4;
+    border-style: solid;
+    border-width: 1px;
+    color: white;
+    font: 11px 'Lucida Grande',Verdana,Helvetica,sans-serif;
+    margin: 2px 0;
+    padding: 2px;
+    font-weight: bold;
+    display: none;
+}
+
+#dmundo_overlay {
+    background-color: #EEEEEE;
+    border: 2px solid #93B876;
+    display: none;
+    font-family: Tahoma Arial;
+    font-size: 12px;
+    font-weight: 300;
+    height: auto;
+    left: 8px;
+    padding: 3px;
+    position: absolute;
+    text-align: left;
+    top: 0;
+    width: 450px;
+    z-index: 9999;
+    -moz-border-radius: 10px;
+	border-radius: 10px;
+}
+#dmundo_overlay table {color:#404040;margin:0px;padding:0px;border:0px;border-collapse:collapse;width:100%;background:transparent none;}
+#dmundo_overlay textarea {background-color: #FFFFFF; border: 1px solid #888; color: black; font-size: 13px; width: 448px; height: 60px; margin: 0px; padding: 0px;}
+#dmundo_overlay hr {margin:3px 0px;padding:0px;}
+#dmundo_overlay_login {display: inline; font-weight: bold;}
+#dmundo_voteDiv {display: inline; position: relative; top: 2px;}
