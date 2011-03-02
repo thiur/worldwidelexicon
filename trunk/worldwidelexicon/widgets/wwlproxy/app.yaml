@@ -12,6 +12,12 @@ handlers:
   static_files: dermundoimage/favicon.ico
   upload: dermundoimage/favicon.ico
   
+- url: /wwlproxy/img
+  static_dir: wwlproxy/img
+  
+- url: /wwlproxy
+  static_dir: wwlproxy
+  
 - url: /admin
   script: admin.py
   

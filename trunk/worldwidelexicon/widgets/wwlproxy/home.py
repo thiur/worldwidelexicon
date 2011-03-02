@@ -45,7 +45,7 @@ from shorturl import UrlEncoder
 from excerpt_extractor import get_summary
 from transcoder import transcoder
 import demjson
-import BeautifulSoup
+from BeautifulSoup import BeautifulSoup
 
 from ui import TextObjects
 from ui import TextTranslations
@@ -202,6 +202,7 @@ userip = ''
 
 def clean(text):
     return transcoder.clean(text)
+    #return transcoder.clean(text, charset='utf-8')
 
 def pro(tl, text, ttl=600):
     m = md5.new()
@@ -395,6 +396,9 @@ class DerMundoGroups(db.Model):
     members = db.IntegerProperty(default=0)
     languages = db.ListProperty(str)
     messages = db.IntegerProperty(default=0)
+    discussionurl = db.StringProperty(default='')
+    facebookurl = db.StringProperty(default='')
+    rssfeed = db.StringProperty(default='')
     @staticmethod
     def find(label):
 	gdb = db.Query(DerMundoGroups)
@@ -416,8 +420,10 @@ class DerMundoGroups(db.Model):
 	    return results
     @staticmethod
     def create(label, name, description, tags=None, languages=None, createdby='',\
-	       createdbyname='', createdbyprofile='', email=''):
+	       createdbyname='', createdbyprofile='', email='', discussionurl='',\
+	       facebookurl = '', rssfeed=''):
 	label = string.replace(label,' ','')
+	label = string.lower(label)
 	if len(label) < 5:
 	    return False
 	gdb = db.Query(DerMundoGroups)
@@ -433,6 +439,18 @@ class DerMundoGroups(db.Model):
 	    item.createdby = createdby
 	    item.createdbyname = createdbyname
 	    item.createdbyprofile = createdbyprofile
+	    if len(discussionurl) > 0:
+		discussionurl = string.replace(discussionurl, 'http://','')
+		discussionurl = string.replace(discussionurl, 'https://', '')
+		item.discussionurl = discussionurl
+	    if len(facebookurl) > 0:
+		facebookurl = string.replace(facebookurl, 'http://','')
+		facebookurl = string.replace(facebookurl, 'https://','')
+		item.facebookurl = facebookurl
+	    if len(rssfeed) > 0:
+		rssfeed = string.replace(rssfeed, 'http://','')
+		rssfeed = string.replace(rssfeed, 'https://','')
+		item.rssfeed = rssfeed
 	    if tags is not None:
 		if type(tags) is str:
 		    tags = string.replace(tags,' ',',')
@@ -440,8 +458,9 @@ class DerMundoGroups(db.Model):
 		if type(tags) is list:
 		    taglist = item.tags
 		    for t in tags:
-			if t not in taglist:
-			    taglist.append(t)
+			if len(t) > 1:
+			    if t not in taglist:
+				taglist.append(t)
 		    item.tags = taglist
 	    if languages is not None:
 		if type(languages) is str:
@@ -668,9 +687,9 @@ class DerMundoMessages(db.Model):
 	m.update(city)
 	m.update(country)
 	md5hash = str(m.hexdigest())
-	results = memcache.get('/recent/messages/' + md5hash)
-	if results is not None:
-	    return results
+	#results = memcache.get('/recent/messages/' + md5hash)
+	#if results is not None:
+	#    return results
 	mdb = db.Query(DerMundoMessages)
 	if len(msgtype) > 0: mdb.filter('msgtype = ', msgtype)
 	if len(label) > 0: mdb.filter('label = ', label)
@@ -684,7 +703,7 @@ class DerMundoMessages(db.Model):
 	if results is not None:
 	    for r in results:
 		r.sendercity = string.replace(r.sendercity,' ', '_')
-	    memcache.set('/recent/messages/' + md5hash, results, 120)
+	    memcache.set('/recent/messages/' + md5hash, results, 10)
 	return results
     @staticmethod
     def flag(guid):
@@ -780,6 +799,120 @@ class DerMundoGroupMembers(db.Model):
 		return False
 	else:
 	    return False
+	
+class DerMundoBookMarks(db.Model):
+    domain = db.StringProperty(default='')
+    url = db.StringProperty(default='')
+    title = db.StringProperty(default='')
+    description = db.StringProperty(default='')
+    language = db.StringProperty(default='')
+    tags = db.ListProperty(str)
+    created = db.DateTimeProperty(auto_now_add=True)
+    updated = db.DateTimeProperty(auto_now=True)
+    upvotes = db.IntegerProperty(default=0)
+    downvotes = db.IntegerProperty(default=0)
+    votes = db.IntegerProperty(default=0)
+    score = db.IntegerProperty(default=0)
+    completed = db.BooleanProperty(default=False)
+    createdby = db.StringProperty(default='')
+    createdbyname = db.StringProperty(default='')
+    createdbyprofile = db.StringProperty(default='')
+    createdbycity = db.StringProperty(default='')
+    createdbycountry = db.StringProperty(default='')
+    likedby = db.ListProperty(str)
+    group = db.StringProperty(default='')
+    @staticmethod
+    def search(group='', tag='', language='', maxlen=25):
+	bdb = db.Query(DerMundoBookMarks)
+	if len(group) > 0:
+	    bdb.filter('group = ', group)
+	if len(tag) > 0:
+	    bdb.filter('tags = ', tag)
+	if len(language) > 0:
+	    bdb.filter('language = ', language)
+	bdb.order('-created')
+	results = bdb.fetch(maxlen)
+	return results
+    @staticmethod
+    def create(url='', title='', description='', language='', tags=None, createdby='',\
+	       createdbyname='', createdbyprofile='', createdbycity='', createdbycountry='', group=''):
+	if len(url) > 0 and len(createdby) > 0:
+	    if string.count(url, 'http://') < 1:
+		test_url = 'http://' + url
+	    else:
+		test_url = url
+		url = string.replace(url, 'http://','')
+	    success = False
+	    try:
+		result = urlfetch.fetch(url=test_url)
+		if result.status_code == 200:
+		    success=True
+	    except:
+		pass
+	    if success:
+		bdb = db.Query(DerMundoBookMarks)
+		bdb.filter('url = ', url)
+		if len(group) > 0:
+		    bdb.filter('group = ', group)
+		else:
+		    bdb.filter('createdby = ', createdby)
+		item = bdb.get()
+		if item is None:
+		    item = DerMundoBookMarks()
+		    item.url = url
+		    if len(group) > 0:
+			item.group = group
+			item.createdby = createdby
+			item.createdbyname = createdbyname
+			item.createdbyprofile = createdbyprofile
+			item.createdbycity = createdbycity
+			item.createdbycountry
+		    else:
+			item.createdby = createdby
+			item.createdbyname = createdbyname
+			item.createdbyprofile = createdbyprofile
+			item.createdbycity = createdbycity
+			item.createdbycountry
+		    item.title = title
+		    item.description = description
+		    item.language = language
+		taglist = item.tags
+		if tags is not None:
+		    if type(tags) is str:
+			tags = string.replace(tags, ' ',',')
+			tags = string.split(tags,',')
+		    if type(tags) is list:
+			for t in tags:
+			    if len(t) > 1:
+				if t not in taglist:
+				    taglist.append(t)
+		item.taglist = taglist
+		item.upvotes = item.upvotes + 1
+		item.put()
+		return True
+	return False
+    @staticmethod
+    def vote(url, group='', vote=''):
+	if len(url) > 0:
+	    url = string.replace(url, 'http://','')
+	    url = string.replace(url, 'https://', '')
+	    bdb = db.Query(DerMundoBookMarks)
+	    bdb.filter('url = ', url)
+	    if len(group) > 0:
+		bdb.filter('group = ', group)
+	    item = bdb.get()
+	    if item is not None:
+		if vote == 'up':
+		    item.upvotes = item.upvotes + 1
+		    item.votes = item.votes + 1
+		    item.score = item.upvotes - item.downvotes
+		else:
+		    item.downvotes = item.downvotes + 1
+		    item.votes = item.votes + 1
+		    item.score = item.upvotes - item.downvotes
+		item.put()
+		return True
+	return False
 
 class DerMundoProjects(db.Model):
     domain = db.StringProperty(default='')
@@ -1043,6 +1176,47 @@ class UserStats(db.Model):
     month = db.StringProperty()
     day = db.StringProperty()
     users = db.IntegerProperty(default = 0)
+    @staticmethod
+    def getstats():
+	# get total count
+	stats = dict()
+	sdb = db.Query(UserStats)
+	sdb.filter('globalcount = ', True)
+	item = sdb.get()
+	if item is not None:
+	    stats['all']=item.users
+	else:
+	    stats['all']=0
+	# get daily count for this month and last month
+	timestamp=datetime.datetime.now()
+	month = str(timestamp.month)
+	last_month = str(timestamp.month - 1)
+	if last_month == '0': last_month=12
+	year = str(timestamp.year)
+	# get this months records
+	sdb = db.Query(UserStats)
+	sdb.filter('year = ', year)
+	sdb.filter('month = ', month)
+	sdb.order('day')
+	results = sdb.fetch(31)
+	if results is not None:
+	    for r in results:
+		if len(month) < 2: month = '0' + month
+		day = r.day
+		if len(day) < 2: day = '0' + day
+		stats[year + month + day] = r.users
+	sdb = db.Query(UserStats)
+	sdb.filter('year = ', year)
+	sdb.filter('month = ', last_month)
+	sdb.order('day')
+	results = sdb.fetch(31)
+	if results is not None:
+	    for r in results:
+		if len(last_month) < 2: last_month = '0' + last_month
+		day = r.day
+		if len(day) < 2: day = '0' + day
+		stats[year + last_month + day] = r.users
+	return stats
     @staticmethod
     def inc(country='', city='', locale=''):
 	sdb = db.Query(UserStats)
@@ -1788,28 +1962,14 @@ class CreateProject(BaseHandler):
         self.requesthandler()
     def requesthandler(self):
 	url = urllib.unquote_plus(self.request.get('u'))
+	if len(url) < 1:
+	    url = urllib.unquote_plus(self.request.get('url'))
 	if string.count(url, 'http://') < 1:
 	    url = 'http://' + url
 	shorturl = DerMundoProjects.add(url)
-	if self.current_user:
-	    self.redirect('http://www.dermundo.com/x' + shorturl)
-	else:
-	    language = self.language
-	    template_values = dict(
-		facebook_login_prompt = pro(language, facebook_login_prompt),
-		tagline = pro(language, tagline),
-		copyright = copyright,
-		url = 'http://www.dermundo.com/x' + shorturl,
-		reload = pro(language, reload),
-		language = self.language,
-		locale = self.locale,
-	    )
-	    path = os.path.join(os.path.dirname(__file__), "proxylogin.html")
-	    args = dict(current_user=self.current_user,
-			facebook_app_id=FACEBOOK_APP_ID)
-	    args.update(template_values)
-	    self.response.out.write(template.render(path, args))
-	
+	url = string.replace(url, 'http://', '')
+	self.redirect('http://www.dermundo.com/' + url)
+			  
 class LoginHandler(BaseHandler):
     def get(self):
 	base_url = self.request.get('base_url')
@@ -1859,106 +2019,38 @@ class BetaHandler(BaseHandler):
 	language_select = dict(
 	    language_select = languages.select(selected = language),
 	)
-	if current_user is not None:
-	    q = self.request.get('q')
-	    city = string.replace(self.request.get('city'),'_',' ')
-	    country = self.request.get('country')
-	    path = os.path.join(os.path.dirname(__file__), "search.html")
-	    args = dict(current_user=self.current_user,
-			facebook_app_id=FACEBOOK_APP_ID)
-	    args.update(texts)
-	    messages = DerMundoMessages.search(tag=q, city=city, country=country)
-	    vistors = User.recent(city=city, country=country)
-	    sites = DerMundoGuide.search(tag=q, city=city)
-	    if len(q) > 0:
-		issearch=True
-	    else:
-		issearch=False
-	    language_select = Languages.select(selected=self.language)
-	    template_values = dict(
-		issearch = issearch,
-		language_select = language_select,
-		messages = messages,
-		visitors = vistors,
-		guide = sites,
-		language = language,
-		locale = locale,
-		direction = direction,
-		google_analytics = google_analytics_header,
-	    )
-	    args.update(template_values)
-	    self.response.out.write(template.render(path, args))
-	    return
-	if len(url) > 0:
-	    url=string.replace(url, 'http://', '')
-	    url=string.replace(url, 'https://', '')
-	    self.redirect('http://www.dermundo.com/' + url)
-	if len(email) > 0:
-	    User.update(current_user.id, email=email, beta=True)
-	    path = os.path.join(os.path.dirname(__file__), "betaregister.html")
-	    args = dict(current_user=self.current_user,
-			facebook_app_id=FACEBOOK_APP_ID)
-	    template_values = dict(
-		tagline = pro(language, 'Translate the world with your friends'),
-		menu = '',
-		beta_thank_you = texts.get('beta_thank_you',''),
-		sharethis_header = sharethis_header,
-		sharethis_button = sharethis_button,
-		social_translation = texts.get('social_translation',''),
-		introduction = texts.get('introduction',''),
-		google_analytics = google_analytics_header,
-		copyright = texts.get('copyright',''),
-		wordpress_prompt = texts.get('wordpress_prompt',''),
-		firefox_prompt = texts.get('firefox_prompt',''),
-		instructions = texts.get('instructions',''),
-		instructions_prompt = texts.get('instructions',''),
-		share_this_page = texts.get('share_this_page',''),
-		share_this_button = sharethis_button,
-		professional_translation = texts.get('professional_translation',''),
-		email = texts.get('email_address',''),
-		facebook_login = texts.get('facebook_login',''),
-		for_publishers = texts.get('for_publishers',''),
-		for_journalists = texts.get('for_journalists',''),
-		locale = locale,
-		language = language,
-		direction = direction,
-	    )
-	    args.update(template_values)
-	    self.response.out.write(template.render(path, args))
+	#if current_user is not None:
+	q = self.request.get('q')
+	city = string.replace(self.request.get('city'),'_',' ')
+	country = self.request.get('country')
+	path = os.path.join(os.path.dirname(__file__), "search.html")
+	args = dict(current_user=self.current_user,
+		    facebook_app_id=FACEBOOK_APP_ID)
+	args.update(texts)
+	messages = DerMundoMessages.search(msgtype='stream', tag=q, city=city, country=country)
+	grouplist = DerMundoGroups.search(maxlen=3)
+	vistors = User.recent(city=city, country=country)
+	sites = DerMundoGuide.search(tag=q, city=city)
+	if len(q) > 0:
+	    issearch=True
 	else:
-	    path = os.path.join(os.path.dirname(__file__), "beta.html")
-	    args = dict(current_user=self.current_user,
-			facebook_app_id=FACEBOOK_APP_ID)
-	    template_values = dict(
-		tagline = texts.get('tagline',''),
-		menu = '',
-		sharethis_header = sharethis_header,
-		sharethis_button = sharethis_button,
-		social_translation = texts.get('social_translation',''),
-		introduction = texts.get('introduction',''),
-		google_analytics = google_analytics_header,
-		copyright = texts.get('copyright',''),
-		wordpress_prompt = texts.get('wordpress_prompt',''),
-		firefox_prompt = texts.get('firefox_prompt',''),
-		instructions = texts.get('instructions',''),
-		instructions_prompt = texts.get('instructions_prompt',''),
-		share_this_page = texts.get('share_this_page',''),
-		share_this_button = sharethis_button,
-		professional_translation = texts.get('professional_translation',''),
-		email_address = texts.get('email_address',''),
-		speaklike_password = texts.get('speaklike_password',''),
-		translate_button = texts.get('translate',''),
-		facebook_login = texts.get('facebook_login',''),
-		locale = locale,
-		language = language,
-		direction = direction,
-		for_publishers = texts.get('for_publishers',''),
-		for_journalists = texts.get('for_journalists',''),
-		firefox_translator = texts.get('firefox_translator',''),
-		wordpress_translator = texts.get('wordpress_translator',''),
-	    )
-	    args.update(template_values)
-	    self.response.out.write(template.render(path, args))
+	    issearch=False
+	language_select = Languages.select(selected=self.language)
+	template_values = dict(
+	    issearch = issearch,
+	    grouplist = grouplist,
+	    language_select = language_select,
+	    messages = messages,
+	    visitors = vistors,
+	    guide = sites,
+	    language = language,
+	    locale = locale,
+	    direction = direction,
+	    google_analytics = google_analytics_header,
+	)
+	args.update(template_values)
+	self.response.out.write(template.render(path, args))
+	return
 	    
 class ProfileHandler(BaseHandler):
     def get(self, id):
@@ -2106,8 +2198,10 @@ class SubmitTranslationHandler(BaseHandler):
 	if current_user:
 	    sl = self.request.get('sl')
 	    tl = self.request.get('tl')
-	    st = clean(self.request.get('st'))
-	    tt = clean(self.request.get('tt'))
+	    st = self.request.get('st')
+	    st = clean(st)
+	    tt = self.request.get('tt')
+	    tt = clean(tt)
 	    url = self.request.get('url')
 	    url = string.replace(url, 'http://','')
 	    facebookid = str(current_user.id)
@@ -2116,24 +2210,46 @@ class SubmitTranslationHandler(BaseHandler):
 	    locale = current_user.locale
 	    langloc = string.split(locale, '_')
 	    language = langloc[0]
+	    location = self.location
+	    city = location.get('city','')
+	    country = location.get('country','')
 	    profile_url = current_user.profile_url
 	    remote_addr = self.request.remote_addr
-	    logging.error('Request to translate ' + sl + ' -> ' + tl + ' : ' + st)
-	    p = dict()
-	    p['sl']=sl
-	    p['tl']=tl
-	    p['st']=st
-	    p['tt']=tt
-	    p['url']=url
-	    p['remote_addr']=remote_addr
-	    p['facebookid']=facebookid
-	    p['username']=username
-	    p['profile_url']=profile_url
-	    p['words']=len(string.split(tt,' '))
-	    taskqueue.add(url='/wwl/submitworker', params=p)
-	    taskqueue.add(url='/wwl/meta/translation', params=p, queue_name='translations')
-	    msg = pro(language, 'I started translating a new website using DerMundo. Help me translate and share this with the world.')
-	    PublishToFeed(facebookid, access_token, msg=msg, language=language, link='http://www.dermundo.com/' + url)
+	    translations = memcache.get('/translating/' + facebookid + '/' + url)
+	    feed_posts = memcache.get('/feed_posts/' + facebookid)
+	    if translations is None and feed_posts < 6:
+		translations = 1
+		if feed_posts is None:
+		    feed_posts = 1
+		else:
+		    feed_posts = feed_posts + 1
+		memcache.set('/translating/' + facebookid + '/' + url, translations, 15000)
+		memcache.set('/feed_posts/' + facebookid, feed_posts, 10000)
+		msg = pro(language, 'I started translating a new website using DerMundo. Help me translate and share this with the world.')
+		PublishToFeed(facebookid, access_token, msg=msg, language=language, link='http://www.dermundo.com/' + url)
+	    else:
+		counter = translations + 1
+	    #tdb = Translation()
+	    #tdb.sl=sl
+	    #tdb.tl=tl
+	    #tdb.city=city
+	    #tdb.country=country
+	    #tdb.username=username
+	    #tdb.remote_addr=remote_addr
+	    #tdb.facebookid=facebookid
+	    #tdb.anonymous=False
+	    #tdb.professional=False
+	    #tdb.human=True
+	    #tdb.st=st
+	    #tdb.tt=tt
+	    #tdb.put()
+	    if len(tt) > 2:
+		Translation.submit(sl=sl, tl=tl, st=st, tt=tt,\
+				   username=username, facebookid=facebookid,\
+				   remote_addr=remote_addr,\
+				   profile_url=profile_url, city=city, country=country,\
+				   url=url)
+		User.translate(facebookid, sl, tl, words, url=url)
 	    self.response.out.write('ok')
 	else:
 	    self.error(401)
@@ -2173,7 +2289,6 @@ class SubmitTranslationWorker(webapp.RequestHandler):
 			   remote_addr=remote_addr,\
 			   profile_url=profile_url, city=city, country=country,\
 			   url=url)
-	logging.error('Translated: ' + sl + '->' + tl + ' ' + st + ' -> ' + tt)
 	User.translate(facebookid, sl, tl, words, url=url)
 	
 class ScoreHandler(BaseHandler):
@@ -2329,7 +2444,7 @@ class GroupHandler(BaseHandler):
     def get(self, label=''):
 	self.requesthandler(label)
     def post(self, label):
-	self.requesthandler(label='')
+	self.requesthandler(label)
     def requesthandler(self, label):
 	if label == 'create':
 	    user = self.current_user
@@ -2342,6 +2457,9 @@ class GroupHandler(BaseHandler):
 	    label = self.request.get('label')
 	    title = self.request.get('title')
 	    description = self.request.get('description')
+	    discussionurl = self.request.get('discussionurl')
+	    facebookurl = self.request.get('facebookurl')
+	    rssfeed = self.request.get('rssfeedurl')
 	    tags = self.request.get('tags')
 	    if user:
 		name = user.name
@@ -2352,7 +2470,9 @@ class GroupHandler(BaseHandler):
 		if email is None: email=''
 		if DerMundoGroups.create(label, title, description, tags=tags , languages=language, \
 					 createdby=user.id, createdbyname=user.name,\
-					 createdbyprofile=user.profile_url, email=email):
+					 createdbyprofile=user.profile_url, email=email,\
+					 discussionurl=discussionurl, facebookurl=facebookurl,\
+					 rssfeed=rssfeed):
 		    DerMundoGroupMembers.join(label, user.id, language=language, city=user.city,\
 					country=user.country, name=user.name, profile_url=user.profile_url)
 		    self.redirect('/groups/' + label)
@@ -2360,6 +2480,26 @@ class GroupHandler(BaseHandler):
 		    self.redirect('/')
 	    else:
 		self.redirect('/')
+	elif label == 'savebookmark':
+	    group = self.request.get('group')
+	    url = self.request.get('url')
+	    title = self.request.get('title')
+	    description = self.request.get('description')
+	    language = self.request.get('language')
+	    tags = self.request.get('tags')
+	    current_user = self.current_user
+	    if current_user:
+		createdby = current_user.id
+		createdbyname = current_user.name
+		createdbyprofile = current_user.profile_url
+		createdbycity = current_user.city
+		createdbycountry = current_user.country
+		result = DerMundoBookMarks.create(url=url, group=group, title=title, description=description,\
+						  language=language, tags=tags, createdby=createdby,\
+						  createdbyname=createdbyname,\
+						  createdbyprofile=createdbyprofile,\
+						  createdbycity=createdbycity, createdbycountry=createdbycountry)
+	    self.redirect('/groups/'+ group)
 	else:
 	    current_user = self.current_user
 	    locale = self.locale
@@ -2367,40 +2507,52 @@ class GroupHandler(BaseHandler):
 	    location = self.location
 	    direction = self.direction
 	    texts = self.localize(language)
-	    search = False
+	    q = self.request.get('q')
+	    if len(q) > 0:
+		issearch = True
+		groups = DerMundoGroups.search(tag=q)
+	    else:
+		groups = DerMundoGroups.search()
+		issearch = False
+	    path = os.path.join(os.path.dirname(__file__), 'group.html')
+	    args = dict(current_user=self.current_user,
+			facebook_app_id=FACEBOOK_APP_ID)
 	    if len(label) > 0:
-		path = os.path.join(os.path.dirname(__file__), 'group.html')
-		args = dict(current_user=self.current_user,
-			    facebook_app_id=FACEBOOK_APP_ID)
+		bookmarks = DerMundoBookMarks.search(group=label)
 		messages = DerMundoMessages.search(msgtype='group', label=label)
 		group = DerMundoGroups.find(label)
 		members = DerMundoGroupMembers.search(label=label)
+		memberlist = list()
+		for m in members:
+		    if m.id not in memberlist: memberlist.append(m.id)
 	    else:
-		search = True
-		path = os.path.join(os.path.dirname(__file__), 'search.html')
-		args = dict(current_user=self.current_user,
-			    facebook_app_id=FACEBOOK_APP_ID)
-		q = self.request.get('q')
-		messages = DerMundoMessages.search(tag=q)
+		bookmarks = None
+		messages = None
 		group = None
 		members = None
+		memberlist = None
 	    try:
 		ismember = DerMundoGroupMembers.ismember(label, current_user.id)
 	    except:
 		ismember = False
 	    args.update(texts)
-	    
+	    language_select = Languages.select(selected = self.language)
 	    template_values = dict(
-		ismember = ismember, 
+		ismember = ismember,
+		issearch = issearch,
+		bookmarks = bookmarks,
 		messages = messages,
 		members = members,
+		memberlist = memberlist,
 		group = group,
+		groups = groups,
 		sharethis_header = sharethis_header,
 		sharethis_button = sharethis_button,
 		google_analytics = google_analytics_header,
 		share_this_button = sharethis_button,
 		locale = locale,
 		language = language,
+		language_select = language_select,
 		direction = direction,
 	    )
 	    
@@ -2482,6 +2634,7 @@ class SendMessageHandler(BaseHandler):
 	label = self.request.get('label')
 	msgtype = self.request.get('msgtype')
 	msg = self.request.get('msg')
+	feed = self.request.get('feed')
 	if user:
 	    words = string.split(msg, ' ')
 	    tags = list()
@@ -2515,7 +2668,8 @@ class SendMessageHandler(BaseHandler):
 			shorturl = 'http://www.dermundo.com'
 		    w = '<a href=' + shorturl + '>' + string.replace(shorturl, 'http://','') + '</a>'
 		text = text + w + ' '
-		PublishToFeed(user.id, user.access_token, language=language, msg=msg, link=shorturl)
+		if feed == 'y':
+		    PublishToFeed(user.id, user.access_token, language=language, msg=msg, link=shorturl)
 	    if DerMundoGroupMembers.ismember(label, user.id) or msgtype == 'stream':
 		if msgtype != 'stream':
 		    DerMundoGroups.savemessage(label, user.id, text, language=language, tags=tags,\
@@ -2609,6 +2763,22 @@ class SidebarHandler(BaseHandler):
 	args.update(template_values)
 	self.response.out.write(template.render(path, args))
 	
+class AnalyticsHandler(BaseHandler):
+    def get(self):
+	self.requesthandler()
+    def post(self):
+	self.requesthandler()
+    def requesthandler(self):
+	q = 'http://www.google-analytics.com/__utm.gif?\
+	utmwv=4&utmn=769876874&utmhn=example.com&\
+	utmcs=ISO-8859-1&utmsr=1280x1024&utmsc=32-bit&\
+	utmul=en-us&utmje=1&utmfl=9.0%20%20r115&utmcn=1&\
+	utmdt=GATC012%20setting%20variables&utmhid=2059107202&\
+	utmr=0&utmp=/auto/GATC012.html?utm_source=www.gatc012.org&\
+	utm_campaign=campaign+gatc012&utm_term=keywords+gatc012&\
+	utm_content=content+gatc012&utm_medium=medium+gatc012&\
+	utmac=UA-30138-1&utmcc=__utma%3D97315849.1774621898.1207701397.1207701397.1207701397.1%3B...' 
+	
 class Channels():
     @staticmethod
     def add(url, token):
@@ -2678,7 +2848,7 @@ class StreamHandler(webapp.RequestHandler):
     def post(self):
 	self.requesthandler()
     def requesthandler(self):
-	self.request.out.write('')
+	self.response.out.write('')
 		
 def main():
     util.run_wsgi_app(webapp.WSGIApplication([("/secret1940", HomeHandler),

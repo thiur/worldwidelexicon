@@ -46,7 +46,8 @@ function include(url,id) {
 <meta name="translate" content="n" />
 <link rel="stylesheet" type="text/css" media="screen" href="http://www.dermundo.com/dermundocss/css/screen.css" />
 {{ google_analytics }}
-<script type="text/javascript" src="http://w.sharethis.com/button/buttons.js"></script><script type="text/javascript">stLight.options({publisher:'902e01b2-5b17-45ca-9068-9bbeaf71ae2b'});</script>
+<!--<script type="text/javascript" src="http://w.sharethis.com/button/buttons.js"></script><script type="text/javascript">stLight.options({publisher:'902e01b2-5b17-45ca-9068-9bbeaf71ae2b'});</script>
+-->
 </head>
 <body>
 
@@ -64,6 +65,7 @@ function include(url,id) {
                         <li><a href=http://www.dermundo.com/dermundo/publishers>{{ for_publishers }}</a></li>
                         <li><a href=http://www.dermundo.com/dermundo/journalists>{{ for_journalists }}</a></li>
                         <li><a href=http://www.dermundo.com/dermundo/faq>FAQ</a></li>
+                        <li><a href=/groups/>{{ groups }}</a></li>
                         </ul>
                 </div>
 		
@@ -79,12 +81,18 @@ function include(url,id) {
 		<div id="main" class="grid_8">
 			
 			<!-- main stream and search results -->
+                        <h3>{{ translate }}</h3>
+                        <p><form action=/translate/project method=get>
+                        URL: <input type=text name=url size=40>
+                        <input type=submit value="{{ submit }}">
+                        </form></p>
                         {% if current_user %}
                         <h3>{{ news_feed }}</h3>
                         <p>{{ send_message_prompt }}</p>
                         <p><form action=/wwl/sendmessage method=get>
                         <input type=hidden name=msgtype value=stream>
-                        <textarea name=msg rows=3 cols=60></textarea>
+                        <textarea name=msg rows=3 cols=60></textarea><br>
+                        {{ post_to_feed }} <input type=checkbox name=feed value=y><br>
                         <input type=submit value="{{ submit }}">
                         </form></p>
                         {% endif %}
@@ -149,8 +157,10 @@ function include(url,id) {
                             }());
                           </script></p>
                           {% if not issearch %}
-                          <h3>{{ share_this_page }}</h3>
+                          
+                          <!--<h3>{{ share_this_page }}</h3>
                           <p><span class="st_twitter_vcount" displayText="Tweet"></span><span class="st_facebook_vcount" displayText="Share"></span><span class="st_email_vcount" displayText="Email"></span><span class="st_sharethis_vcount" displayText="Share"></span></p>
+                          -->
                           {% endif %}
                         <!--<h3>{{ recommend_site }}</h3>-->
                         <!--<p>{{ recommend_site_prompt }}</p>-->
@@ -165,13 +175,20 @@ function include(url,id) {
                         <!--{{ language_select }}</select></p>-->
                         <!--<p>{{ input_city }}: <input type=text name=city size=40></p>-->
                         <!--<p><input type=submit value="{{ submit }}"></form</p>-->
+                        {% if grouplist %}
+                        <h3>{{ new_groups }}</h3>
+                        {% for g in grouplist %}
+                        <h4><a href=/groups/{{ g.id }}>{{ g.name }}</a></h4>
+                        <p>{{ g.description }}</p>
+                        {% endfor %}
+                        {% endif %}
                         {% if not issearch %}
                         <h3>{{ recent_visitors }}</h3>      
                         {% if visitors %}
                         {% for v in visitors %}
                         <p>
                         <img src=http://graph.facebook.com/{{ v.id }}/picture?type=square>
-                        <a href=/profile/{{ v.id }}>
+                        <a href={{ v.profile_url }}>
                         {{ v.name}}</a> 
                         (<a href=/?city={{ v.city }}>{{ v.city }}</a>)</p>
                         {% endfor %}
