@@ -2161,21 +2161,17 @@ class Translation(db.Model):
             # look up scores for the submitter by username and IP address
             # if the user has a significant scoring history, we may mark
             # the submission as spam (e.g. > 10 scores, avgscore < 2.5)
-            st = clean(st)
-            tt = clean(tt)
+            st = db.Text(st, encoding='utf-8')
+            tt = db.Text(tt, encoding='utf-8')
             twords = string.split(tt)
             swords = string.split(st)
             if len(guid) < 1:
                 m = md5.new()
-                m.update(tt)
                 m.update(str(datetime.datetime.now()))
                 guid = str(m.hexdigest())
-            n = md5.new()
-            try:
-                n.update(st.decode('utf-8'))
-            except:
-                n.update(st)
-            md5hash = str(n.hexdigest())
+            #n = md5.new()
+            #n.update(st)
+            #md5hash = str(n.hexdigest())
             url = string.replace(url, 'http://','')
             url = string.replace(url, 'https://','')
             if overwrite:
@@ -2188,7 +2184,7 @@ class Translation(db.Model):
                     item.tl = tl
                     item.st = st
                     item.tt = tt
-                    item.md5hash = md5hash
+                    #item.md5hash = md5hash
                     item.guid = guid
                     item.url = url
                     item.professional = professional
@@ -2199,26 +2195,10 @@ class Translation(db.Model):
                     item.put()
                     return True
             tdb = Translation()
-            tdb.md5hash = md5hash
+            #tdb.md5hash = md5hash
             tdb.guid = guid
             tdb.sl = sl
             tdb.tl = tl
-            tdb.st = st
-            tdb.tt = tt
-            #try:
-            #    tdb.st = st.decode('utf-8')
-            #except:
-            #    try:
-            #        tdb.st = clean(st)
-            #    except:
-            #        tdb.st = st
-            #try:
-            #    tdb.tt = tt.decode('utf-8')
-            #except:
-            #    try:
-            #        tdb.tt = clean(tt)
-            #    except:
-            #        tdb.tt = tt
             tdb.domain = domain
             tdb.url = url
             tdb.username = username
@@ -2267,7 +2247,29 @@ class Translation(db.Model):
                 tdb.ngrams = ngrams
             except:
                 pass
+            tdb.st = st
+            tdb.tt = tt
             tdb.put()
+            #try:
+            #    tdb.st = st.decode('utf-8')
+            #    tdb.put()
+            #except:
+            #    try:
+            #        tdb.st = clean(st)
+            #        tdb.put()
+            #    except:
+            #        tdb.st = st
+            #        tdb.put()
+            #try:
+            #    tdb.tt = tt.decode('utf-8')
+            #    tdb.put()
+            #except:
+            #    try:
+            #        tdb.tt = clean(tt)
+            #        tdb.put()
+            #    except:
+            #        tdb.tt = tt
+            #        tdb.put()
             return guid
         else:
             return ''

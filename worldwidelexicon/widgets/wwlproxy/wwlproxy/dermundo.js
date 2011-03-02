@@ -1,12 +1,26 @@
-﻿var dermundo = {
+//******************************************************************************
+// Copyright (C) 2011 WorldWide Lexicon Inc.
+// All rights reserved.
+//
+// http://www.worldwidelexicon.org
+//
+// The program contains proprietary information of WorldWide Lexicon Inc.,
+// and is licensed subject to restrictions on use and distribution.
+//******************************************************************************
+
+// Version: beta.09
+
+var dermundo = {
 
 	sourceLang: "en",
 	targetLang: "en",
+	sourceUrl: null,
+	ip: "99.199.174.74",
 	loggedIn: false,
+	loginTimer: null,
 	rolloverTimer: null,
 	helper: null,
 	http: null,	
-	currentGuid: null,
 
 	// UI strings
 	strings: {
@@ -28,6 +42,8 @@
 	meta: [],			// metadata for the page ([0] - title, [1] - description, [2] - array of keywords)
 	textNodes: [],		// array of text nodes on the page
 	originals: [],		// array of original text contents of text nodes on the page
+	prefixes: [],		// array of original text contents contain node prefixes
+	postfixes: [],		// array of original text contents contain node postfixes
 	translations: null,   // complete set of translations for the current language path
 
 	getTranslatedUIstringByName: function(name) {
@@ -130,7 +146,7 @@
 			parts.push(params[i].join("="));
 		}
 
-		query = parts.join("&");
+		query = dmundo_utf8_encode(parts.join("&"));
 
 		var http = new XMLHttpRequest();
 		http.open("POST", (secure ? "https://" : "http://") + dermundo_serviceUrl + service, true);
@@ -152,12 +168,50 @@
 		http.send(query);
 	},
 
+	callExternal: function(url, params, callback, type) {
+		var query = "", parts = [];
+
+		if (params) {
+			for(var i = 0; i < params.length; i++) {
+				for(var j = 0; j < params[i].length; j++) {
+					params[i][j] = String(params[i][j]).replace(/ /g, "+");
+					params[i][j] = encodeURI(params[i][j]);
+				}
+				parts.push(params[i].join("="));
+			}
+			query = parts.join("&");
+			//query = query.replace(/\//g, "%2F");
+		}
+
+        var http = new XMLHttpRequest();
+		http.open("GET", url + query, true);
+		if (type) {
+			http.overrideMimeType(type);
+		}
+		http.setRequestHeader("Content-Type", type || "application/x-www-form-urlencoded; charset=utf-8");
+
+		http.onreadystatechange = function() {
+			if (http.readyState == 4) {
+				if(http.status == 200) {
+					callback((type && (type == "text/xml")) ? http.responseXML : http.responseText);
+				} else {
+					callback(http.responseText, false);
+				}
+			}
+		};
+
+		http.send();
+	},
+
 	onContentLoaded: function() {
+		var self = this;
 		if (this.checkBrowserCompatibility()) {
+			this.initSourceUrl();
+			this.setDefaultTargetLang();
 			this.parseDoc();
 		}
 	},
-	
+
 	checkBrowserCompatibility: function() {
 		var compatible = true;
 		if (!document.createTreeWalker) {
@@ -168,13 +222,33 @@
 		}
 		return compatible;
 	},
-
+	
 	onLangSelect: function() {
 		var sel = document.getElementById("dmundo_sourceLangSelect"); 
 		this.sourceLang = sel.value;
 		sel = document.getElementById("dmundo_targetLangSelect"); 
 		this.targetLang = sel.value;
+
+		dmundo_createCookie('lastTargetLang', this.targetLang, 999);
+
 		this.translateDocument();
+	},
+	
+	setDefaultTargetLang: function() {
+		var sel = document.getElementById("dmundo_targetLangSelect"); 
+		var tl = dmundo_readCookie('lastTargetLang');
+		if (tl) {
+			sel.value = tl;
+		} else {
+			sel.value = 'en';
+		}
+	},
+	
+	initSourceUrl: function() {
+		this.sourceUrl = window.location.pathname;
+		if (this.sourceUrl.indexOf("/") == 0) {
+			this.sourceUrl = this.sourceUrl.substring(1);
+		}
 	},
 	
 	setSourceLang: function(langId) {
@@ -183,8 +257,23 @@
 		this.onLangSelect();
 	},
 
+	startLoginTimer: function() {
+		var self = this;
+		this.loginTimer = setTimeout(function() {
+			self.loginTimer = 0;
+			FB.getLoginStatus(function(response) {
+				if (response.session) {
+					self.onLogin();
+				} else {
+					self.startLoginTimer();
+				}
+			});
+		},
+		5000);
+	},
+
 	onLogin: function() {
-		loggedIn = true;
+		this.loggedIn = true;
 	},
 	
 	parseDoc: function() {
@@ -211,28 +300,43 @@
 
 		var priority1Nodes = [], priority2Nodes = [], otherNodes = [];
 		var priority1Texts = [], priority2Texts = [], otherTexts = [];
+		var priority1Prefixes = [], priority2Prefixes = [], otherPrefixes = [];
+		var priority1Postfixes = [], priority2Postfixes = [], otherPostfixes = [];
 		var priorityIndex = 0;
 
 		while(treeWalker.nextNode()) {
 			var text = treeWalker.currentNode.textContent;
-			if(text && text.length) {
+
+			var leftWhitespace = dmundo_extractLeftWhitespace(text);
+			var rightWhitespace = dmundo_extractRightWhitespace(text);
+			text = dmundo_trim(text);
+
+			if (text && text.length) {
 				var isTag = (nodeHasParent(treeWalker.currentNode, "h1") || nodeHasParent(treeWalker.currentNode, "h2") || nodeHasParent(treeWalker.currentNode, "h3") ||
 							 nodeHasParent(treeWalker.currentNode, "h4") || nodeHasParent(treeWalker.currentNode, "h5") || nodeHasParent(treeWalker.currentNode, "h6"));
-				if(isTag && (priorityIndex++ < 10)) {
+				if (isTag && (priorityIndex++ < 10)) {
 					priority1Nodes.push(treeWalker.currentNode);
 					priority1Texts.push(text);
+					priority1Prefixes.push(leftWhitespace);
+					priority1Postfixes.push(rightWhitespace);
 				} else if(isTag || (text.split(" ").length > 4)) {
 					priority2Nodes.push(treeWalker.currentNode);
 					priority2Texts.push(text);
+					priority2Prefixes.push(leftWhitespace);
+					priority2Postfixes.push(rightWhitespace);
 				} else {
 					otherNodes.push(treeWalker.currentNode);
 					otherTexts.push(text);
+					otherPrefixes.push(leftWhitespace);
+					otherPostfixes.push(rightWhitespace);
 				}
 			}
 		}
 
 		this.textNodes = priority1Nodes.concat(priority2Nodes).concat(otherNodes);
 		this.originals = priority1Texts.concat(priority2Texts).concat(otherTexts);
+		this.prefixes = priority1Prefixes.concat(priority2Prefixes).concat(otherPrefixes);
+		this.postfixes = priority1Postfixes.concat(priority2Postfixes).concat(otherPostfixes);
 
 		if(!this.textNodes.length) {
 			return;
@@ -247,7 +351,7 @@
 			}
 
 			var span = doc.createElement("dmundo_translated");
-			span.textContent = this.originals[i];
+			span.textContent = this.prefixes[i] + this.originals[i] + this.postfixes[i];
 			span.style.display = "inline";
 			span.style.position = "static";
 			span.style.float = "none";
@@ -318,7 +422,21 @@
 		var submit = doc.getElementById("dmundo_overlay_submit");
 		derMundoAttachEvent(submit, "click", false, function() {
 			var tt = ttArea.value;
-			dermundo.callPostService("/wwl/submit", [["url", dermundo_sourceUrl],
+			if (tt) {
+				tt = dmundo_trim(tt);
+			}
+			
+			// Prevent blank translations
+			if (!tt || tt.length == 0) {
+				return;
+			}
+			
+			// Prevent google translations
+			if (tt.indexOf("Google Translation:") == 0) {
+				return;
+			}
+			
+			dermundo.callPostService("/wwl/submit", [["url", self.sourceUrl],
 											  ["sl",     self.sourceLang],
 											  ["tl",     self.targetLang],
 											  ["st",     stArea.value],
@@ -356,7 +474,7 @@
 		this.callGetService("/u", [
 								   ["sl",  dermundo.sourceLang],
 								   ["tl",  dermundo.targetLang],
-								   ["url", dermundo_sourceUrl],
+								   ["url", dermundo.sourceUrl],
 								   ["output", "json"]
 								  ],
 							function(response, failed) {
@@ -377,23 +495,21 @@
 								self.enableLangSelect();
 
 								self.translations = new Array();
-								if (!obj || obj.length <= 0) {
-									return;
-								}
-
-								for (var i = 0; i < obj.length; i++) {
-									var record = obj[i];
-									if (record.sl != self.sourceLang) {
-										continue;
-									}
-									if (record.tl != self.targetLang) {
-										continue;
-									}
-									if (!self.translations) {
-										self.translations = new Array();
-									}
-									if (!self.translations[record.st]) { // only use most recent translation
-										self.translations[record.st] = record;
+								if (obj) {
+									for (var i = 0; i < obj.length; i++) {
+										var record = obj[i];
+										if (record.sl != self.sourceLang) {
+											continue;
+										}
+										if (record.tl != self.targetLang) {
+											continue;
+										}
+										if (!self.translations) {
+											self.translations = new Array();
+										}
+										if (!self.translations[record.st]) { // only use most recent translation
+											self.translations[record.st] = record;
+										}
 									}
 								}
 								self.applyTranslations(self.doc);
@@ -438,8 +554,9 @@
 
 	applyTranslations: function(doc) {
 
+		var numCompleted = 0;
 		for (var i = 0; i < this.originals.length; i++) {
-			var tt = this.originals[i];
+			var tt = '';
 			var guid = null;
 			if (this.targetLang != this.sourceLang) {
 				var st = this.originals[i];
@@ -448,10 +565,17 @@
 					if (tln && tln.tt) {
 						tt = tln.tt;
 						guid = tln.guid;
+						numCompleted++;
 					}
 				}
 			}
 			this.updateTextNode(i, this.textNodes[i], tt, guid);
+		}
+
+		if (this.targetLang != this.sourceLang) {
+			this.setStatus("Percent translated: " + (Math.round(numCompleted / this.originals.length * 100)) + "%");
+		} else {
+			this.setStatus("");
 		}
 	},
 
@@ -630,6 +754,8 @@
 				overlay.derMundoIndex = index;
 				overlay.derMundoGuid = guid;
 
+				var st = self.originals[index];
+
 				stArea.value = self.originals[index];
 				self.setElementDir(stArea, self.sourceLang);
 				
@@ -640,6 +766,11 @@
 					ttArea.readOnly = false;
 					submitButton.style.display = "inline";
 					loginText.style.display = "none";
+					
+					if (!translation || translation.length == 0) {
+						self.getMachineTranslation(st, index);
+					}
+					
 				} else {
 					ttArea.readOnly = true;
 					submitButton.style.display = "none";
@@ -678,25 +809,64 @@
 		});
 	},
 
-	updateTextNode: function(index, node, newText, guid) {
-		this.helper.innerHTML = newText;
-
-		newText = this.helper.textContent;
-
-		if(node.tagName) {
-			node.style.overflow = "auto";
-		} else {
-			node.parentNode.style.overflow = "auto";
+	getMachineTranslation: function(st, index) {
+		var self = this;
+		this.callGetService("/wwl/mt", [
+								   ["sl",  this.sourceLang],
+								   ["tl",  this.targetLang],
+								   ["st", st],
+								   ["output", "json"]
+								  ],
+							function(response, failed) {
+								if(failed) {
+									return;
+								}
+								var obj = null;
+								try {
+									obj = eval('(' + response + ')');
+								} catch(e) {
+									return; 
+								}
+								if (obj.tt && obj.tt.length > 0) {
+									self.showMachineTranslation(index, obj.tt);
+								}
+							});
+	},
+	
+	showMachineTranslation: function(index, translation) {
+		if (!translation || translation.length == 0) {
+			return;
 		}
+		var overlay = document.getElementById("dmundo_overlay");
+		if (index != overlay.derMundoIndex) {
+			return;
+		}
+		var ttArea = document.getElementById("dmundo_overlay_tt");
+		if (ttArea.value && ttArea.value.length > 0) {
+			return;
+		}
+		ttArea.value = "Google Translation:\n" + translation;
+	},
 
-		node.textContent = newText;
+	updateTextNode: function(index, node, translation, guid) {
 
-		if (node.tagName) {
-			this.setElementDir(node, this.targetLang);
-			this.attachShowOverlay(node, newText, index, guid);
-		} else {
+		if (translation && translation.length > 0) {
+			this.helper.innerHTML = translation;
+			translation = this.helper.textContent;
+			if(!node.tagName && node.parentNode) {
+				node.parentNode.style.overflow = "auto";
+			} else {
+				node.style.overflow = "auto";
+			}
+			node.textContent = this.prefixes[index] + translation + this.postfixes[index];
+		}
+		
+		if(!node.tagName && node.parentNode) {
 			this.setElementDir(node.parentNode, this.targetLang);
-			this.attachShowOverlay(node.parentNode, newText, index, guid);
+			this.attachShowOverlay(node.parentNode, translation, index, guid);
+		} else {
+			this.setElementDir(node, this.targetLang);
+			this.attachShowOverlay(node, translation, index, guid);
 		}
 	},
 
@@ -705,10 +875,10 @@
 		var parent = node.parentNode;
 
 		if(node.nodeType == 3) {
-			parent.textContent = this.originals[index];
+			parent.textContent = this.prefixes[index] + this.originals[index] + this.postfixes[index];
 			this.textNodes[index] = parent.firstChild;
 		} else {
-			var txt = node.ownerDocument.createTextNode(this.originals[index]);
+			var txt = node.ownerDocument.createTextNode(this.prefixes[index] + this.originals[index] + this.postfixes[index]);
 			parent.replaceChild(txt, node);
 			this.textNodes[index] = txt;
 		}
@@ -970,10 +1140,11 @@ function dmundo_addToolbar() {
 		FB.init({appId: "140342715320", status: true, cookie: true, xfbml: true});
 		FB.Event.subscribe("auth.logout", function(response) {
 				window.location.reload();
-			});
-			FB.Event.subscribe("auth.login", function(response) {
-				dermundo.onLogin();
-			});
+		});
+		FB.Event.subscribe("auth.login", function(response) {
+			dermundo.onLogin();
+		});
+		dermundo.startLoginTimer();
 	};
 	(function() {
 			var e = document.createElement("script");
@@ -984,3 +1155,105 @@ function dmundo_addToolbar() {
 	}());
 }
 
+function dmundo_trim(str) {
+	return dmundo_ltrim(dmundo_rtrim(str));
+}
+ 
+function dmundo_ltrim(str, chars) {
+	return str.replace(new RegExp("^[\\s]+", "g"), "");
+}
+ 
+function dmundo_rtrim(str, chars) {
+	return str.replace(new RegExp("[\\s]+$", "g"), "");
+}
+
+function dmundo_extractLeftWhitespace(str) {
+	var prefix = "";
+	if (!str) {
+		return prefix;
+	}
+	for (var i=0; i < str.length; i++) {
+		if (str[i] == ' ' || str[i] == '\n' || str[i] == '\t' || str[i] == '\r') {
+			prefix = prefix + str[i];
+		}
+	}
+	return prefix;
+}
+
+function dmundo_extractRightWhitespace(str) {
+	var postfix = "";
+	if (!str) {
+		return postfix;
+	}
+	for (var i=str.length-1; i > 0; i--) {
+		if (str[i] == ' ' || str[i] == '\n' || str[i] == '\t' || str[i] == '\r') {
+			postfix = str[i] + postfix;
+		}
+	}
+	return postfix;
+}
+
+function dmundo_utf8_encode(string) {
+	string = string.replace(/\r\n/g,"\n");
+	var utftext = "";
+ 
+	for (var n = 0; n < string.length; n++) {
+ 		var c = string.charCodeAt(n);
+		if (c < 128) {
+			utftext += String.fromCharCode(c);
+		} else if((c > 127) && (c < 2048)) {
+			utftext += String.fromCharCode((c >> 6) | 192);
+			utftext += String.fromCharCode((c & 63) | 128);
+		} else {
+			utftext += String.fromCharCode((c >> 12) | 224);
+			utftext += String.fromCharCode(((c >> 6) & 63) | 128);
+			utftext += String.fromCharCode((c & 63) | 128);
+		}
+ 	}
+	return utftext;
+}
+ 
+function dmundo_utf8_decode(utftext) {
+	var string = "";
+	var i = 0;
+	var c = c1 = c2 = 0;
+ 
+	while ( i < utftext.length ) {
+		c = utftext.charCodeAt(i);
+		if (c < 128) {
+			string += String.fromCharCode(c);
+			i++;
+		} else if((c > 191) && (c < 224)) {
+			c2 = utftext.charCodeAt(i+1);
+			string += String.fromCharCode(((c & 31) << 6) | (c2 & 63));
+			i += 2;
+		} else {
+			c2 = utftext.charCodeAt(i+1);
+			c3 = utftext.charCodeAt(i+2);
+			string += String.fromCharCode(((c & 15) << 12) | ((c2 & 63) << 6) | (c3 & 63));
+			i += 3;
+		}
+	}
+ 	return string;
+}
+
+function dmundo_createCookie(name,value,days) {
+	if (days) {
+		var date = new Date();
+		date.setTime(date.getTime()+(days*24*60*60*1000));
+		var expires = "; expires="+date.toGMTString();
+	}
+	else var expires = "";
+	document.cookie = name+"="+value+expires+"; path=/";
+}
+
+function dmundo_readCookie(name) {
+	var nameEQ = name + "=";
+	var ca = document.cookie.split(';');
+	for(var i=0;i < ca.length;i++) {
+		var c = ca[i];
+		while (c.charAt(0)==' ') c = c.substring(1,c.length);
+		if (c.indexOf(nameEQ) == 0) return c.substring(nameEQ.length,c.length);
+	}
+	return null;
+}

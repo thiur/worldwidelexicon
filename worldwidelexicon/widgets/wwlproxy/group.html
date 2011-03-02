@@ -63,6 +63,7 @@ function include(url,id) {
                         <li><a href=https://addons.mozilla.org/en-US/firefox/addon/13897>{{ firefox_translator }}</a></li>
                         <li><a href=http://www.dermundo.com/dermundo/publishers>{{ for_publishers }}</a></li>
                         <li><a href=http://www.dermundo.com/dermundo/journalists>{{ for_journalists }}</a></li>
+                        <li><a href=http://www.dermundo.com/groups/>{{ dermundo_groups }}</a></li>
                         </ul>
                 </div>
 		
@@ -77,41 +78,52 @@ function include(url,id) {
 		<!-- main -->
 		<div id="main" class="grid_8">
 			
+                        <!-- if no group, and not search, display main page -->
+                        {% if not group %}
+                        {% if not issearch %}
+                        <h3>{{ dermundo_groups }}</h3>
+                        <p>{{ groups_intro }}</p>
+                        <h3>{{ search }}</h3>
+                        <p><form action=/groups/ method=get>
+                        <input type=text name=q size=40>
+                        <input type=submit value="{{ submit }}"></form></p>
+                        {% if groups %}
+                        <h3>{{ new_groups }}<//h3>
+                        {% for g in groups %}
+                        <h4><a href=/groups/{{ g.id }}>{{ g.name }}</a></h4>
+                        <p>{{ g.description }}</p>
+                        {% endfor %}
+                        {% endif %}
+                        {% endif %}
+                        {% endif %}
 			<!-- main message board and group description -->
-                        {% if group %}
-                        <h3>{{ group.name }}</h3>
-                        <p>{{ group.description }}</p>
-                        {% if current_user %}
-                        <p><a href=/groups/{{ group.id }}?join>{{ join_group }}</a></p>
+                        {% if bookmarks %}
+                        <h3>{{ group_bookmarks }}</h3>
+                        {% for b in bookmarks %}
+                        <p><b><a href=http://www.dermundo.com/{{ b.url }}>{{ b.title }}</a></b> :{{ b.description }}</p>
+                        {% endfor %}
                         {% endif %}
-                        {% else %}
-                        <h3>{{ group_not_found }}</h3>
+                        {% if messages %}
+                        <h3>{{ group_messages }}</h3>
                         {% endif %}
-                        <hr>
-                        <h4>{{ group_messages }}</h4>
+                        
                         {% if ismember %}
-                        <table border=0>
                         <p><form action=/wwl/sendmessage method=get>
                         <input type=hidden name=label value="{{ group.id }}">
-                        <tr><td>
-                        <textarea name=msg rows=2></textarea></td>
-                        <td>
+                        <textarea name=msg rows=3 cols=60></textarea><br>
+                        {{ post_to_feed }} <input type=checkbox name=feed value=y><br>
                         <input type=submit value="{{ send_message }}">
-                        </td></tr></table>
                         </form></p>
                         {% endif %}
-                        <table>
+                        
+                        {% if messages %}
                         {% for m in messages %}
-                        <tr><td width=160>
-                        <img align=left src=http://graph.facebook.com/{{ m.sender }}/picture?type=square>
-                        <a href={{ m.senderprofile }}>{{ m.sendername}}</a><br>
-                        {{ m.sendercity }} , {{ m.sendercountry }}
-                        </td>
-                        <td>
-                        {{ m.message }}
-                        </td></tr>
+                        <p>
+                        <a href={{ m.senderprofile }}>{{ m.sendername}}</a> 
+                        ({{ m.sendercity }}) <i>"
+                        {{ m.message }}"</i></p>
                         {% endfor %}
-                        </table>
+                        {% endif %}
 			<div class="clear">&nbsp;</div>
 		
 		<!-- main ends -->
@@ -122,22 +134,93 @@ function include(url,id) {
 		
 			<div class="grid_6 alpha">
                         <!-- moderator info -->
-                        
-                        <!-- Recent Group Members -->
-                        {% if members %}
-                        <h4>{{ group_new_members }}</h4>
+                        {% if not group %}
+                        {% if current_user %}
+                        <h3>{{ create_group }}</h3>
+                        <p>{{ create_group_prompt }}</p>
+                        <table>
+                        <form action=/groups/create method=post>
+                        <tr><td>{{ group_label }}<br><input type=text name=label></td></tr>
+                        <tr><td>{{ group_title }}<br><input type=text name=title></td></tr>
+                        <tr><td>{{ group_description }}<br><textarea name=description rows=4 cols=40></textarea></td></tr>
+                        <tr><td>{{ group_tags }}<br><input type=text name=tags></td></tr>
+                        <tr><td>{{ group_facebook_url }}<br><input type=text name=facebookurl></td></tr>
+                        <tr><td>{{ group_discussion_url }}<br><input type=text name=discussionurl></td></tr>
+                        <tr><td>{{ group_rss_feed }}<br><input type=text name=rssfeedurl></td></td>
+                        <tr><td><input type=submit value="{{ submit }}"></td></tr>
+                        </table></form>
                         {% endif %}
-                        <table border=0>
+                        {% endif %}
+                        <!-- Recent Group Members -->
+                        {% if group %}
+                        <h3>{{ group.name }}</h3>
+                        <p>{{ group.description }}</p>
+                        {% if group.discussionurl %}
+                        <p><a href=http://{{ group.discussionurl }}>{{ group.discussionurl }}</a></p>
+                        {% endif %}
+                        {% if group.facebookurl %}
+                        <p><a href=http://{{ group.facebookurl }}>Facebook</a></p>
+                        {% endif %}
+                        {% if group.rssfeed %}
+                        <p><a href=http://{{ group.rssfeed }}>RSS</a></p>
+                        {% endif %}
+                        {% endif %}
+                        
+                        {% if current_user %}
+                        {% if ismember %}
+                        <p><a href=/groups/{{ group.id }}?leave=y>{{ leave_group }}</a></p>
+                        {% else %}
+                        <p><a href=/groups/{{ group.id }}?join=y>{{ join_group }}</a></p>
+                        {% endif %}
+                        {% else %}
+                          <p>{{ group_facebook_login }}</p>
+                          <p><fb:login-button autologoutlink="true" perms="email, publish_stream, user_about_me"></fb:login-button>                            
+                          <!--{% if current_user %}
+                            <p><a href="{{ current_user.profile_url }}"><img src="http://graph.facebook.com/{{ current_user.id }}/picture?type=square"/></a></p>
+                          {% endif %}-->
+                      
+                          <div id="fb-root"></div>
+                          <script>
+                            window.fbAsyncInit = function() {
+                              FB.init({appId: '{{ facebook_app_id }}', status: true, cookie: true, 
+                                       xfbml: true});
+                              FB.Event.subscribe('{% if current_user %}auth.logout{% else %}auth.login{% endif %}', function(response) {
+                                window.location.reload();
+                              });
+                            };
+                            (function() {
+                              var e = document.createElement('script');
+                              e.type = 'text/javascript';
+                              e.src = document.location.protocol + '//connect.facebook.net/{{ locale }}/all.js';
+                              e.async = true;
+                              document.getElementById('fb-root').appendChild(e);
+                            }());
+                          </script></p>
+                        {% endif %}
+                        
+                        {% if ismember %}
+                        <h3>{{ group_recommend }}</h3>
+                        <p>{{ group_recommend_prompt }}</p>
+                        <p><form action=/groups/savebookmark method=post>
+                        <input type=hidden name=group value={{ group.id }}>
+                        <p>URL:<br><input type=text name=url size=30></p>
+                        <p>{{ input_title }}:<br><input type=text name=title size=30></p>
+                        <p>{{ input_description }}<br><textarea name=description rows=5 cols=30></textarea></p>
+                        <p>{{ input_language }}:<br><select name=language>{{ language_select }}</select></p>
+                        <p>{{ input_tags }}:<br><input type=text name=tags size=30></p>
+                        <p><input type=submit value="{{ submit }}"></p>
+                        </form></p>
+                        {% endif %}
+                        
+                        {% if members %}
+                        <h3>{{ group_new_members }}</h3>
                         {% for m in members %}
-                        <tr><td width=80>
-                        <img src=http://graph.facebook.com/{{ m.id }}/picture?type=square>
-                        </td><td>
+                        <p><img src=http://graph.facebook.com/{{ m.id }}/picture?type=square>
                         <a href={{ m.profile_url }}>
-                        {{ m.name }}</a><br>
-                        {{ m.city }} , {{ m.country }}
-                        </td></tr>
+                        {{ m.name }}</a></p>
                         {% endfor %}
-                        </table>
+                        {% endif %}
+                        
 			</div>
 		
 		<!-- end left-columns -->

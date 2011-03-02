@@ -58,6 +58,7 @@ from database import Languages
 from database import Settings
 from database import Users
 from ui import TextObjects
+from home import UserStats
 # import third party modules
 from webappcookie import Cookies
 
@@ -94,6 +95,7 @@ def right_menu():
     t = t + '<h4><a href=/admin/acl>Access Control Rules</a></h4>'
     t = t + '<h4><a href=/admin/languages>Languages</a></h4>'
     t = t + '<h4><a href=/admin/memcache>Memcache Statistics</a></h4>'
+    t = t + '<h4><a href=/admin/stats>Statistics</a></h4>'
     t = t + '<h4><a href=/admin/vars>System Variables</a></h4>'
     t = t + '<h4><a href=/admin/texts>Texts and Blog Posts</a></h4>'
     t = t + '</div>'
@@ -198,6 +200,26 @@ class MemcacheReset(webapp.RequestHandler):
         if is_admin:
             memcache.flush_all()
             self.redirect('/admin/memcache')
+        else:
+            self.redirect('/admin')
+            
+class UserStatsHandler(webapp.RequestHandler):
+    def get(self):
+        if is_admin():
+            self.response.out.write(header())
+            self.response.out.write('<div class="col1">')
+            self.response.out.write('<h3>Registration Stats</h3>')
+            user_stats = UserStats.getstats()
+            #locale_stats = LocaleStats.getstats()
+            #city_stats = CityStats.getstats()
+            self.response.out.write('<table><tr><td>Time Period</td><td>New Users</td></tr>')
+            if type(user_stats) is dict:
+                keys = user_stats.keys()
+                keys.sort()
+                for k in keys:
+                    self.response.out.write('<tr><td>' + k + '</td><td>' + str(user_stats[k]) + '</td></tr>')
+            self.response.out.write('</table></div>')
+            self.response.out.write(footer())
         else:
             self.redirect('/admin')
 
@@ -475,6 +497,7 @@ application = webapp.WSGIApplication([('/admin', Login),
                                       ('/admin/vars', Variables),
                                       ('/admin/setup', Setup),
                                       ('/admin/setvar', SetVariable),
+                                      ('/admin/stats', UserStatsHandler),
                                       ('/headers', Headers),
                                       ('/status', Status),
                                       ('/robots.txt', Robots)],

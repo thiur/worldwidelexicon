@@ -35,6 +35,9 @@ from google.appengine.ext.webapp import template
 from google.appengine.runtime import apiproxy_errors
 from google.appengine.api.labs import taskqueue
 
+from urlparse import urljoin
+from BeautifulSoup import BeautifulSoup, Comment
+
 import facebook
 from home import User
 from database import Settings
@@ -43,10 +46,61 @@ from webappcookie import Cookies
 
 import transform_content
 
+acceptable_elements = ['a', 'abbr', 'acronym', 'address', 'area', 'b', 'big',
+      'blockquote', 'br', 'button', 'caption', 'center', 'cite', 'code', 'col',
+      'colgroup', 'dd', 'del', 'dfn', 'dir', 'div', 'dl', 'dt', 'em',
+      'font', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'hr', 'i', 'img', 
+      'ins', 'kbd', 'label', 'legend', 'li', 'map', 'menu', 'ol', 
+      'p', 'pre', 'q', 's', 'samp', 'small', 'span', 'strike',
+      'strong', 'sub', 'sup', 'table', 'tbody', 'td', 'tfoot', 'th',
+      'thead', 'tr', 'tt', 'u', 'ul', 'var']
+
+acceptable_attributes = ['abbr', 'accept', 'accept-charset', 'accesskey',
+  'action', 'align', 'alt', 'axis', 'border', 'cellpadding', 'cellspacing',
+  'char', 'charoff', 'charset', 'checked', 'cite', 'clear', 'cols',
+  'colspan', 'color', 'compact', 'coords', 'datetime', 'dir', 
+  'enctype', 'for', 'headers', 'height', 'href', 'hreflang', 'hspace',
+  'id', 'ismap', 'label', 'lang', 'longdesc', 'maxlength', 'method',
+  'multiple', 'name', 'nohref', 'noshade', 'nowrap', 'prompt', 
+  'rel', 'rev', 'rows', 'rowspan', 'rules', 'scope', 'shape', 'size',
+  'span', 'src', 'start', 'summary', 'tabindex', 'target', 'title', 'type',
+  'usemap', 'valign', 'value', 'vspace', 'width']
+
+def clean_html( fragment ):
+    #while True:
+        soup = BeautifulSoup( fragment )
+        removed = False        
+        for tag in soup.findAll(True): # find all tags
+            if tag.name == 'script':
+            #if tag.name not in acceptable_elements:
+                tag.extract() # remove the bad ones
+                removed = True
+            else: # it might have bad attributes
+                # a better way to get all attributes?
+                for attr in tag._getAttrMap().keys():
+                    if attr not in acceptable_attributes:
+                        del tag[attr]
+
+        # turn it back to html
+        fragment = unicode(soup)
+        #
+        #if removed:
+        #    # we removed tags and tricky can could exploit that!
+        #    # we need to reparse the html until it stops changing
+        #    continue # next round
+        return fragment
+
+javascript_header = """<link href="/wwlproxy/dermundo.css" rel="stylesheet" type="text/css" charset="utf-8"/>
+<script language="javascript" type="text/javascript" charset="utf-8">
+var dermundo_serviceUrl = "www.dermundo.com";
+var dermundo_imagesPath = "/wwlproxy/img/";
+</script>
+<script src="/wwlproxy/dermundo.js" type="text/javascript" charset="utf-8"></script>"""
+
 ################################################################################
 
 DEBUG = False
-EXPIRATION_DELTA_SECONDS = 3600
+EXPIRATION_DELTA_SECONDS = 90
 EXPIRATION_RECENT_URLS_SECONDS = 90
 
 ## DEBUG = True
@@ -292,7 +346,24 @@ class HomeHandler(BaseHandler):
       "secure_url": secure_url,
     }
     self.response.out.write(template.render("main.html", context))
-
+    
+def squeaky_clean(html):
+    clean_html = cleaner.clean_html(html)
+    # now remove the useless empty tags
+    root = fromstring(clean_html)
+    context = etree.iterwalk(root) # just the end tag event
+    for action, elem in context:
+        clean_text = elem.text and elem.text.strip(' \t\r\n')
+        if elem.tag in nonempty_tags and \
+        not (len(elem) or clean_text): # no children nor text
+            elem.getparent().remove(elem)
+            continue
+        elem.text = clean_text # if you want
+        # and if you also wanna remove some attrs:
+        for badattr in remove_attrs:
+            if elem.attrib.has_key(badattr):
+                del elem.attrib[badattr]
+    return tostring(root)
 
 class MirrorHandler(BaseHandler):
   def get(self, base_url):
@@ -302,11 +373,6 @@ class MirrorHandler(BaseHandler):
     #  return
     if base_url[0] == 'x':
       base_url = DerMundoProjects.geturl(base_url[1:20])
-    p = dict()
-    p['url']=base_url
-    p['language']=self.language
-    p['remote_addr']=self.request.remote_addr
-    taskqueue.add(url='/wwl/proxycounter', params=p, queue_name='counter')
     
     assert base_url
     
@@ -360,9 +426,17 @@ class MirrorHandler(BaseHandler):
     if not DEBUG:
       self.response.headers['cache-control'] = \
         'max-age=%d' % EXPIRATION_DELTA_SECONDS
-      
-    content.data = string.replace(content.data, '<img src=/', '<img src=http://')
-    content.data = string.replace(content.data, '<img src="/', '<img src="http://')
+    
+    #content.data = clean_html(content.data)
+    
+    #content.data = string.replace(content.data, '\'<script', '<!--')
+    #content.data = string.replace(content.data, '\"<script', '<!--')
+    #content.data = string.replace(content.data, '<script', '<!--')
+    #content.data = string.replace(content.data, '</script>', ' -->')
+    content.data = string.replace(content.data, 'src=/', 'src=http://')
+    content.data = string.replace(content.data, 'src="/', 'src="http://')
+    content.data = string.replace(content.data, '</head>', javascript_header + '</head>')
+    content.data = string.replace(content.data, 'SOURCE_URL',base_url)
 
     self.response.out.write(content.data)
     
@@ -376,9 +450,9 @@ class OfflineHandler(webapp.RequestHandler):
 app = webapp.WSGIApplication([
   (r"/", HomeHandler),
 #  (r"/main", HomeHandler),
-  (r"/([^/]+).*", OfflineHandler)
+#  (r"/([^/]+).*", OfflineHandler)
 #  (r"/main", HomeHandler),
-#  (r"/([^/]+).*", MirrorHandler)
+  (r"/([^/]+).*", MirrorHandler)
 ], debug=DEBUG)
 
 
