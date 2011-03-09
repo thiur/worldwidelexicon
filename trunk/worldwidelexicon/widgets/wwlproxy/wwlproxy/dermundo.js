@@ -8,14 +8,13 @@
 // and is licensed subject to restrictions on use and distribution.
 //******************************************************************************
 
-// Version: beta.09
+// Version: beta.11
 
 var dermundo = {
 
 	sourceLang: "en",
 	targetLang: "en",
 	sourceUrl: null,
-	ip: "99.199.174.74",
 	loggedIn: false,
 	loginTimer: null,
 	rolloverTimer: null,
@@ -430,12 +429,7 @@ var dermundo = {
 			if (!tt || tt.length == 0) {
 				return;
 			}
-			
-			// Prevent google translations
-			if (tt.indexOf("Google Translation:") == 0) {
-				return;
-			}
-			
+						
 			dermundo.callPostService("/wwl/submit", [["url", self.sourceUrl],
 											  ["sl",     self.sourceLang],
 											  ["tl",     self.targetLang],
@@ -845,7 +839,7 @@ var dermundo = {
 		if (ttArea.value && ttArea.value.length > 0) {
 			return;
 		}
-		ttArea.value = "Google Translation:\n" + translation;
+		ttArea.value = translation;
 	},
 
 	updateTextNode: function(index, node, translation, guid) {
@@ -909,7 +903,7 @@ else if((/mozilla/i.test(u)&&!/(compati)/.test(u)) || (/opera/i.test(u))){
 document.addEventListener("DOMContentLoaded",i,false); } else if(e){     (
 function(){var t=document.createElement('doc:rdy');try{t.doScroll('left');
 i();t=null;}catch(e){st(arguments.callee,0);}})();}else{window.onload=i;}})(derMundoOnContentLoaded);
-function derMundoOnContentLoaded() {dmundo_addToolbar(); dermundo.onContentLoaded();}
+function derMundoOnContentLoaded() {dmundo_initToolbar(); }
 
 // Voting widget: adapted from jVote
 function dmundo_jVote(parentId, settings)
@@ -980,7 +974,8 @@ dmundo_jVote.prototype.unLock = function() {
 	this.locked = false;
 };
 
-function dmundo_addToolbar() {
+function dmundo_initToolbar() {
+
 	var toolbar = document.createElement("dmundo");
 	toolbar.id = "dmundo";
 	toolbar.className = "dmundo";
@@ -1136,7 +1131,24 @@ function dmundo_addToolbar() {
 	document.body.appendChild(toolbar);
 
 	// Facebook login button
-	window.fbAsyncInit = function() {
+	if (!window.FB) {
+		window.fbAsyncInit = function() {
+			FB.init({appId: "140342715320", status: true, cookie: true, xfbml: true});
+			FB.Event.subscribe("auth.logout", function(response) {
+					window.location.reload();
+			});
+			FB.Event.subscribe("auth.login", function(response) {
+				dermundo.onLogin();
+			});
+			dermundo.startLoginTimer();
+		};
+		var e = document.createElement("script");
+		e.type = "text/javascript";
+		e.src = document.location.protocol + "//connect.facebook.net/en_US/all.js";
+		e.async = true;
+		document.getElementById("fb-root").appendChild(e);
+
+	} else {
 		FB.init({appId: "140342715320", status: true, cookie: true, xfbml: true});
 		FB.Event.subscribe("auth.logout", function(response) {
 				window.location.reload();
@@ -1145,14 +1157,9 @@ function dmundo_addToolbar() {
 			dermundo.onLogin();
 		});
 		dermundo.startLoginTimer();
-	};
-	(function() {
-			var e = document.createElement("script");
-			e.type = "text/javascript";
-			e.src = document.location.protocol + "//connect.facebook.net/en_US/all.js";
-			e.async = true;
-			document.getElementById("fb-root").appendChild(e);
-	}());
+	}
+
+	dermundo.onContentLoaded();
 }
 
 function dmundo_trim(str) {

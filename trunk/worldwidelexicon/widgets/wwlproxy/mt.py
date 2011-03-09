@@ -333,8 +333,8 @@ class MTServer(webapp.RequestHandler):
             results = dict(
                     sl = sl,
                     tl = tl,
-                    st = st,
-                    tt = tt,
+                    st = db.Text(st, encoding='utf-8'),
+                    tt = db.Text(tt, encoding='utf-8'),
                     mtengine = mtengine,
                 )
             self.response.out.write(demjson.encode(results))
