@@ -318,8 +318,8 @@ class DerMundoMetaData(db.Model):
 	    metadata = get_summary(url)
 	    title = metadata.get('title','')
 	    description = metadata.get('description','')
-	    if title is not None: title = codecs.encode(title, 'utf-8', 'ignore')
-	    if description is not None: description = codecs.encode(description, 'utf-8', 'ignore')
+	    if title is not None: title = db.Text(title, encoding = 'utf-8')
+	    if description is not None: description = db.Text(description, encoding = 'utf-8')
 	    item.put()
 	except:
 	    pass
@@ -475,10 +475,12 @@ class DerMundoGroups(db.Model):
 	    item.put()
 	    return True
     @staticmethod
-    def join(label, id, languages=None, city=None, country=None, name=None, profile_url=None):
-	if DerMundoGroupMembers.join(label, id, languages=languages, city=city, country=country, profile_url=profile_url):
+    def join(label, id, language=None, city=None, country=None, name=None, \
+	     profile_url=None, email=None):
+	if DerMundoGroupMembers.join(label, id, language=language, city=city, country=country, \
+				     email=email, profile_url=profile_url, name=name):
 	    gdb = db.Query(DerMundoGroups)
-	    gdb.filter('label = ', label)
+	    gdb.filter('id = ', label)
 	    item = gdb.get()
 	    if item is not None:
 		item.members = item.members + 1
@@ -487,14 +489,15 @@ class DerMundoGroups(db.Model):
 	return False
     @staticmethod
     def leave(label, id):
-	if DerMundoGroupMembers.leave(label, id):
-	    gdb = db.Query(DerMundoGroups)
-	    gdb.filter('label = ', label)
-	    item = gdb.get()
-	    if item is not None:
-		item.members = item.members - 1
-		item.put()
-		return True
+	gdb = db.Query(DerMundoGroups)
+	gdb.filter('id = ', label)
+	item = gdb.get()
+	if item is not None:
+	    if item.createdby != id:
+		if DerMundoGroupMembers.leave(label, id):
+		    item.members = item.members - 1
+		    item.put()
+		    return True
 	return False
     @staticmethod
     def savemessage(label, id, message, language = 'en', tags = None, city='', country='', name='', profile_url=''):
@@ -760,7 +763,8 @@ class DerMundoGroupMembers(db.Model):
 	else:
 	    return False
     @staticmethod
-    def join(label, id, city='', country='', name='', gender='', profile_url='', language='', email=''):
+    def join(label, id, city='', country='', name='', gender='',\
+	     profile_url='', language='', email=''):
 	if len(label) > 0 and len(id) > 0:
 	    gdb = db.Query(DerMundoGroupMembers)
 	    gdb.filter('label = ', label)
@@ -773,10 +777,11 @@ class DerMundoGroupMembers(db.Model):
 		item.label = label
 		item.id = id
 		item.name = name
-		item.gender = gender
-		item.profile_url = profile_url
-		item.city = city
-		item.country = country
+		if gender is not None: item.gender = gender
+		if profile_url is not None: item.profile_url = profile_url
+		if city is not None: item.city = city
+		if country is not None: item.country = country
+		if email is not None: item.email = email
 		if len(language) > 0:
 		    languages = item.languages
 		    if language not in languages:
@@ -1031,67 +1036,58 @@ class TranslationStats(db.Model):
     datephrase = db.StringProperty(default='')
     url = db.StringProperty(default='')
     shorturl = db.StringProperty(default='')
+    title = db.TextProperty(default='')
+    description = db.TextProperty(default='')
+    sl = db.StringProperty(default='')
+    tl = db.StringProperty(default='')
     language = db.StringProperty(default='')
     translations = db.IntegerProperty(default=0)
     words = db.IntegerProperty(default=0)
     translators = db.ListProperty(str)
+    wordlist = db.ListProperty(str)
     @staticmethod
-    def getstats(url, language=''):
-	url = string.replace(url, 'http://','')
-	url = string.replace(url, 'https://','')
-	if len(language) > 0:
-	    tdb = db.Query(TranslationStats)
-	    tdb.filter('url = ', url)
-	    tdb.filter('language = ', language)
-	    item = tdb.get()
-	    stats = dict(
-		translations = item.translations,
-		words = item.words,
-		translators = item.translators,
-	    )
-	    return demjson.encode(stats)
-	else:
-	    tdb = db.Query(TranslationStats)
-	    tdb.filter('url = ', url)
-	    results = tdb.fetch(200)
-	    translations = 0
-	    words = 0
-	    translators = list()
-	    for r in results:
-		words = words + r.words
-		translations = translations + r.translations
-		for t in r.translators:
-		    if t not in translators:
-			translators.append(t)
-	    stats = dict(
-		words = words,
-		translations = translations,
-		translators = translators,
-	    )
-	    return demjson.encode(stats)
+    def search(sl='', tl='', startdate='', enddate='', url='', maxlen=20, tag=''):
+	tags = string.split(string.lower(tag), ' ')
+	tdb = db.Query(TranslationStats)
+	if len(sl) > 0: tdb.filter('sl = ', sl)
+	if len(tl) > 0: tdb.filter('tl = ', tl)
+	tagcount = 0
+	if len(tags) > 0:
+	    for t in tags:
+		if len(t) > 3:
+		    tagcount = tagcount + 1
+		    if tagcount < 4:
+			tdb.filter('wordlist = ', t)
+	if len(url) > 0: tdb.filter('url = ', url)
+	if len(startdate) > 0: tdb.filter('datephrase >= ', startdate)
+	if len(enddate) > 0: tdb.filter('datephrase <= ', enddate)
+	tdb.order('-datephrase')
+	translations = tdb.fetch(maxlen)
+	return translations
     @staticmethod
-    def inc(url, shorturl = '', language='', words=None, translator=None):
+    def getstats(url, language='', sl='', tl='', mode='json'):
 	url = string.replace(url, 'http://','')
 	url = string.replace(url, 'https://','')
 	tdb = db.Query(TranslationStats)
 	tdb.filter('url = ', url)
-	tdb.filter('datephrase = ', 'all')
 	if len(language) > 0: tdb.filter('language = ', language)
+	if len(sl) > 0: tdb.filter('sl = ', sl)
+	if len(tl) > 0: tdb.filter('tl = ', tl)
 	item = tdb.get()
-	if item is None:
-	    item = TranslationStats()
-	    item.url = url
-	    item.shorturl = shorturl
-	    item.datephrase = 'all'
-	    item.language = language
-	if type(words) is int: item.words = item.words + words
-	item.translations = item.translations + 1
-	if translator is not None:
-	    translators = item.translators
-	    if translator not in translators:
-		translators.append(translator)
-		item.translators = translators
-	item.put()
+	stats = dict(
+	    translations = item.translations,
+	    words = item.words,
+	    translators = item.translators,
+	    translatorids = item.translatorids,
+	)
+	if mode == 'json':
+	    return demjson.encode(stats)
+	else:
+	    return stats
+    @staticmethod
+    def inc(url, shorturl = '', language='', sl='', tl='', wordlist=None, words=None, translator=None, translatorid=None, translatorprofile=None):
+	url = string.replace(url, 'http://','')
+	url = string.replace(url, 'https://','')
 	timestamp = datetime.datetime.now()
 	year = str(timestamp.year)
 	month = str(timestamp.month)
@@ -1103,6 +1099,8 @@ class TranslationStats(db.Model):
 	tdb.filter('url = ', url)
 	tdb.filter('datephrase = ', dp)
 	if len(language) > 0: tdb.filter('language = ', language)
+	if len(sl) > 0: tdb.filter('sl = ', sl)
+	if len(tl) > 0: tdb.filter('tl = ', tl)
 	item = tdb.get()
 	if item is None:
 	    item = TranslationStats()
@@ -1110,13 +1108,29 @@ class TranslationStats(db.Model):
 	    item.shorturl = shorturl
 	    item.datephrase = dp
 	    item.language = language
+	    item.sl = sl
+	    item.tl = tl
+	    metadata = get_summary('http://' + url)
+	    title = db.Text(metadata.get('title',''))
+	    description = db.Text(metadata.get('description',''))
+	    item.title = title
+	    item.description = description
 	if type(words) is int: item.words = item.words + words
 	item.translations = item.translations + 1
-	if translator is not None:
+	if translator is not None and translatorprofile is not None:
 	    translators = item.translators
-	    if translator not in translators:
-		translators.append(translator)
+	    tx = '<a href=' + translatorprofile + '>' + translator + '</a>'
+	    if tx not in translators:
+		translators.append(tx)
 		item.translators = translators
+	wlist = item.wordlist
+	if type(wordlist) is str:
+	    wordlist = string.split(wordlist,' ')
+	for w in wordlist:
+	    w = db.Text(w, encoding = 'utf_8')
+	    if w not in wlist and len(w) < 40 and len(w) > 4:
+		wlist.append(string.lower(w))
+	item.wordlist = wlist
 	item.put()
 	
 class TrafficStats(db.Model):
@@ -2021,20 +2035,32 @@ class BetaHandler(BaseHandler):
 	)
 	#if current_user is not None:
 	q = self.request.get('q')
+	translation = self.request.get('translation')
 	city = string.replace(self.request.get('city'),'_',' ')
 	country = self.request.get('country')
 	path = os.path.join(os.path.dirname(__file__), "search.html")
 	args = dict(current_user=self.current_user,
 		    facebook_app_id=FACEBOOK_APP_ID)
 	args.update(texts)
-	messages = DerMundoMessages.search(msgtype='stream', tag=q, city=city, country=country)
-	grouplist = DerMundoGroups.search(maxlen=3)
-	vistors = User.recent(city=city, country=country)
-	sites = DerMundoGuide.search(tag=q, city=city)
 	if len(q) > 0:
 	    issearch=True
+	    translationview = False
 	else:
+	    translationview = True
 	    issearch=False
+	#if not translationview:
+	#    messages = DerMundoMessages.search(msgtype='stream', tag=q, city=city, country=country)
+	#else:
+	#    messages = None
+	messages = None
+	grouplist = DerMundoGroups.search(maxlen=3)
+	vistors = User.recent(city=city, country=country)
+	if len(q) > 0:
+	    translations_from = TranslationStats.search(sl=self.language, tag=q)
+	    translations_to = TranslationStats.search(tl=self.language, tag=q)
+	else:
+	    translations_from = TranslationStats.search(sl=self.language)
+	    translations_to = TranslationStats.search(tl=self.language)
 	language_select = Languages.select(selected=self.language)
 	template_values = dict(
 	    issearch = issearch,
@@ -2042,10 +2068,11 @@ class BetaHandler(BaseHandler):
 	    language_select = language_select,
 	    messages = messages,
 	    visitors = vistors,
-	    guide = sites,
 	    language = language,
 	    locale = locale,
 	    direction = direction,
+	    translations_from = translations_from,
+	    translations_to = translations_to,
 	    google_analytics = google_analytics_header,
 	)
 	args.update(template_values)
@@ -2202,6 +2229,7 @@ class SubmitTranslationHandler(BaseHandler):
 	    st = clean(st)
 	    tt = self.request.get('tt')
 	    tt = clean(tt)
+	    words = len(string.split(tt, ' '))
 	    url = self.request.get('url')
 	    url = string.replace(url, 'http://','')
 	    facebookid = str(current_user.id)
@@ -2228,7 +2256,11 @@ class SubmitTranslationHandler(BaseHandler):
 		msg = pro(language, 'I started translating a new website using DerMundo. Help me translate and share this with the world.')
 		PublishToFeed(facebookid, access_token, msg=msg, language=language, link='http://www.dermundo.com/' + url)
 	    else:
-		counter = translations + 1
+		memcache.set('/translating/' + facebookid + '/' + url, 1, 15000)
+		if feed_posts is None:
+		    memcache.set('/feed_posts/' + facebookid, 1, 10000)
+		else:
+		    memcache.set('/feed_posts/' + facebookid, feed_posts + 1, 10000)
 	    #tdb = Translation()
 	    #tdb.sl=sl
 	    #tdb.tl=tl
@@ -2250,6 +2282,7 @@ class SubmitTranslationHandler(BaseHandler):
 				   profile_url=profile_url, city=city, country=country,\
 				   url=url)
 		User.translate(facebookid, sl, tl, words, url=url)
+		TranslationStats.inc(url, shorturl='', sl=sl, tl=tl, words=words, wordlist = st + ' ' + tt, translator=username, translatorid=facebookid, translatorprofile = profile_url)
 	    self.response.out.write('ok')
 	else:
 	    self.error(401)
@@ -2446,6 +2479,7 @@ class GroupHandler(BaseHandler):
     def post(self, label):
 	self.requesthandler(label)
     def requesthandler(self, label):
+	label = string.lower(label)
 	if label == 'create':
 	    user = self.current_user
 	    locale = self.locale
@@ -2487,8 +2521,10 @@ class GroupHandler(BaseHandler):
 	    description = self.request.get('description')
 	    language = self.request.get('language')
 	    tags = self.request.get('tags')
+	    feed = self.request.get('feed')
 	    current_user = self.current_user
 	    if current_user:
+		msg = 'Help me translate this website on Der Mundo.'
 		createdby = current_user.id
 		createdbyname = current_user.name
 		createdbyprofile = current_user.profile_url
@@ -2499,11 +2535,27 @@ class GroupHandler(BaseHandler):
 						  createdbyname=createdbyname,\
 						  createdbyprofile=createdbyprofile,\
 						  createdbycity=createdbycity, createdbycountry=createdbycountry)
+		if feed == 'y':
+		    PublishToFeed(current_user.id, current_user.access_token, language=self.language,\
+				  link = url, msg=msg)
 	    self.redirect('/groups/'+ group)
 	else:
 	    current_user = self.current_user
 	    locale = self.locale
 	    language = self.language
+	    join = self.request.get('join')
+	    leave = self.request.get('leave')
+	    if join == 'y':
+		DerMundoGroups.join(label, current_user.id, city=current_user.city,\
+				    country=current_user.country, language = locale, \
+				    name=current_user.name, email=current_user.email, \
+				    profile_url=current_user.profile_url)
+		self.redirect('/groups/' + label)
+	    if leave == 'y':
+		if DerMundoGroups.leave(label, current_user.id):
+		    self.redirect('/groups/')
+		else:
+		    self.redirect('/groups/' + label)
 	    location = self.location
 	    direction = self.direction
 	    texts = self.localize(language)

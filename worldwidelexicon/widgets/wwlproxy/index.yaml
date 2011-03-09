@@ -53,6 +53,13 @@ indexes:
 
 - kind: DerMundoMessages
   properties:
+  - name: msgtype
+  - name: tags
+  - name: timestamp
+    direction: desc
+
+- kind: DerMundoMessages
+  properties:
   - name: sendercity
   - name: timestamp
     direction: desc
@@ -120,6 +127,66 @@ indexes:
   properties:
   - name: url
   - name: date
+    direction: desc
+    
+- kind: TranslationStats
+  properties:
+  - name: sl
+  - name: datephrase
+    direction: desc
+
+- kind: TranslationStats
+  properties:
+  - name: sl
+  - name: wordlist
+  - name: datephrase
+    direction: desc
+    
+- kind: TranslationStats
+  properties:
+  - name: sl
+  - name: wordlist
+  - name: wordlist
+  - name: datephrase
+    direction: desc
+    
+- kind: TranslationStats
+  properties:
+  - name: sl
+  - name: wordlist
+  - name: wordlist
+  - name: wordlist
+  - name: datephrase
+    direction: desc
+
+- kind: TranslationStats
+  properties:
+  - name: tl
+  - name: datephrase
+    direction: desc
+
+- kind: TranslationStats
+  properties:
+  - name: tl
+  - name: wordlist
+  - name: datephrase
+    direction: desc
+
+- kind: TranslationStats
+  properties:
+  - name: tl
+  - name: wordlist
+  - name: wordlist
+  - name: datephrase
+    direction: desc
+
+- kind: TranslationStats
+  properties:
+  - name: tl
+  - name: wordlist
+  - name: wordlist
+  - name: wordlist
+  - name: datephrase
     direction: desc
 
 - kind: User

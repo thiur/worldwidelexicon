@@ -46,6 +46,10 @@ from webappcookie import Cookies
 
 import transform_content
 
+blocked_extensions = ['mpg', 'mov', 'mp4']
+
+blocked_domains = ['youtube.com', 'vimeo.com']
+
 acceptable_elements = ['a', 'abbr', 'acronym', 'address', 'area', 'b', 'big',
       'blockquote', 'br', 'button', 'caption', 'center', 'cite', 'code', 'col',
       'colgroup', 'dd', 'del', 'dfn', 'dir', 'div', 'dl', 'dt', 'em',
@@ -194,12 +198,22 @@ class MirroredContent(object):
       logging.warning('Encountered recursive request for "%s"; ignoring',
                       mirrored_url)
       return None
-
+    
+    blocked=False
     logging.debug("Fetching '%s'", mirrored_url)
-    try:
-      response = urlfetch.fetch(mirrored_url)
-    except (urlfetch.Error, apiproxy_errors.Error):
-      logging.exception("Could not fetch URL")
+    for b in blocked_extensions:
+      if string.count(mirrored_url, b) > 0:
+        blocked=True
+    for b in blocked_domains:
+      if string.count(mirrored_url, b) > 0:
+        blocked=True
+    if not blocked:
+      try:
+        response = urlfetch.fetch(mirrored_url)
+      except (urlfetch.Error, apiproxy_errors.Error):
+        #logging.exception("Could not fetch URL")
+        return None
+    else:
       return None
 
     adjusted_headers = {}

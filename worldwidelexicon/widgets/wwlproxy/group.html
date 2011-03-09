@@ -208,6 +208,7 @@ function include(url,id) {
                         <p>{{ input_description }}<br><textarea name=description rows=5 cols=30></textarea></p>
                         <p>{{ input_language }}:<br><select name=language>{{ language_select }}</select></p>
                         <p>{{ input_tags }}:<br><input type=text name=tags size=30></p>
+                        <p>{{ post_to_feed }}: <input type=checkbox name=feed value=y></p>
                         <p><input type=submit value="{{ submit }}"></p>
                         </form></p>
                         {% endif %}
