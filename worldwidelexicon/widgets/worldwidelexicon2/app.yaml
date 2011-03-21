@@ -7,6 +7,9 @@ handlers:
     
 - url: /css
   static_dir: css
+
+- url: /docs
+  static_dir: docs
   
 - url: /image
   static_dir: image
