@@ -1046,6 +1046,78 @@ class HandleLSPDelete(webapp.RequestHandler):
             )
             self.response.out.write(template.render(path, args))
 
+class HandleLSPETA(webapp.RequestHandler):
+    """
+    <h3>/lsp/eta</h3>
+
+    <p>This request handler is used to request the estimated turnaround time for a project based on language pair,
+    service level agreement and word count. We have implemented a dummy version of this API handler to illustrate how
+    queries should be handled. An LSP implementing this API should use statistical data to provide an accurate estimate
+    of job completion time based on prior transactions. The API expects the following parameters:</p>
+
+    <ul>
+    <li>lspusername : username or account ID</li>
+    <li>lsppw : user password or API key</li>
+    <li>sl : source language code</li>
+    <li>tl : target language code</li>
+    <li>jobtype : job type (translation or score)</li>
+    <li>words : word count</li>
+    <li>sla : service level agreement code</li>
+    </ul>
+
+    <p>The API will return a JSON dictionary with the fields:</p>
+
+    <ul>
+    <li>eta : estimated time to completion in minutes</li>
+    <li>message : optional message</li>
+    <li>translators : number of active translators available to process job (optional)</li>
+    </ul>
+    """
+    def get(self):
+        jobtype = self.request.get('jobtype')
+        lspusername = self.request.get('lspusername')
+        lsppw = self.request.get('lsppw')
+        sl = self.request.get('sl')
+        tl = self.request.get('tl')
+        try:
+            words = int(self.request.get('words'))
+        except:
+            jobtype=''
+        sla = self.request.get('sla')
+        if len(jobtype) > 0:
+            eta = words * 0.01 * random.randint(1, 5)
+            translators = random.randint(1, 20)
+            response = dict(
+                eta = eta,
+                translators = translators,
+                message = 'Thank you for your business',
+            )
+            json = demjson.encode(response)
+            self.response.headers['Content-Type']='text/javascript'
+            self.response.out.write(json)
+        else:
+            doc_text = self.__doc__
+            form = """
+            <h3>[GET] Get Turnaround Time Estimate From LSP</h3>
+            <table><form action=/lsp/eta method=get>
+            <tr><td>[jobtype] Job Type</td><td><select name=jobtype><option selected value=translation>Translation</option>
+            <option value=score>Score/Peer Review</option></select></td></tr>
+            <tr><td>[lspusername] Username/ID</td><td><input type=text name=lspusername></td></tr>
+            <tr><td>[lsppw] Password/key</td><td><input type=text name=lsppw></td></tr>
+            <tr><td>[sl] Source Language</td><td><input type=text name=sl></td></tr>
+            <tr><td>[tl] Target Language</td><td><input type=text name=tl></td></tr>
+            <tr><td>[sla] Service Level Agreement Code</td><td><input type=text name=sla></td></tr>
+            <tr><td>[words] Word Count</td><td><input type=text name=words></td></tr>
+            <tr><td colspan=2><input type=submit value=Submit></td></tr></form></table>
+            """
+            path = os.path.join(os.path.dirname(__file__), "doc.html")
+            args = dict(
+                title = '/lsp/eta',
+                left_text = form,
+                right_text = doc_text,
+            )
+            self.response.out.write(template.render(path, args))
+        
 class HandleLSPFetch(webapp.RequestHandler):
     """
     <h3>/lsp/fetch</h3>
@@ -1289,7 +1361,7 @@ class HandleLSPRegister(webapp.RequestHandler):
         """
         path = os.path.join(os.path.dirname(__file__), "doc.html")
         args = dict(
-            title = '/lsp/reject',
+            title = '/lsp/register',
             left_text = form,
             right_text = doc_text,
         )
@@ -1432,7 +1504,7 @@ class HandleLSPScoreRequest(webapp.RequestHandler):
         """
         path = os.path.join(os.path.dirname(__file__), "doc.html")
         args = dict(
-            title = '/scores',
+            title = '/lsp/score',
             left_text = form,
             right_text = doc_text,
         )
@@ -1446,12 +1518,109 @@ class HandleLSPScoreRequest(webapp.RequestHandler):
             self.response.out.write('error')
 
 class HandleLSPStatus(webapp.RequestHandler):
-    def get(self, guid=''):
-        #if guid is blank, return LSP operating status instead of job status
-        pass
-    def post(self, guid=''):
-        pass
-    
+    """
+    <h3>/lsp/status</h3>
+
+    <p>This API call is used to request the status of an LSP's web service, queue times and other
+    operational metrics. Clients can use this, for example, to estimate job completion times, and
+    generally assess how busy the LSP is.</p>
+    """
+    def get(self):
+        lspusername = self.request.get('lspusername')
+        lsppw = self.request.get('lsppw')
+        lsp = self.request.get('lsp')
+        sla = self.request.get('sla')
+        if len(lsp) > 0:
+            active = random.randint(0,1)
+            if active > 0:
+                translators = random.randint(0,250)
+                min_eta = random.randint(1, 20)
+                average_eta = random.randint(30, 240)
+                max_eta = random.randint(240, 1200)
+                message = 'Thank you for your business'
+            else:
+                translators = 0
+                min_eta = None
+                average_eta = None
+                max_eta = None
+                message = 'System down for maintenance. Sorry.'
+            status = dict(
+                translators = translators,
+                min_eta = min_eta,
+                average_eta = average_eta,
+                max_eta = max_eta,
+                message = message,
+            )
+            json = demjson.encode(status)
+            self.response.headers['Content-Type']='text/javascript'
+            self.response.out.write(json)
+        else:
+            doc_text = self.__doc__
+            form = """
+            <h3>[GET] Get Status of LSP Web Service</h3>
+            <table><form action=/lsp/status method=get>
+            <tr><td>[lsp] LSP Nickname/ID</td><td><input type=text name=lsp value=dummy></td></tr>
+            <tr><td>[lspusername] Username/ID</td><td><input type=text name=lspusername></td></tr>
+            <tr><td>[lsppw] Password/Key</td><td><input type=text name=lsppw></td></tr>
+            <tr><td>[sla] SLA Code</td><td><input type=text name=sla></td></tr>
+            <tr><td colspan=2><input type=submit value=Submit></td></tr></form></table>
+            """
+            path = os.path.join(os.path.dirname(__file__), "doc.html")
+            args = dict(
+                title = '/lsp/status',
+                left_text = form,
+                right_text = doc_text,
+            )
+            self.response.out.write(template.render(path, args))
+
+class HandleLSPTranslate(webapp.RequestHandler):
+    """
+    <h3>/lsp/translate</h3>
+    <p>This request handler enables you to submit a request for translation or proof reading an existing translation.
+    The API will queue your request, which you can pick up using the /lsp/fetch API call, or you can provide a callback
+    URL which we will call when your job is completed.</p>
+    """
+    def get(self):
+        doc_text = self.__doc__
+        form = """
+        <h3>[POST] Request Translation Or Proof Read Job</h3>
+        <table><form action=/lsp/translate method=post>
+        <tr><td>[guid] Record Locator (if omitted, system will create one)</td><td><input type=text name=guid></td></tr>
+        <tr><td>[sl] Source Language</td><td><input type=text name=sl></td></tr>
+        <tr><td>[tl] Target Language</td><td><input type=text name=tl></td></tr>
+        <tr><td>[st] Source Text</td><td><input type=text name=st></td></tr>
+        <tr><td>[tt] Translated Text (For Proofreading)</td><td><input type=text name=tt></td></tr>
+        <tr><td>[lsp] LSP Nickname/ID</td><td><input type=text name=lsp value=dummy></td></tr>
+        <tr><td>[lspusername] Username/ID</td><td><input type=text name=lspusername></td></tr>
+        <tr><td>[lsppw] Password/Key</td><td><input type=text name=lsppw></td></tr>
+        <tr><td>[sla] SLA Code</td><td><input type=text name=sla></td></tr>
+        <tr><td>[callback_url] Callback URL</td><td><input type=text name=callback_url></td></tr>
+        <tr><td>[apikey] API key for callback</td><td><input type=text name=apikey></td></tr>
+        <tr><td colspan=2><input type=submit value=Submit></td></tr></form></table>
+        """
+        path = os.path.join(os.path.dirname(__file__), "doc.html")
+        args = dict(
+            title = '/lsp/translate',
+            left_text = form,
+            right_text = doc_text,
+        )
+        self.response.out.write(template.render(path, args))
+    def post(self):
+        guid = self.request.get('guid')
+        sl = self.request.get('sl')
+        tl = self.request.get('tl')
+        st = self.request.get('st')
+        tt = self.request.get('tt')
+        url = self.request.get('url')
+        lspusername = self.request.get('lspusername')
+        lsppw = self.request.get('lsppw')
+        sla = self.request.get('sla')
+        if random.randint(0,1) > 0:
+            self.response.out.write('ok')
+        else:
+            self.error(error_other)
+            self.response.out.write('error')
+        
 class HandleMirror(webapp.RequestHandler):
     def get(self):
         pass
@@ -1488,6 +1657,7 @@ class HandleScoresTranslation(webapp.RequestHandler):
                 )
                 records.append(record)
             json = demjson.encode(records)
+            self.response.headers['Content-Type']='text/javascript'
             self.response.out.write(json)
         else:
             doc_text = self.__doc__
@@ -1643,7 +1813,7 @@ class HandleSubmit(webapp.RequestHandler):
         """
         path = os.path.join(os.path.dirname(__file__), "doc.html")
         args = dict(
-            title = '/t',
+            title = '/submit',
             left_text = form,
             right_text = doc_text,
         )
@@ -1929,12 +2099,15 @@ class MainHandler(webapp.RequestHandler):
     <li><a href=/comments>/comments : Get/Submit Comments</a></li>
     <li><a href=/lsp/accept>/lsp/accept : Accept Completed Job From LSP (Dummy API)</a></li>
     <li><a href=/lsp/delete>/lsp/delete : Delete Job From LSP Queue (Dummy API)</a></li>
+    <li><a href=/lsp/eta>/lsp/eta : Estimated Turnaround Time (Dummy API)</a></li>
     <li><a href=/lsp/fetch>/lsp/fetch : Fetch Completed Jobs From Queue for Inspection (Dummy API)</a></li>
     <li><a href=/lsp/register>/lsp/register : Register LSP API Handler with Network</a></li>
     <li><a href=/lsp/reject>/lsp/reject : Reject Job From LSP Queue (Dummy API)</a></li>
     <li><a href=/lsp/queue>/lsp/queue : View pending translation jobs (Dummy API)</a></li>
     <li><a href=/lsp/quote>/lsp/quote : Request Quote From Network LSP (Dummy API)</a></li>
     <li><a href=/lsp/score>/lsp/score : Request Score From Professional Translator</a></li>
+    <li><a href=/lsp/translate>/lsp/translate : Initiate A Translation Request</a></li>
+    <li><a href=/lsp/status>/lsp/status : Request Status of LSP Web Service</a></li>
     <li><a href=/r>/r : Revision History</a></li>
     <li><a href=/scores>/scores : Get/Submit Scores</a></li>
     <li><a href=/scores/user> /scores/user : Get User Score History</a></li>
@@ -1944,6 +2117,7 @@ class MainHandler(webapp.RequestHandler):
     </ul>
     <h3>Supporting Documentation</h3>
     <ul>
+    <li><a href=/docs/wwlapi.pdf>Worldwide Lexicon API Documentation</a></li>
     <li><a href=/docs/wwl_lsp_api.pdf>Worldwide Lexicon API for LSPs</a></li>
     </ul>
     """
@@ -2005,6 +2179,7 @@ def main():
                                           ('/lsp/accept', HandleLSPAccept),
                                           ('/lsp/delete/(.*)', HandleLSPDelete),
                                           ('/lsp/delete', HandleLSPDelete),
+                                          ('/lsp/eta', HandleLSPETA),
                                           ('/lsp/fetch', HandleLSPFetch),
                                           ('/lsp/queue', HandleLSPQueue),
                                           ('/lsp/quote', HandleLSPQuote),
@@ -2012,6 +2187,8 @@ def main():
                                           ('/lsp/reject/(.*)', HandleLSPReject),
                                           ('/lsp/reject', HandleLSPReject),
                                           ('/lsp/score', HandleLSPScoreRequest),
+                                          ('/lsp/status', HandleLSPStatus),
+                                          ('/lsp/translate', HandleLSPTranslate),
                                           ('/r', HandleR),
                                           (r'/scores/user/(.*)', HandleScoresUser),
                                           ('/scores/user', HandleScoresUser),
