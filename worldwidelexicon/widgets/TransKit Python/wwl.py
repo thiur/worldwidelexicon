@@ -30,401 +30,231 @@ of how it all works. Have fun.
 
 """
 
+appengine = False
+#from google.appengine.api import memcache
+    
+import memcache    
 import urllib
 import urllib2
-import memcache
+from urllib2 import Request, urlopen, URLError, HTTPError
 import md5
 import string
 import gettext
+import demjson
 
+server_address = 'http://worldwidelexicon2.appspot.com'
+
+memcache= False
 memcache_address = ['localhost:2020']
 memcache_ttl = 600
 
 gettext_application_domain = 'myapplication'
 gettext_base_path = '/gettext/myapplication'
 
-class wwl():
-    """
-    This class encapsulates calls to WWL services. It can be configured to interact with
-    any public or private WWL server. It implements the following features in the WWL API:
+class WWLError(Exception):
+    pass
 
-    /t : request a translation
-    /submit : submit a translation
-    /scores/vote : submit a vote on a translation
-    /users/new : create a new WWL account
-    /users/auth : authenticate a WWL account and obtain a session key
+def open_url(url, form_fields=None, method=None):
+    """
+    Convenience function which opens a URL (supports GET and POST), and submits form fields to
+    the web service, then inspects the response. If the response is JSON, it decodes it using
+    the demjson decoder and returns a dictionary, otherwise it returns plain text or raises a
+    WWLError exception.
+    """
+    if type(form_fields) is dict:
+        form_data = urllib.urlencode(form_fields)
+    else:
+        form_data = None
+    try:
+        if form_data is not None and method != 'get':
+            result = urllib2.urlopen(url, form_data)
+        elif method=='get' and form_data is not None:
+            result = urllib2.urlopen(url + '?' + form_data)
+        else:
+            result = urllib2.urlopen(url)
+        text = result.read()
+    except HTTPError, e:
+        raise WWLError(e.code)
+    try:
+        json = demjson.decode(text)
+    except:
+        json = None
+    if json is not None:
+        return json
+    else:
+        return text
+
+def getCache(key):
+    """
+    Function to fetch an item from memcached, if running
+    """
+    if len(key) > 0 and len(memcache_address) > 0 and memcache:
+        if appengine:
+            item = memcache.get(key)
+        else:
+            mc = memcache.Client(memcache_address)
+            item = mc.get(key)
+        return item
+    else:
+        return None
     
+def setCache(key, item, ttl=600):
     """
-    wwl_servers = ['www.worldwidelexicon.org']
-    secure_wwl_servers = ['worldwidelexicon.appspot.com']
-    @staticmethod
-    def test():
-        return wwl.get('en','es','hello world')
-    @staticmethod
-    def gt(sl, tl, st):
-        if len(sl) > 0 and len(tl) > 0 and len(st) > 0:
-            if len(gettext_base_path) > 0:
-                gettext.bindtextdomain(gettext_application_domain, gettext_base_path + '/' + tl)
-                gettext.textdomain(gettext_application_domain)
-                tt = gettext.gettext(st)
-                if tt != st:
-                    wwl.setcache(sl, tl, st, tt)
-                    return tt
-                else:
-                    return ''
-            else:
-                return ''
+    Function to store an item in memcache, if running
+    """
+    if len(key) > 0 and len(memcache_address) > 0 and memcache:
+        if appengine:
+            memcache.set(key, item, ttl)
         else:
-            return ''
-    @staticmethod
-    def auth(username='', pw='', session=''):
-        """
-        Use this to authenticate a username/pw pair or session key. Returns a MD5 hash key (session id)
-        if successful, and empty string if not. 
-        """
-        if (len(username) > 0 and len(pw) > 0) or len(session) > 0:
-            url = wwl.server(secure=True)
-            f = dict()
-            if len(username) > 0:
-                f['username']=username
-                f['pw']=pw
-            else:
-                f['session']=session
-            form_data = urllib.urlencode(f)
-            url = wwl.server() + '/users/auth'
-            result = urllib2.urlopen(url, form_data)
-            tt = result.read()
-            return tt
-        else:
-            return ''
-    @staticmethod
-    def newuser(username,pw,email,firstname='',lastname='',city='', state='', country='', description=''):
-        """
-        Use this to create a new user account. Expects the following required parameters:
-
-        username = WWL username
-        pw = password
-        email = email address
-
-        And the following optional parameters:
-
-        firstname
-        lastname
-        city
-        state
-        country
-        description
-
-        It returns True or False, and if successful, sends a welcome email to the user asking them to click
-        on a link to validate their account. 
-        """
-        if len(username) > 5 and len(pw) > 5:
-            url = wwl.server(secure=True) + '/users/new'
-            f = dict()
-            f['username']=username
-            f['pw']=pw
-            f['email']=email
-            f['firstname']=firstname
-            f['lastname']=lastname
-            f['city']=city
-            f['state']=state
-            f['country']=country
-            f['description']=description
-            form_data = urllib.urlencode(f)
-            result = urllib2.urlopen(url, form_data)
-            tt = result.read()
-            return tt
-        else:
-            return False
-    @staticmethod
-    def getparm(username, parm):
-        """
-        Gets a parameter for a user, expects the params username and parm, returns a string with the stored
-        value
-        """
-        url = wwl.server() + '/users/get'
-        f = dict()
-        f['username']=username
-        f['parm']=parm
-        form_data = urllib.urlencode(f)
-        result = urllib2.urlopen(url, form_data)
-        tt = result.read()
-        return tt
-    @staticmethod
-    def setparm(username, pw, parm, value):
-        """
-        Sets a parm=value pair for a user, requires the following params:
-
-        username
-        pw
-        parm
-        value
-
-        Returns True/False on success or failure
-        """
-        url = wwl.server(secure=True) + '/users/set'
-        f = dict()
-        f['username']=username
-        f['pw']=pw
-        f['parm']=parm
-        f['value']=value
-        form_data = urllib.urlencode(f)
-        result = urllib2.urlopen(url, form_data)
-        tt = result.read()
-        return tt        
-    @staticmethod
-    def server(secure=False, idx=0):
-        """
-        Returns a URL for a secure or non-secure WWL server, from the list defined in the library header
-        """
-        if secure:
-            try:
-                url = 'https://' + wwl.secure_wwl_servers[idx]
-            except:
-                url = ''
-        else:
-            try:
-                url = 'http://' + wwl.wwl_servers[idx]
-            except:
-                url = ''
-        return url
-    @staticmethod
-    def getcache(sl, tl, st):
-        """
-        Internal method to fetch an item from memcached, if running
-        """
-        if len(sl) > 0 and len(tl) > 0 and len(st) > 0 and len(memcache_address) > 0:
-            m = md5.new()
-            m.update(sl)
-            m.update(tl)
-            m.update(st)
-            md5hash = str(m.hexdigest())
-            tt = ''
             mc = memcache.Client(memcache_address)
-            tt = mc.get(md5hash)
-            if tt is not None:
-                return tt
-            else:
-                return ''
-        else:
-            return st
-    @staticmethod
-    def setcache(sl, tl, st, tt):
-        """
-        Internal method to store an item in memcache, if running
-        """
-        if len(sl) > 0 and len(tl) > 0 and len(st) > 0 and len(tt) > 0 and len(memcache_address) > 0:
-            m = md5.new()
-            m.update(sl)
-            m.update(tl)
-            m.update(st)
-            md5hash = str(m.hexdigest())
-            mc = memcache.Client(memcache_address)
-            tt = mc.set(md5hash, tt, memcache_ttl)
-            return True
-        else:
-            return False
-    @staticmethod
-    def setpresence(wwlusername, pw, username, network, status, languages):
-        if len(wwlusername) > 0 and len(pw) > 0 and len(username) > 0 and len(network) > 0 and len(status) > 0:
-            f = dict()
-            f['wwlusername']=wwlusername
-            f['pw']=pw
-            f['username']=username
-            f['network']=network
-            f['status']=status
-            if type(languages) is list:
-                lt = ''
-                for l in languages:
-                    lt = lt + l + ','
-                languages = lt
-            f['languages']=languages
-            form_data = urllib.urlencode(f)
-            url = wwl.server(secure=True) + '/presence/set'
-            result = urllib2.urlopen(url, form_data)
-            tt = result.read()
-            if tt == 'ok':
-                return True
-            else:
-                return False
-        else:
-            return False
-    @staticmethod
-    def getpresence(username, network):
-        url = wwl.server() + '/presence/get?username=' + username + '&network=' + network
-        result = urllib2.urlopen(url)
-        tt = result.read()
-        return tt
-    @staticmethod
-    def findtranslators(network, status, languages):
-        records = list()
-        if type(languages) is list:
-            lt = ''
-            for l in languages:
-                lt = lt + l + ','
-            languages = lt
-        if len(network) > 0 and len(languages) > 0:
-            url = wwl.server() + '/presence/find?network=' + network + '&status=' + status + '&languages=' + languages
-            result = urllib2.urlopen(url)
-            tt = result.read()
-            return string.split(tt, '\n')
-        else:
-            return ''
-    @staticmethod
-    def get(sl, tl, st, domain='', allow_machine='y', allow_anonymous='y', require_professional = 'n', ip_filter='', lsp='', lspusername='', lsppw='', mtengine=''):
-        """
-        This function is used to get the best available translation for a text. It expects the following parameters:
+            tt = mc.set(key, item, ttl)
+        return True
+    else:
+        return False
 
-        sl = source language (ISO code)
-        tl = target language (ISO code)
-        st = source text (UTF-8 only!)
-        domain = filter results to domain=foo.com
-        allow_machine = y/n to allow or hide machine translations
-        allow_anonymous = y/n to allow or hide translations from unregistered users
-        require_professional = y/n to require professional translations
-        ip_filter = limit results to submissions from trusted IP address or pattern
-        lsp = language service provider name, if pro translations are desired
-        lspusername = username w/ LSP
-        lsppw = password or API key for LSP
-        mtengine = force selection of specific machine translation engine (e.g. mtengine=google, apertium, moses, worldlingo), default is automatic selection
-        """
-        if len(sl) > 0 and len(tl) > 0 and len(st) > 0:
-            # first check memcached, if running
-            tt = wwl.getcache(sl, tl, st)
-            if len(tt) > 0:
-                return tt
-            # next check gettext(), if configured
-            tt = wwl.gt(sl, tl, st)
-            if len(tt) > 0:
-                return tt
-            # next call out to WWL service, /t web API, to get best available translation
-            f = dict()
-            f['sl']=sl
-            f['tl']=tl
-            f['st']=st
-            f['domain']=domain
-            f['allow_machine']=allow_machine
-            f['allow_anonymous']=allow_anonymous
-            f['require_professional']=require_professional
-            f['ip']=ip_filter
-            f['lsp']=lsp
-            f['lspusername']=lspusername
-            f['lsppw']=lsppw
-            f['mtengine']=mtengine
-            f['output']='text'
-            form_data = urllib.urlencode(f)
-            url = wwl.server() + '/t?' + form_data
-            result = urllib2.urlopen(url)
-            tt = result.read()
-            # if a translation is returned, save it in memcached, if running
-            if len(tt) > 0:
-                wwl.setcache(sl, tl, st, tt)
-            return tt
-        else:
-            return ''
-    @staticmethod
-    def submit(sl, tl, st, tt, domain='', url='', username='', pw='', proxy='', share='y'):
-        """
-        submit()
+def acceptTranslation(guid):
+    result = open_url(server_address + '/lsp/accept/' + str(guid))
+    if string.count(result, 'ok') > 0:
+        return True
+    else:
+        if type(result) is dict:
+            try:
+                return result.get('error')
+            except:
+                return 
+        return False
 
-        Use this to submit a translation to the translation memory. Expects the following params:
+def deleteTranslation(guid):
+    result = open_url(server_address + '/lsp/delete/' + str(guid))
+    if string.count(result,'ok') > 0:
+        return True
+    else:
+        return False
 
-        sl = source language code
-        tl = target language code
-        st = source text (utf 8 encoding)
-        tt = translated text (utf 8 encoding)
-        domain = domain text is from (e.g. cnn.com)
-        url = URL of source page text is from (optional)
-        username = WWL username (optional)
-        pw = WWL username (optional)
-        proxy = y/n, set to y if submissions are being proxied from your web service or gateway
-        share = y/n, if set to y, submission may be shared with other WWL translation memories
-            (enabled by default)
+def rejectTranslation(guid):
+    result = open_url(server_address + '/lsp/reject/' + str(guid))
+    if string.count(result,'ok') > 0:
+        return True
+    else:
+        return False
 
-        Returns True/False on success/failure
-        """
-        wwl.setcache(sl, tl, st, tt)
-        f = dict()
-        f['sl']=sl
-        f['tl']=tl
-        f['st']=st
-        f['tt']=tt
-        f['domain']=domain
-        f['url']=url
-        f['username']=username
-        f['pw']=pw
-        f['proxy']=proxy
-        f['share']=share
-        form_data = urllib.urlencode(f)
-        url = wwl.server() + '/submit'
-        result = urllib2.urlopen(url, form_data)
-        text = result.read()
-        if text == 'ok':
-            return True
-        else:
-            return False
-    @staticmethod
-    def score(sl, tl, st, tt, votetype, username='', pw='', proxy='n'):
-        """
-        score()
-
-        submit a score for a translation, expects the following params:
-
-        required:
-
-        sl = source language code
-        tl = target language code
-        st = source text (utf 8 encoding)
-        tt = translated text (utf 8 encoding)
-        votetype = up, down, block (to vote to ban user)
-        username = WWL username of voter (optional)
-        pw = WWL password of voter (optional)
-        proxy = y/n (set to y if votes are being proxied via your gateway or service
-        remote_addr = user's IP address (in proxy mode)
-        """
+def getTranslation(sl, tl, st, guid=None, url=None, lsp=None, username=None, pw=None, sla=None):
+    if len(sl) > 0 and len(tl) > 0 and len(st) > 0:
         m = md5.new()
-        m.update(sl)
-        m.update(tl)
         m.update(st)
-        m.update(tt)
-        guid = str(m.hexdigest())
-        f = dict()
-        f['guid']=guid
-        f['votetype']=votetype
-        f['username']=username
-        f['pw']=pw
-        f['proxy']=proxy
-        form_data = urllib.urlencode(f)
-        url = wwl.server(secure=True) + '/scores/vote'
-        result = urllib2.urlopen(url, form_data)
-        text = result.read()
-        if text == 'ok':
-            return True
-        else:
-            return False
-    @staticmethod
-    def translatepage(sl, tl, st, mode='html', boundary='\n', domain='', allow_machine='y', allow_anonymous='y', require_professional='n', lsp='', lspusername='', lsppw='', mtengine='', ip_filter=''):
-        """
-        This convenience function breaks a larger text down into many smaller units for translation.
-        This has not been heavily tested, and will be improved to include better html and xml parsing,
-        as well as support for other document formats. I generally recommend that you spend some time
-        to wire the get() function into your web app rather than try to re-render pages in bulk, as this
-        is more error prone.
+        md5hash = str(m.hexdigest())
+        result = getCache('/t/' + sl + '/' + tl + '/' + md5hash)
+        if result is not None:
+            return result
+    form_fields = dict(
+        sl = sl,
+        tl = tl,
+        st = st,
+    )
+    if guid is not None: form_fields['guid']=guid
+    if url is not None: form_fields['url']=url
+    if lsp is not None: form_fields['lsp']=lsp
+    if username is not None: form_fields['lspusername']=username
+    if pw is not None: form_fields['lsppw']=lsppw
+    if sla is not None: form_fields['sla']=sla
+    result = open_url(server_address + '/t', form_fields=form_fields)
+    setCache('/t/' + sl + '/' + tl + '/' + md5hash, result)
+    return result
+    
+def getByURL(url, tl=''):
+    form_fields = dict(
+        url = url,
+        tl = tl,
+    )
+    result = open_url(server_address + '/u/' + tl + '/' + url)
+    return result
 
-        The function expects the following parameters:
+def getRevisionHistory(st, tl=''):
+    form_fields = dict(
+        st = st,
+        tl = tl,
+    )
+    result = open_url(server_address + '/r', form_fields=form_fields, method='get')
+    return result
 
-        sl = source language code
-        tl = target language code
-        mode = text, html
-        boundary = delimiter to use when chunking text
-        """
-        if len(sl) > 0 and len(tl) > 0 and len(st) > 0:
-            texts = string.split(st, boundary)
-            if len(texts) > 0:
-                tt = ''
-                for t in texts:
-                    tt = tt + wwl.get(sl, tl, t, domain=domain, allow_machine=allow_machine, allow_anonymous=allow_anonymous, require_professional=require_professional, lsp=lsp, lspusername=lspusername, lsppw=lsppw, ip_filter=ip_filter, mtengine=mtengine)
-                    tt = tt + boundary
-                return tt
-        else:
-            return ''
+def submitTranslation(sl, tl, st, tt, guid=None, url=None, username=None, facebookid=None, profile_url=None):
+    form_fields = dict(
+        sl = sl,
+        tl = tl,
+        st = st,
+        tt = tt,
+    )
+    if guid is not None: form_fields['guid']=guid
+    if url is not None: form_fields['url']=url
+    if username is not None: form_fields['username']=username
+    if facebookid is not None: form_fields['facebookid']=facebookid
+    if profile_url is not None: form_fields['profile_url']=profile_url
+    result = open_url(server_address + '/submit', form_fields=form_fields)
+    return result
+
+def getScores(guid='', username=''):
+    if len(guid) > 0:
+        return open_url(server_address + '/scores/' + guid)
+    elif len(username) > 0:
+        return open_url(server_address + '/scores/user/' + username)
+    else:
+        return
+
+def submitScore(guid, score, username='', message=''):
+    form_fields = dict(
+        guid = guid,
+        score = score,
+        username = username,
+        message = message,
+    )
+    result= open_url(server_address + '/scores', form_fields=form_fields)
+    if string.count(result,'ok') > 0:
+        return True
+    else:
+        return False
+
+def getComments(guid, language=''):
+    form_fields = dict(
+        guid = guid,
+        language = language,
+    )
+    return open_url(server_address + '/comments', form_fields=form_fields, method='get')
+
+def submitComment(guid, language='', text='', username='', name=''):
+    form_fields = dict(
+        guid = guid,
+        language=language,
+        text = text,
+        username = username,
+        name = name,
+    )
+    result = open_url(server_address + '/comments', form_fields=form_fields)
+    if string.count(result, 'ok') > 0:
+        return True
+    else:
+        return False
+
+def getETA(jobtype,lsp, username, pw, sl='', tl='', sla='', words=''):
+    form_fields = dict(
+        jobtype = jobtype,
+        lsp = lsp,
+        lspusername = username,
+        lsppw = pw,
+        sl = sl,
+        tl = tl,
+        sla = sla,
+        words = words,
+    )
+    return open_url(server_address + '/lsp/eta', form_fields=form_fields, method='get')
+
+def getQuote(jobtype, sl, tl, sla='', username='', words=''):
+    form_fields = dict(
+        lsp = 'dummy',
+        jobtype = jobtype,
+        sl = sl,
+        tl = tl,
+        sla = sla,
+        lspusername = username,
+        words = words,
+    )
+    return open_url(server_address + '/lsp/quote', form_fields = form_fields, method='get')
