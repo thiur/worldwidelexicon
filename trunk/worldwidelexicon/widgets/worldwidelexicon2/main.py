@@ -1,13 +1,7 @@
 # -*- coding: utf-8 -*-
 #!/usr/bin/env python
 #
-# Copyright 2007 Google Inc.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
+# Copyright 2008-2011 Worldwide Lexicon Inc.
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
@@ -69,41 +63,33 @@ import time
 import pydoc
 import codecs
 import types
+import random
 
 from BeautifulSoup import BeautifulSoup
 
 def clean(text, encoding=''):
+    """
+    Automatic transcoder based on BeautifulSoup that transcodes text into UTF-8 encoding
+    """
     soup = BeautifulSoup(text)
     return soup.renderContents()
     
 def is_admin():
+    """
+    Checks to see if user is logged into Google account, and has admin privileges for this
+    App Engine instance.
+    """
     user = users.get_current_user()
     if users.is_current_user_admin():
         return True
     else:
         return False
 
-class BaseHandler(webapp.RequestHandler):
-    @property
-    def language(self):
-	if not hasattr(self, "_language"):
-	    self._language = 'en'
-            try:
-                locales = string.split(self.request.headers['Accept-Language'],',')
-            except:
-                locales = 'en-us'
-            langloc = string.split(locales[0],'-')
-            if len(langloc[0]) > 1:
-                self._language = langloc[0]
-	return self._language
-    def direction(self, language):
-	rtl = ['ar', 'fa', 'he', 'ur']
-	if language in rtl:
-	    return 'RTL'
-	else:
-	    return 'LTR'
-
 class Comments(db.Model):
+    """
+    This class implements the Comments() data store, and associated convenience methods for
+    searching for and adding comments about translations.
+    """
     guid = db.StringProperty(default='')
     language = db.StringProperty(default='')
     text = db.TextProperty(default='')
@@ -112,6 +98,10 @@ class Comments(db.Model):
     userid = db.StringProperty(default='')
     @staticmethod
     def fetch(guid, language='', maxlen=100):
+        """
+        Fetches a recordset of up to {maxlen} records for a specific translation, identified
+        by {guid}. Comments can optionally be filtered by {language}
+        """
         cdb = db.Query(Comments)
         cdb.filter('guid = ', guid)
         if len(language) > 0: cdb.filter('language = ', language)
@@ -119,6 +109,9 @@ class Comments(db.Model):
         return cdb.fetch(maxlen)
     @staticmethod
     def save(guid, language, text, userid='', name=''):
+        """
+        Saves a comment about a translation, identified by its {guid}
+        """
         if len(guid) > 0 and len(language) > 0 and len(text) > 0:
             item = Comments()
             item.guid = guid
@@ -144,6 +137,12 @@ class MTProxy():
     """
     @staticmethod
     def getTranslation(mtengine='google', sl='en', tl='es',st = '',userip=''):
+        """
+        Retrieves a translation from the desired machine translation engine and returns
+        the text in UTF-8 encoding. Currently uses Google Translate by default. Other
+        engines available include Apertium, Systran, and Language Weaver (these will be
+        re-added to WWLv2.0 in late March). 
+        """
         tt = memcache.get('/mt/' + mtengine + '/' + sl + '/' + tl + '/' + st)
         if tt is not None:
             return tt
@@ -166,10 +165,17 @@ class MTProxy():
         return tt
         
 class Languages(db.Model):
+    """
+    This class implements the Languages() data store and maintains a list of the languages
+    supported by your instance of the WWL service.
+    """
     code = db.StringProperty(default='')
     name = db.StringProperty(default='')
     @staticmethod
     def add(code, name):
+        """
+        Adds a new language, indexed by its ISO code to the system.
+        """
         if len(code) > 0 and len(name) > 0:
             ldb = db.Query(Languages)
             ldb.filter('code = ', code)
@@ -185,6 +191,9 @@ class Languages(db.Model):
             return False
     @staticmethod
     def getname(code):
+        """
+        Returns the native name of a language identified by its ISO code.
+        """
         if len(code) < 4:
             txt = memcache.get('/languages/code/' + code)
             if txt is not None:
@@ -199,6 +208,10 @@ class Languages(db.Model):
         return ''
     @staticmethod
     def init():
+        """
+        Initializes the default list of languages (this is called once when you
+        first deploy WWL to App Engine)
+        """
         l=dict()
         l['en']=u'English'
         l['es']=u'Español'
@@ -266,6 +279,9 @@ class Languages(db.Model):
             Languages.add(ln, l[ln])
     @staticmethod
     def remove(code):
+        """
+        Removes a language from the list of actively supported languages
+        """
         if len(code) < 4:
             ldb = db.Query(Languages)
             ldb.filter('code = ', code)
@@ -276,12 +292,19 @@ class Languages(db.Model):
         return False
     @staticmethod
     def find():
+        """
+        Returns a sorted list of actively supported languages
+        """
         ldb = db.Query(Languages)
         ldb.order('code')
         results = ldb.fetch(limit=200)
         return results
     @staticmethod
     def select(selected=''):
+        """
+        Returns a series of <option value=nn>Name</option> items for use in generating
+        <select> fields in HTML forms (to choose a language)
+        """
         selected = string.lower(selected)
         if len(selected) < 1:
             text = memcache.get('/languages/select')
@@ -446,7 +469,6 @@ class LSPQueue(db.Model):
             else:
                 pass
         return True
-            
 
 class LSPs(db.Model):
     id = db.StringProperty(default='')
@@ -454,6 +476,9 @@ class LSPs(db.Model):
     created = db.DateTimeProperty(auto_now_add=True)
     apikey = db.StringProperty(default='')
     apiurl = db.StringProperty(default='')
+    www = db.StringProperty(default='')
+    verified = db.BooleanProperty(default=False)
+    working = db.BooleanProperty(default=False)
     @staticmethod
     def auth(key):
         ldb = db.Query(LSPs)
@@ -491,7 +516,7 @@ class LSPs(db.Model):
         ldb.filter('id = ', id)
         item = ldb.get()
         if item is not None:
-            return item.apirul
+            return item.apiurl
         else:
             return ''
     @staticmethod
@@ -942,6 +967,186 @@ class HandleInstall(webapp.RequestHandler):
             Translations.score(guid, 5)
             Comments.save(guid,'en','Hello World')
             self.response.out.write('ok')
+
+class HandleLSPAccept(webapp.RequestHandler):
+    """
+    <h3>/lsp/accept/{jobid}</h3>
+
+    <p>This request handler is used to accept a job that has been retrieved from the outgoing queue from an LSP.
+    This enables a user to poll for completed translations if they are not using the asynchronous callback method
+    to received completed jobs.</p>
+
+    <p>The API call is made in the form www.baseurl.com/lsp/accept/{jobid} and responds with an HTTP error or an OK
+    message. This API generates random responses and can be used for testing purposes.</p>
+    """
+    def get(self, jobid=''):
+        if len(jobid) < 1:
+            jobid = self.request.get('jobid')
+        if len(jobid) > 0:
+            rnd = random.randint(0,2)
+            if rnd == 0:
+                self.response.out.write('ok')
+            elif rnd == 1:
+                self.error(error_not_found)
+                self.response.out.write('jobid not valid')
+            else:
+                self.error(error_other)
+                self.response.out.write('unable to contact LSP')
+        else:
+            doc_text = self.__doc__
+            form = """
+            <h3>[GET] Accept Job From LSP</h3>
+            <table><form action=/lsp/accept method=get>
+            <tr><td>[jobid] Job ID</td><td><input type=text name=jobid></td></tr>
+            <tr><td colspan=2><input type=submit value=Submit></td></tr></form></table>
+            """
+            path = os.path.join(os.path.dirname(__file__), "doc.html")
+            args = dict(
+                title = '/lsp/accept',
+                left_text = form,
+                right_text = doc_text,
+            )
+            self.response.out.write(template.render(path, args))
+
+class HandleLSPDelete(webapp.RequestHandler):
+    """
+    <h3>/lsp/delete/{jobid}</h3>
+
+    <p>This request handler is used to delete a job from the LSP queue.</p>
+
+    <p>The API call is made in the form www.baseurl.com/lsp/delete/{jobid} and responds with an HTTP error or an OK
+    message. This API generates random responses and can be used for testing purposes.</p>
+    """
+    def get(self, jobid=''):
+        if len(jobid) < 1:
+            jobid = self.request.get('jobid')
+        if len(jobid) > 0:
+            rnd = random.randint(0,2)
+            if rnd == 0:
+                self.response.out.write('ok')
+            elif rnd == 1:
+                self.error(error_not_found)
+                self.response.out.write('jobid not valid')
+            else:
+                self.error(error_other)
+                self.response.out.write('unable to contact LSP')
+        else:
+            doc_text = self.__doc__
+            form = """
+            <h3>[GET] Accept Job From LSP</h3>
+            <table><form action=/lsp/delete method=get>
+            <tr><td>[jobid] Job ID</td><td><input type=text name=jobid></td></tr>
+            <tr><td colspan=2><input type=submit value=Submit></td></tr></form></table>
+            """
+            path = os.path.join(os.path.dirname(__file__), "doc.html")
+            args = dict(
+                title = '/lsp/delete',
+                left_text = form,
+                right_text = doc_text,
+            )
+            self.response.out.write(template.render(path, args))
+
+class HandleLSPFetch(webapp.RequestHandler):
+    """
+    <h3>/lsp/fetch</h3>
+
+    <p>This request handler is used to fetch a list of up to 100 completed jobs (scores and translations) which can then be
+    inspected by the client, when makes individual accept/reject decisions as it goes through this recordset. This API enables
+    clients to poll for completed scores and translations as an alternative to the asynchronous callback mechanism that is also
+    provided as an option.</p>
+
+    <p>The API call is made in the form www.baseurl.com/lsp/fetch and expects the following parameters:</p>
+    <ul>
+    <li>lsp : LSP nickname or ID (use 'dummy' for test calls)</li>
+    <li>lspusername : LSP username or ID</li>
+    <li>lsppw : user password or key</li>
+    <li>queue : optional queue name</li>
+    </ul>
+
+    <p>The service will reply with a JSON recordset or an HTTP error. 
+    """
+    def get(self):
+        lsp = self.request.get('lsp')
+        lspusername = self.request.get('lspusername')
+        lsppw = self.request.get('lsppw')
+        queue = self.request.get('queue')
+        if len(lsp) > 0:
+            rnd = random.randint(0,2)
+            if rnd < 2:
+                records = list()
+                record = dict(
+                    jobtype='score',
+                    guid='12345678',
+                    score=4,
+                    username='janedoe@abctranslations.com',
+                )
+                records.append(record)
+                record = dict(
+                    jobtype='translation',
+                    guid='56781234',
+                    sl='en',
+                    tl='es',
+                    st='hello',
+                    tt='hola',
+                    username='johndoe@abctranslations.com',
+                )
+                records.append(record)
+                json = demjson.encode(records)
+                self.response.headers['Content-Type']='text/javascript'
+                self.response.out.write(json)
+            else:
+                self.error(error_other)
+                self.response.out.write('unable to contact LSP')
+        else:
+            doc_text = self.__doc__
+            form = """
+            <h3>[GET] Fetch Completed Jobs From LSP</h3>
+            <table><form action=/lsp/fetch method=get>
+            <tr><td>[lsp] LSP ID</td><td><input type=text name=lsp value=dummy></td></tr>
+            <tr><td>[lspusername] LSP Username</td><td><input type=text name=lspusername value=foo></td></tr>
+            <tr><td>[lsppw] LSP PW/Key</td><td><input type=text name=lsppw value=bar></td></tr>
+            <tr><td>[queue] Queue Name</td><td><input type=text name=queue></td></tr>
+            <tr><td colspan=2><input type=submit value=Submit></td></tr></form></table>
+            """
+            path = os.path.join(os.path.dirname(__file__), "doc.html")
+            args = dict(
+                title = '/lsp/fetch',
+                left_text = form,
+                right_text = doc_text,
+            )
+            self.response.out.write(template.render(path, args))
+
+class HandleLSPQueue(webapp.RequestHandler):
+    """
+    <h3>/lsp/queue</h3>
+    
+    <p>This web service returns a list of pending translation jobs (requests to translate or score texts).
+    This is provided both as an example API handler for LSPs to mimic, and also as a rudimentary TMS for
+    use by closed groups of translators (such as volunteer translators for an organization).</p>
+
+    <p>The API expects the following parameters</p>:
+    <ul>
+    <li>lsp : LSP ID/nickname (for gateway requests)</li>
+    <li>lspusername : username or account ID</li>
+    <li>lsppw : password or api key</li>
+    <li>queue : queue name (optional)</li>
+    <li>sl : source language code</li>
+    <li>tl : target language code</li>
+    </ul>
+
+    The service returns a JSON recordset containing a list of pending jobs in oldest to newest order.
+    """
+    def get(self):
+        lsp = self.request.get('lsp')
+        lspusername = self.request.get('lspusername')
+        lsppw = self.request.get('lsppw')
+        queue = self.request.get('queue')
+        sl = self.request.get('sl')
+        tl = self.request.get('tl')
+        if len(lspusername) > 0:
+            pass
+        else:
+            pass
             
 class HandleLSPQuote(webapp.RequestHandler):
     """
@@ -979,32 +1184,58 @@ class HandleLSPQuote(webapp.RequestHandler):
         tl = self.request.get('tl')
         words = self.request.get('words')
         jobtype = self.request.get('jobtype')
-        current = self.request.get('currency')
+        currency = self.request.get('currency')
         if len(lsp) > 0:
-            apiurl = LSPs.geturl(lsp)
-            if len(url) > 0:
-                form_fields = {
-                    "sla" : sla,
-                    "username" : username,
-                    "sl" : sl,
-                    "tl" : tl,
-                    "words" : words,
-                    "jobtype" : jobtype,
-                    "currency" : currency
-                }
-                form_data = urllib.urlencode(form_fields)
-                url = apiurl + '/lsp/quote'
-                result = urlfetch.fetch(url=url, payload=form_data, method=urlfetch.POST, headers={'Content-Type': 'application/x-www-form-urlencoded'})
-                if result.status_code == 200:
-                    quote = result.content
-                    self.response.headers['Content-Type']='text/javascript'
-                    self.response.out.write(quote)
+            if lsp == 'dummy':
+                try:
+                    words = int(words)
+                except:
+                    words = 0
+                if jobtype == 'translation':
+                    unit_price = 0.06
                 else:
-                    self.error(error_other)
-                    self.response.out.write('Request to LSP Failed')
+                    unit_price = 0.01
+                price = unit_price * words
+                quote = dict(
+                    price = price,
+                    unit_price = unit_price,
+                    eta = random.randint(5,300),
+                    message = "Thank you for your business",
+                )
+                json = demjson.encode(quote)
+                self.response.headers['Content-Type']='text/javascript'
+                self.response.out.write(json)
             else:
-                self.error(error_not_found)
-                self.response.out.write('Unknown LSP')
+                apiurl = LSPs.geturl(lsp)
+                if len(apiurl) > 0:
+                    form_fields = {
+                        "sla" : sla,
+                        "username" : username,
+                        "sl" : sl,
+                        "tl" : tl,
+                        "words" : words,
+                        "jobtype" : jobtype,
+                        "currency" : currency
+                    }
+                    form_data = urllib.urlencode(form_fields)
+                    url = apiurl + '/lsp/quote'
+                    if string.count(url, 'http://') < 1:
+                        url = 'http://' + url
+                    try:
+                        result = urlfetch.fetch(url=url, payload=form_data, method=urlfetch.POST, headers={'Content-Type': 'application/x-www-form-urlencoded'})
+                        if result.status_code == 200:
+                            quote = result.content
+                            self.response.headers['Content-Type']='text/javascript'
+                            self.response.out.write(quote)
+                        else:
+                            self.error(error_other)
+                            self.response.out.write('Request to LSP Failed')
+                    except:
+                        self.error(error_not_found)
+                        self.response.out.write('Unable to contact LSP')
+                else:
+                    self.error(error_not_found)
+                    self.response.out.write('Unknown LSP')
         else:
             doc_text = self.__doc__
             form = """
@@ -1015,6 +1246,10 @@ class HandleLSPQuote(webapp.RequestHandler):
             <tr><td>[sla] SLA Code</td><td><input type=text name=sla></td></tr>
             <tr><td>[sl] Source Language</td><td><input type=text name=sl></td></tr>
             <tr><td>[tl] Target Language</td><td><input type=text name=tl></td></tr>
+            <tr><td>[jobtype] Job Type</td><td><select name=jobtype><option selected value=translation>Translation</option>
+            <option value=score>Score Translation</option></select></td></tr>
+            <tr><td>[words] Number of Words</td><td><input type=text name=words></td></tr>
+            <tr><td>[currency] Currency</td><td><input type=text name=currency value=usd></td></tr>
             <tr><td colspan=2><input type=submit value=Submit></td></tr></form></table>
             """
             path = os.path.join(os.path.dirname(__file__), "doc.html")
@@ -1024,6 +1259,191 @@ class HandleLSPQuote(webapp.RequestHandler):
                 right_text = doc_text,
             )
             self.response.out.write(template.render(path, args))
+
+class HandleLSPRegister(webapp.RequestHandler):
+    """
+    <h3>/lsp/register</h3>
+
+    <p>This request handler is used to auto-register an LSP with the Worldwide Lexicon network. The API will create
+    a mapping for the LSP, as well as make test API calls to the LSP to verify their correct operation. LSPs should
+    periodically call this API to announce their presence to the network, and whenever API URLs change on their side.</p>
+
+    <p>The API expects the following parameters:</p>
+    <ul>
+    <li>www : the hostname of the LSP's primary website</li>
+    <li>apiurl : the base URL where the /t and /lsp/* API handlers reside</li>
+    <li>name : company name</li>
+    </ul>
+
+    <p>The service will reply with OK if the APIs work, or an error code if it is unable to contact your API server.</p>
+    """
+    def get(self):
+        doc_text = self.__doc__
+        form = """
+        <h3>[POST] Register LSP API Handler</h3>
+        <table><form action=/lsp/register method=post>
+        <tr><td>[www] LSP's primary web address</td><td><input type=text name=www></td></tr>
+        <tr><td>[apiurl] Base URL for API handlers</td><td><input type=text name=apiurl></td></tr>
+        <tr><td>[name] Company Name</td><td><input type=text name=name></td></tr>
+        <tr><td colspan=2><input type=submit value=Submit></td></tr></form></table>
+        """
+        path = os.path.join(os.path.dirname(__file__), "doc.html")
+        args = dict(
+            title = '/lsp/reject',
+            left_text = form,
+            right_text = doc_text,
+        )
+        self.response.out.write(template.render(path, args))
+    def post(self):
+        www = self.request.get('www')
+        apiurl = self.request.get('apiurl')
+        name = self.request.get('name')
+        www = string.replace(www, 'http://','')
+        www = string.replace(www, 'https://','')
+        dn = string.split(www, '.')
+        domain = www
+        # test API URLs
+        # test /t handler
+        form_fields={
+            "sl" : "en",
+            "tl" : "es",
+            "st" : "hello world",
+            "output" : "json",
+        }
+        form_data = urllib.urlencode(form_fields)
+        if string.count(apiurl,'http://') > 0 or string.count(apiurl, 'https://') > 0:
+            pass
+        else:
+            apiurl = 'http://' + apiurl
+        valid_json = True
+        try:
+            result = urlfetch.fetch(url=apiurl, payload=form_data, method=urlfetch.POST, headers={'Content-Type': 'application/x-www-form-urlencoded'})
+        except:
+            valid_json=False
+        # validate JSON and test other API handlers (to be added later)
+        ldb = db.Query(LSPs)
+        ldb.filter('id = ', domain)
+        item = ldb.get()
+        if item is None:
+            m = md5.new()
+            m.update(str(datetime.datetime.now()))
+            apikey = str(m.hexdigest())
+            item = LSPs()
+            item.id = domain
+            item.apikey = apikey
+        item.name = name
+        item.apiurl = apiurl
+        item.www = www
+        item.working = valid_json
+        item.put()
+        if valid_json:
+            self.response.out.write('ok')
+        else:
+            self.error(error_not_found)
+            self.response.out.write('invalid response from ' + apiurl + '/t')
+
+class HandleLSPReject(webapp.RequestHandler):
+    """
+    <h3>/lsp/reject/{jobid}</h3>
+
+    <p>This request handler is used to reject/re-do a job that has been retrieved from the outgoing queue from an LSP.
+    This enables a user to poll for completed translations if they are not using the asynchronous callback method
+    to received completed jobs.</p>
+
+    <p>The API call is made in the form www.baseurl.com/lsp/reject/{jobid} and responds with an HTTP error or an OK
+    message. This API generates random responses and can be used for testing purposes.</p>
+    """
+    def get(self, jobid=''):
+        if len(jobid) < 1:
+            jobid = self.request.get('jobid')
+        if len(jobid) > 0:
+            rnd = random.randint(0,2)
+            if rnd == 0:
+                self.response.out.write('ok')
+            elif rnd == 1:
+                self.error(error_not_found)
+                self.response.out.write('jobid not valid')
+            else:
+                self.error(error_other)
+                self.response.out.write('unable to contact LSP')
+        else:
+            doc_text = self.__doc__
+            form = """
+            <h3>[GET] Accept Job From LSP</h3>
+            <table><form action=/lsp/accept method=get>
+            <tr><td>[jobid] Job ID</td><td><input type=text name=jobid></td></tr>
+            <tr><td colspan=2><input type=submit value=Submit></td></tr></form></table>
+            """
+            path = os.path.join(os.path.dirname(__file__), "doc.html")
+            args = dict(
+                title = '/lsp/reject',
+                left_text = form,
+                right_text = doc_text,
+            )
+            self.response.out.write(template.render(path, args))
+            
+class HandleLSPScoreRequest(webapp.RequestHandler):
+    """
+    <h3>/lsp/score</h3>
+    <p>This request handler enables a user to request a score from a professional translator
+    for a translation. This request handler is provided as an example (dummy handler) to illustrate
+    the API call to the LSP and expected callback to the WWL server.<p>
+    <p>The LSP should answer calls to www.lspapiserver.com/lsp/requestscore and expect the following
+    parameters in a POST form:</p>
+    <ul>
+    <li>guid : translation record locator</li>
+    <li>sl : source language</li>
+    <li>tl : target language</li>
+    <li>st : source text (utf8)</li>
+    <li>tt : translated text (utf8)</li>
+    <li>url : (optional) URL of source page text came from</li>
+    <li>callback_url : URL to call back to submit the score</li>
+    <li>apikey : API/secret key to submit with callback for security</li>
+    </ul>
+    <p>When the translation is scored, the LSP will, in turn, POST to the callback_url provided in the
+    request, and will provide the following parameters:</p>
+    <ul>
+    <li>guid : translation record locator</li>
+    <li>apikey : API key linked to LSP (for security)</li>
+    <li>score : 0 to 5 (5 being native quality, 0 being junk/spam)</li>
+    <li>score_ip : IP address of scoring translator (optional)</li>
+    <li>score_userid : Username/email of scoring translator (optional)</li>
+    </ul>
+    """
+    def get(self):
+        doc_text = self.__doc__
+        tdb = db.Query(Translations)
+        tdb.order('date')
+        item = tdb.get()
+        guid = item.guid
+        form = """
+        <h3>[POST] Request Score By Professional Translator</h3>
+        <table><form action=/lsp/score method=post>
+        <tr><td>[guid] Translation GUID</td><td><input type=text name=guid value=""" + guid + """></td></tr>
+        <tr><td>[sl] Source Language</td><td><input type=text name=sl></td></tr>
+        <tr><td>[tl] Target Language</td><td><input type=text name=tl></td></tr>
+        <tr><td>[st] Source Text (UTF8)</td><td><input type=text name=st></td></tr>
+        <tr><td>[tt] Translated Text (UTF8)</td><td><input type=text name=tt></td></tr>
+        <tr><td>[url] URL Text Came From</td><td><input type=text name=url></td></tr>
+        <tr><td>[lsp] LSP ID/nickname</td><td><input type=text name=lsp></td></tr>
+        <tr><td>[lspusername] LSP Username</td><td><input type=text name=lspusername></td></tr>
+        <tr><td>[lsppw] LSP Password/Key</td><td><input type=text name=lsppw></td></tr>
+        <tr><td colspan=2><input type=submit value=Submit></td></tr></form></table>
+        """
+        path = os.path.join(os.path.dirname(__file__), "doc.html")
+        args = dict(
+            title = '/scores',
+            left_text = form,
+            right_text = doc_text,
+        )
+        self.response.out.write(template.render(path, args))
+    def post(self):
+        rnd = random.randint(0,2)
+        if rnd < 2:
+            self.response.out.write('ok')
+        else:
+            self.error(error_not_found)
+            self.response.out.write('error')
 
 class HandleLSPStatus(webapp.RequestHandler):
     def get(self, guid=''):
@@ -1507,13 +1927,24 @@ class MainHandler(webapp.RequestHandler):
     <h3>Worldwide Lexicon API v2</h3>
     <ul>
     <li><a href=/comments>/comments : Get/Submit Comments</a></li>
-    <li><a href=/lsp/quote>/lsp/quote : Request Quote From Network LSP</a></li>
+    <li><a href=/lsp/accept>/lsp/accept : Accept Completed Job From LSP (Dummy API)</a></li>
+    <li><a href=/lsp/delete>/lsp/delete : Delete Job From LSP Queue (Dummy API)</a></li>
+    <li><a href=/lsp/fetch>/lsp/fetch : Fetch Completed Jobs From Queue for Inspection (Dummy API)</a></li>
+    <li><a href=/lsp/register>/lsp/register : Register LSP API Handler with Network</a></li>
+    <li><a href=/lsp/reject>/lsp/reject : Reject Job From LSP Queue (Dummy API)</a></li>
+    <li><a href=/lsp/queue>/lsp/queue : View pending translation jobs (Dummy API)</a></li>
+    <li><a href=/lsp/quote>/lsp/quote : Request Quote From Network LSP (Dummy API)</a></li>
+    <li><a href=/lsp/score>/lsp/score : Request Score From Professional Translator</a></li>
     <li><a href=/r>/r : Revision History</a></li>
     <li><a href=/scores>/scores : Get/Submit Scores</a></li>
     <li><a href=/scores/user> /scores/user : Get User Score History</a></li>
     <li><a href=/submit>/submit : Submit Translation</a></li>
     <li><a href=/t>/t : Request Translations for text</a></li>
     <li><a href=/u>/u : Request Translations for URL</a></li>
+    </ul>
+    <h3>Supporting Documentation</h3>
+    <ul>
+    <li><a href=/docs/wwl_lsp_api.pdf>Worldwide Lexicon API for LSPs</a></li>
     </ul>
     """
     def get(self):
@@ -1549,11 +1980,15 @@ class MainHandler(webapp.RequestHandler):
         for example to add hooks to their existing user registration and authentication system.</li>
         <li>Performance : we have also upgraded the system to take advantage of new features in App
         Engine to further improve performance and economics.</li>
+        <li>Professional Translation : we have updated our web API for language service providers to
+        offer a range of features to users, such as: requesting instant quotes from one or several LSPs
+        on the WWL network, requesting professional translations on demand, and requesting scores for
+        community translations by professional translators.</li>
         </ul>
         """
         path = os.path.join(os.path.dirname(__file__), "doc.html")
         args = dict(
-            title = 'Worldwide Lexicon Translation Server',
+            title = 'WWL Translation Server',
             left_text = form,
             right_text = doc_text,
         )
@@ -1566,7 +2001,17 @@ def main():
                                           (r'/comments/(.*)', HandleComments),
                                           ('/comments', HandleComments),
                                           ('/install', HandleInstall),
+                                          ('/lsp/accept/(.*)', HandleLSPAccept),
+                                          ('/lsp/accept', HandleLSPAccept),
+                                          ('/lsp/delete/(.*)', HandleLSPDelete),
+                                          ('/lsp/delete', HandleLSPDelete),
+                                          ('/lsp/fetch', HandleLSPFetch),
+                                          ('/lsp/queue', HandleLSPQueue),
                                           ('/lsp/quote', HandleLSPQuote),
+                                          ('/lsp/register', HandleLSPRegister),
+                                          ('/lsp/reject/(.*)', HandleLSPReject),
+                                          ('/lsp/reject', HandleLSPReject),
+                                          ('/lsp/score', HandleLSPScoreRequest),
                                           ('/r', HandleR),
                                           (r'/scores/user/(.*)', HandleScoresUser),
                                           ('/scores/user', HandleScoresUser),
