@@ -2115,6 +2115,10 @@ class MainHandler(webapp.RequestHandler):
     <li><a href=/t>/t : Request Translations for text</a></li>
     <li><a href=/u>/u : Request Translations for URL</a></li>
     </ul>
+    <h3>Code</h3>
+    <ul>
+    <li><a href=/code/transkit-python.zip>TransKit Python</a></li>
+    </ul>
     <h3>Supporting Documentation</h3>
     <ul>
     <li><a href=/docs/wwlapi.pdf>Worldwide Lexicon API Documentation</a></li>
