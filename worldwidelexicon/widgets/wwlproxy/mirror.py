@@ -34,7 +34,7 @@ from google.appengine.ext import webapp
 from google.appengine.ext.webapp import template
 from google.appengine.runtime import apiproxy_errors
 from google.appengine.api.labs import taskqueue
-
+from database import Translation
 from urlparse import urljoin
 from BeautifulSoup import BeautifulSoup, Comment
 
@@ -252,6 +252,34 @@ class MirroredContent(object):
 ################################################################################
 
 class BaseHandler(webapp.RequestHandler):
+  def direction(self, language):
+      rtl = ['ar', 'fa', 'he', 'ur']
+      if language in rtl:
+          return 'RTL'
+      else:
+          return 'LTR'
+  @property
+  def language(self):
+      if not hasattr(self, "_language"):
+          self._language = 'en'
+          user = self.current_user
+          if not user:
+              try:
+                  locales = string.split(self.request.headers['Accept-Language'],',')
+              except:
+                  locales = 'en-us'
+              langloc = string.split(locales[0],'-')
+              if len(langloc[0]) > 1:
+                  self._language = langloc[0]
+          else:
+              try:
+                  locale = user.locale
+                  langloc = string.split(locale, '_')
+                  if len(langloc[0]) > 1:
+                      self._language = langloc[0]
+              except:
+                  pass
+      return self._language
   @property
   def current_user(self):
     if not hasattr(self, "_current_user"):
@@ -440,6 +468,13 @@ class MirrorHandler(BaseHandler):
     if not DEBUG:
       self.response.headers['cache-control'] = \
         'max-age=%d' % EXPIRATION_DELTA_SECONDS
+      
+    soup = BeautifulSoup(content.data)
+    to_extract = soup.findAll('script')
+    for item in to_extract:
+      item.extract()
+    content.data = soup.renderContents(encoding='utf-8')
+
     
     #content.data = clean_html(content.data)
     
@@ -449,9 +484,29 @@ class MirrorHandler(BaseHandler):
     #content.data = string.replace(content.data, '</script>', ' -->')
     content.data = string.replace(content.data, 'src=/', 'src=http://')
     content.data = string.replace(content.data, 'src="/', 'src="http://')
-    content.data = string.replace(content.data, '</head>', javascript_header + '</head>')
+    if self.current_user:
+      meta = '<meta name=facebookid content="' + self.current_user.id + '">'
+      meta = meta + '<meta name=facebookname content="' + self.current_user.name + '">'
+    else:
+      meta = '<meta name=facebookid content=""><meta name=facebookname content="">'
+    #if self.current_user:
+    try:
+      content.data = string.replace(content.data, '</head>', meta + javascript_header + '</head>')
+    except:
+      try:
+        content.data = string.replace(content.data, '</head>' + db.Text(meta + javascript_header) + '</head>')
+      except:
+        try:
+          content.data = string.replace(content.data, '</head>', javascript_header + '</head>')
+        except:
+          pass
+    #else:
+    #  content.data = db.Text(content.data, encoding='utf_8')
+    #  results = Translation.getbyurl(base_url, self.language)
+    #  for r in results:
+    #    if len(r.tt) > 3: content.data = string.replace(content.data, r.st, r.tt)
     content.data = string.replace(content.data, 'SOURCE_URL',base_url)
-
+    content.data = string.replace(content.data, 'fb:', 'fb_:')
     self.response.out.write(content.data)
     
 class OfflineHandler(webapp.RequestHandler):

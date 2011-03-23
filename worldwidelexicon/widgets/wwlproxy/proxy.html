@@ -35,15 +35,13 @@ function include(url,id) {
   }
 }
 </script>
-<title>{{ title }}</title>
-{{ metadata }}
+<title>Der Mundo</title>
 <meta http-equiv="content-type" content="application/xhtml+xml; charset=UTF-8" />
 <meta name="description" content="{{ tagline }}" />
 <meta name="keywords" content="translation, social, community, news" />
 <meta name="translate" content="n" />
 <link rel="stylesheet" type="text/css" media="screen" href="http://www.dermundo.com/dermundocss/css/screen.css" />
 {{ google_analytics }}
-<script type="text/javascript" src="http://w.sharethis.com/button/buttons.js"></script><script type="text/javascript">stLight.options({publisher:'902e01b2-5b17-45ca-9068-9bbeaf71ae2b'});</script>
 </head>
 <body>
 
@@ -64,23 +62,22 @@ function include(url,id) {
 				
 			<a name="TemplateInfo"></a>
 			<!-- frame header -->
-			<table width=100% cellspacing=2 border=0>
-			  <tr valign=top><td width=75%>
-			  {{shorturl_prompt}} : <a href={{ shorturl }}>{{ shorturl }}</a><br>
-			  {% if translators %}
-			    {{ translated_by_people }}
-			    {% for t in translators %}
-			    <a href=<a href="{{ t.profile_url }}">{{ t.name}}</a> ({{ t.city }}) ,
-			    {% endfor %}
-			  {% else %}
-			    {{ translated_by }}
-			  {% endif %}
-			  </td>
-			  <td width=25%>
-			  {{sharethis_button}}
-			  </td></tr></table>
-			<!-- proxy header -->
-			<iframe width=1000 height=3000 src=http://www.dermundo.com/www.aljazeera.net>
+			<h3>{{ statistics }}</h3>
+			<p>{{ translations }} : {{ number_of_translations}} / 
+			{{ words }} : {{ number_of_words}} / 
+			{{ percent_completed }} : {{ completion }}</p>
+			<p>{{ prompt_languages }} :
+			{% for l in translation_languages %}
+			{{ l }}
+			{% endfor %}</p>
+			{% if translatormeta %}
+			<h3>{{ translators }}</h3>
+			{{ translator_table }}
+			{% endif %}
+			<h3>{{ edit_translations }}</h3>
+			<p>{{ edit_translations_prompt }}</p>
+			<!-- translation table -->
+			{{ translation_table }}
 			<div class="clear">&nbsp;</div>
 		
 		<!-- main ends -->
