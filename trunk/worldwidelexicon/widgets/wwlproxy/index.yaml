@@ -141,23 +141,6 @@ indexes:
   - name: wordlist
   - name: datephrase
     direction: desc
-    
-- kind: TranslationStats
-  properties:
-  - name: sl
-  - name: wordlist
-  - name: wordlist
-  - name: datephrase
-    direction: desc
-    
-- kind: TranslationStats
-  properties:
-  - name: sl
-  - name: wordlist
-  - name: wordlist
-  - name: wordlist
-  - name: datephrase
-    direction: desc
 
 - kind: TranslationStats
   properties:
@@ -168,23 +151,6 @@ indexes:
 - kind: TranslationStats
   properties:
   - name: tl
-  - name: wordlist
-  - name: datephrase
-    direction: desc
-
-- kind: TranslationStats
-  properties:
-  - name: tl
-  - name: wordlist
-  - name: wordlist
-  - name: datephrase
-    direction: desc
-
-- kind: TranslationStats
-  properties:
-  - name: tl
-  - name: wordlist
-  - name: wordlist
   - name: wordlist
   - name: datephrase
     direction: desc

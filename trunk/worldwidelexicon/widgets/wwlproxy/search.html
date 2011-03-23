@@ -197,6 +197,14 @@ function include(url,id) {
                         <!--{{ language_select }}</select></p>-->
                         <!--<p>{{ input_city }}: <input type=text name=city size=40></p>-->
                         <!--<p><input type=submit value="{{ submit }}"></form</p>-->
+                        <h3>{{ translate_by_email }}</h3>
+                        <p>{{ translate_by_email_prompt }}</p>
+                        <form action=/wwl/batchtranslate method=get>
+                        <input type=hidden name=email value=y>
+                        <p>URL: <input type=text name=url size=30></p>
+                        <p>Original Language: <select name=sl>{{ language_select }}</select><p>
+                        <p>Translated Language: <select name=tl>{{ language_select }}</select><p>
+                        <p><input type=submit value=Submit></p></form>
                         {% if grouplist %}
                         <h3>{{ new_groups }}</h3>
                         {% for g in grouplist %}

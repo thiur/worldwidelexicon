@@ -26,6 +26,9 @@ import urllib
 import codecs
 import logging
 
+import email
+from google.appengine.ext import webapp 
+from google.appengine.ext.webapp.mail_handlers import InboundMailHandler
 from google.appengine.ext import db
 from google.appengine.ext import webapp
 from google.appengine.ext.webapp import util
@@ -39,6 +42,7 @@ from database import languages
 from database import Languages
 from database import Settings
 from database import Translation
+from mt import MTWrapper
 from webappcookie import Cookies
 from lsp import LSP
 from shorturl import UrlEncoder
@@ -1126,12 +1130,16 @@ class TranslationStats(db.Model):
 	wlist = item.wordlist
 	if type(wordlist) is str:
 	    wordlist = string.split(wordlist,' ')
+	pos = 0
 	for w in wordlist:
 	    w = db.Text(w, encoding = 'utf_8')
 	    if w not in wlist and len(w) < 40 and len(w) > 4:
 		wlist.append(string.lower(w))
-	item.wordlist = wlist
-	item.put()
+	try:
+	    item.wordlist = wlist
+	    item.put()
+	except:
+	    item.put()
 	
 class TrafficStats(db.Model):
     datephrase = db.StringProperty(default='')
@@ -1976,6 +1984,7 @@ class CreateProject(BaseHandler):
         self.requesthandler()
     def requesthandler(self):
 	url = urllib.unquote_plus(self.request.get('u'))
+	email = self.request.get('email')
 	if len(url) < 1:
 	    url = urllib.unquote_plus(self.request.get('url'))
 	if string.count(url, 'http://') < 1:
@@ -2222,7 +2231,9 @@ class SubmitTranslationHandler(BaseHandler):
 	self.requesthandler()
     def requesthandler(self):
 	current_user = self.current_user
-	if current_user:
+	agent = self.request.get('agent')
+	if current_user or agent == 'email':
+	    valid_user = True
 	    sl = self.request.get('sl')
 	    tl = self.request.get('tl')
 	    st = self.request.get('st')
@@ -2230,19 +2241,38 @@ class SubmitTranslationHandler(BaseHandler):
 	    tt = self.request.get('tt')
 	    tt = clean(tt)
 	    words = len(string.split(tt, ' '))
+	    action = self.request.get('action')
 	    url = self.request.get('url')
 	    url = string.replace(url, 'http://','')
-	    facebookid = str(current_user.id)
-	    access_token = current_user.access_token
-	    username = current_user.name
-	    locale = current_user.locale
-	    langloc = string.split(locale, '_')
-	    language = langloc[0]
-	    location = self.location
-	    city = location.get('city','')
-	    country = location.get('country','')
-	    profile_url = current_user.profile_url
-	    remote_addr = self.request.remote_addr
+	    urls = string.split(url, '?')
+	    if len(urls) > 1:
+		url = urls[0]
+	    if agent == 'email':
+		facebookid = self.request.get('facebookid')
+		current_user = User.fetch(facebookid)
+		if current_user is not None:
+		    profile_url = current_user.profile_url
+		    username = current_user.name
+		    city = current_user.city
+		    country = current_user.country
+		    access_token = current_user.access_token
+		    remote_addr = ''
+		else:
+		    valid_user=False
+		locale = tl
+		language = tl
+	    else:
+		facebookid = str(current_user.id)
+		access_token = current_user.access_token
+		username = current_user.name
+		locale = current_user.locale
+		langloc = string.split(locale, '_')
+		language = langloc[0]
+		location = self.location
+		city = location.get('city','')
+		country = location.get('country','')
+		profile_url = current_user.profile_url
+		remote_addr = self.request.remote_addr
 	    translations = memcache.get('/translating/' + facebookid + '/' + url)
 	    feed_posts = memcache.get('/feed_posts/' + facebookid)
 	    if translations is None and feed_posts < 6:
@@ -2275,7 +2305,7 @@ class SubmitTranslationHandler(BaseHandler):
 	    #tdb.st=st
 	    #tdb.tt=tt
 	    #tdb.put()
-	    if len(tt) > 2:
+	    if len(tt) > 2 and valid_user:
 		Translation.submit(sl=sl, tl=tl, st=st, tt=tt,\
 				   username=username, facebookid=facebookid,\
 				   remote_addr=remote_addr,\
@@ -2283,7 +2313,10 @@ class SubmitTranslationHandler(BaseHandler):
 				   url=url)
 		User.translate(facebookid, sl, tl, words, url=url)
 		TranslationStats.inc(url, shorturl='', sl=sl, tl=tl, words=words, wordlist = st + ' ' + tt, translator=username, translatorid=facebookid, translatorprofile = profile_url)
-	    self.response.out.write('ok')
+	    if action == 'batch':
+		self.redirect('http://www.dermundo.com/wwl/batchtranslate?sl=' + sl + '&tl=' + tl + '&url=' + url)
+	    else:
+		self.response.out.write('ok')
 	else:
 	    self.error(401)
 	    self.response.out.write('Facebook login required to edit translations')
@@ -2372,6 +2405,9 @@ class URLTranslationHandler(webapp.RequestHandler):
 	self.requesthandler()
     def requesthandler(self):
 	url = self.request.get('url')
+	urls = string.split(url, '?')
+	if len(urls) > 1:
+	    url = urls[0]
 	tl = self.request.get('tl')
 	text = memcache.get('/urlhistory/' + tl + '/' + url)
 	if text is not None:
@@ -2901,14 +2937,264 @@ class StreamHandler(webapp.RequestHandler):
 	self.requesthandler()
     def requesthandler(self):
 	self.response.out.write('')
-		
+	
+class BatchTranslate(BaseHandler):
+    def post(self):
+	pass
+    def get(self):
+	current_user = self.current_user
+	url = self.request.get('url')
+	sl = self.request.get('sl')
+	tl = self.request.get('tl')
+	email = self.request.get('email')
+	if email == 'y':
+	    email = True
+	else:
+	    email = False
+	translations = Translation.getbyurl(url, tl)
+	allowed_tags = ['p', 'li', 'h1','h2', 'h3', 'h4', 'h5', 'h6', 'a', 'b', 'i', 'u', 'blockquote']
+	if len(url) > 0:
+	    if email:
+		if current_user:
+		    txt = 'Simply edit the text below and send the completed translation to translate@dermundo.com when finished.\n\n'
+		else:
+		    txt = 'Please login to Facebook to edit translations.'
+		    self.response.out.write(txt)
+		    return
+	    else:
+		txt = '<table border=1><tr><td>Translator</td><td>Original Text</td><td>Translation</td><td></td></tr>'
+	    if string.count(url, 'http://') < 1: url = 'http://' + url
+	    response = urlfetch.fetch(url=url)
+	    content = response.content
+	    soup = BeautifulSoup(content)
+	    url = string.replace(url, 'http://','')
+	    results = Translation.getbyurl(url, '')
+	    translations = 0
+	    words = 0
+	    schars = 0
+	    tchars = 0
+	    completion = 0
+	    languages = list()
+	    translators = list()
+	    translatormeta = list()
+	    texts = self.localize(self.language)
+	    for r in results:
+		translations = translations + 1
+		words = words + len(string.split(r.tt, ' '))
+		if r.tl not in languages: languages.append(r.tl)
+		if r.facebookid not in translators:
+		    translators.append(r.facebookid)
+		    translator = dict(
+			name = r.username,
+			facebookid = r.facebookid,
+			profile_url = r.profile_url,
+			latitude = r.latitude,
+			longitude = r.longitude,
+			city = r.city,
+			country = r.country,
+		    )
+		    translatormeta.append(translator)
+	    results = Translation.getbyurl(url, tl)
+	    tags = soup.findAll('script')
+	    for t in tags:
+		t.extract()
+	    tags = soup.findAll('img')
+	    for t in tags:
+		t.extract()
+	    tags = soup.findAll('object')
+	    for t in tags:
+		t.extract()
+	    tags = soup.findAll('style')
+	    for t in tags:
+		t.extract()
+	    tags = soup.findAll('<!--')
+	    for t in tags:
+		t.extract()
+	    tags = soup.findAll(text=True, recursive=True)
+	    mt = MTWrapper()
+	    pos=0
+	    lt = list()
+	    if email:
+		txt = txt + 'sl=' + sl + '\n'
+		txt = txt + 'tl=' + tl + '\n'
+		txt = txt + 'url=' + url + '\n'
+		txt = txt + 'id=' + self.current_user.id + '\n'
+		txt = txt + '\n==TEXT==\n\n'
+	    sourcetexts = list()
+	    for t in tags:
+	      st = t.string
+	      if st is not None:
+		st = string.strip(st)
+		st = string.replace(st, '\n', '')
+		st = string.replace(st, '\r', '')
+		if st not in sourcetexts:
+		    sourcetexts.append(st)
+		    schars = schars + len(st)
+		    if len(st) > 3:
+			pos = pos + 1
+			tt = ''
+			for r in results:
+			  if st == r.st:
+			    if st not in lt:
+			      lt.append(st)
+			      tchars = tchars + len(st)
+			      tt = r.tt
+			      username = r.username
+			      facebookid = r.facebookid
+			      profile_url = r.profile_url
+			if not email:
+			    txt = txt + '<tr valign=top>'
+			    if len(tt) > 0:
+				txt = txt + '<td width=20%><img src=http://graph.facebook.com/' + facebookid + '/picture?type=square><br>'
+				txt = txt + '<a href=' + profile_url + '>' + username + '</a></td>'
+			    else:
+				txt = txt + '<td width=20%><img src=/dermundoimage/translate.gif><br>'
+				txt = txt + '<a href=http://www.google.com/translate>Google Translate</a></td>'
+			    txt = txt + '<td width=35%><form action=/wwl/submit method=post><input type=hidden name=action value=batch>'
+			    txt = txt + '<input type=hidden name=url value="' + url + '"><input type=hidden name=sl value=' + sl + '>'
+			    txt = txt + '<input type=hidden name=tl value=' + tl + '><textarea name=st rows=6 cols=40>' + st + '</textarea>'
+			    txt = txt + '</td><td width=35%><textarea name=tt rows=6 cols=40>'
+			    if len(tt) < 2:
+				tt = mt.getTranslation(sl=sl, tl=tl, st=st, userip=self.request.remote_addr)
+				tt = db.Text(tt, encoding='utf-8')
+				txt = txt + tt
+			    else:
+				txt = txt + tt
+			    txt = txt + '</textarea></td><td width=10%><input type=submit value=Submit>'
+			    txt = txt + '</form></td></tr>'
+			else:
+			    txt = txt + 'sl=' + sl + '\n'
+			    txt = txt + 'tl=' + tl + '\n'
+			    txt = txt + 'url=' + url + '\n'
+			    txt = txt + 'original=' + st + '\n'
+			    if len(tt) > 0:
+				txt = txt + 'old_translation=' + tt + '\n'
+			    txt = txt + 'new_translation=\n'
+			    txt = txt + '\n==TEXT==\n\n'
+	    if not email:
+		txt = txt + '</table>'
+		completion = str(int(float(float(tchars)/float(schars)) * 100)) + '%'
+		path = os.path.join(os.path.dirname(__file__), 'proxy.html')
+		args = dict(current_user=self.current_user,
+			    facebook_app_id=FACEBOOK_APP_ID)
+		args.update(texts)
+		tx = '<table width=100%><tr>'
+		col=1
+		pos=1
+		for t in translatormeta:
+		    if col > 9:
+			col = 1
+			tx = tx + '</tr>'
+			if pos < len(translatormeta): tx = tx + '<tr>'
+		    tx = tx + '<td width=10%><img src=http://graph.facebook.com/' + t.get('facebookid','') + '/picture?type=square>'
+		    tx = tx + '<br><a href=' + t.get('profile_url','') + '>' + t.get('name','') + '</a><br>'
+		    tx = tx + t.get('city','')
+		    tx = tx + '</td>'
+		    pos = pos + 1
+		tx = tx + '</tr></table>'
+			
+		template_values = dict(
+		    google_analytics = google_analytics_header,
+		    language = self.language,
+		    completion = completion,
+		    locale = self.locale,
+		    direction = self.direction(self.language),
+		    number_of_translations = translations,
+		    number_of_words = words,
+		    translation_languages = languages,
+		    translation_table = txt,
+		    translator_table = tx,
+		    translatormeta = translatormeta,
+		)
+		args.update(template_values)
+		self.response.out.write(template.render(path, args))
+	    else:
+		self.response.headers['Content-Type']='text/plain'
+		self.response.headers['Accept-Charset']='utf-8'
+		self.response.out.write(txt)
+	else:
+	    self.error(404)
+	    self.response.out.write('No URL provided')
+	    
+class HandleMail(webapp.RequestHandler):
+    def get(self):
+	self.requesthandler()
+    def post(self):
+	sender = self.request.GET.get("from", "")
+        recipient = self.request.GET.get("to", "")
+        message = email.message_from_string(self.request.body)
+	texts = string.split(message, '==END_HEADER==')
+	header = texts[0]
+	body = texts[1]
+	parms = string.split(header,'\n')
+	sl = ''
+	tl = ''
+	st = ''
+	tt = ''
+	url = ''
+	id = ''
+	name = ''
+	profile_url = ''
+	for p in parms:
+	    pv = string.split(p, '=')
+	    parm = string.strip(pv[0])
+	    value = string.strip(pv[1])
+	    if parm == 'sl':
+		sl = value
+	    elif parm == 'tl':
+		tl = value
+	    elif parm == 'url':
+		url = value
+	    elif parm == 'id':
+		id = value
+	    elif parm == 'name':
+		name = value
+	    elif parm == 'profile_url':
+		profile_url = value
+	    else:
+		pass
+	if len(id) > 0:
+	    user = User.fetch(id)
+	    name = user.name
+	    profile_url = user.profile_url
+	    city = user.city
+	    country = user.country
+	    translations = string.split(body, '==TEXT==')
+	    for t in translations:
+		tp = string.split(t, '\n')
+		pv = string.split(tp, '=')
+		if pv[0] == 'original':
+		    st = pv[1]
+		elif pv[0] == 'translation':
+		    tt = pv[1]
+		if len(sl) > 1 and len(tl) > 1 and len(url) > 3 and len(st) > 4 and len(tt) > 0:
+		    p = dict(
+			sl = sl,
+			tl = tl,
+			st = st,
+			tt = tt,
+			url = url,
+			username = name,
+			facebookid = id,
+			profile_url = profile_url,
+			agent = 'email',
+		    )
+		    taskqueue.add(url='/wwl/submit', params=p, queue_name='translations')
+	self.response.out.write('ok')
+	
+class IPAddress(webapp.RequestHandler):
+    def get(self):
+	self.response.out.write(self.request.remote_addr)
+	    
 def main():
     util.run_wsgi_app(webapp.WSGIApplication([("/secret1940", HomeHandler),
 					      ("/wwl/login", LoginHandler),
 					      ("/groups/(.*)", GroupHandler),
 					      ("/stream", StreamHandler),
+					      ("/wwl/batchtranslate", BatchTranslate),
 					      ("/wwl/facebook", FacebookIDHandler),
 					      ("/wwl/guide", DerMundoGuideSubmitHandler),
+					      ("/wwl/ip", IPAddress),
 					      ("/wwl/meta/crawl", MetaDataCrawlHandler),
 					      (r"/wwl/deletemessage/(.*)", DeleteMessageHandler),
 					      ("/wwl/meta/find", MetaDataFindHandler),
@@ -2935,6 +3221,7 @@ def main():
 					      ("/wwl/userstatsworker", UserStatsWorker),
 					      ("/wwl/trafficworker", TrafficWorker),
 					      ("/wwl/purge", PurgeHandler),
+					      ("/wwl/inboundemail", HandleMail),
 					      ("/translate/project", CreateProject),
 					      (r"/profile/(.*)", ProfileHandler),
 					      (r"/x(.*)", ProxyHandler)], debug=True))
