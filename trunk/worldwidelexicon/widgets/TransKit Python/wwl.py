@@ -13,6 +13,7 @@ features:
 * caches translations in memory and/or disk to maximize performance
 * allow user edited translations and scores
 * simple API makes fetching and submitting translations easy
+* support for direct calls to Google Translate and Apertium machine translation servers
 
 MEMCACHED SUPPORT: experimental pre-release. Works, but have not tested with memcached yet. If you have problems with it,
 let me know. I will be posting incremental updates and will work with you to resolve remaining issues.
@@ -21,12 +22,6 @@ UTF-8/UNICODE: be sure to use utf-8 encoding only. WWL is based on utf-8 with fa
 NOT use region or language specific character sets. It will break. Convert to and from UTF-8 when communicating with
 WWL services. We try our best to deal with conversions within WWL, but it works a lot better if you are careful to use
 UTF-8 as your default character encoding.
-
-PLANNED UPDATES: will be adding gettext() support in the near future, so it will then look for translations in the
-following order: 1) memcached (if running), 2) gettext, 3) local disk cache (if enabled), 4) WWL translation server.
-This will boost performance, and also allow you to leverage existing gettext localization tools and translation files.
-The current release is a prototype, so caching is not fully implemented, so it's a bit slow, but you can get an idea
-of how it all works. Have fun.
 
 """
 
@@ -86,9 +81,13 @@ def open_url(url, form_fields=None, method=None):
 
 def getCache(key):
     """
-    Function to fetch an item from memcached, if running
+    Fetch an item from memcached, if running
     """
     if len(key) > 0 and len(memcache_address) > 0 and memcache:
+        if len(key) > 250:
+            m = md5.new()
+            m.update(key)
+            key = str(m.hexdigest())
         if appengine:
             item = memcache.get(key)
         else:
@@ -100,9 +99,13 @@ def getCache(key):
     
 def setCache(key, item, ttl=600):
     """
-    Function to store an item in memcache, if running
+    Store an item in memcache, if running
     """
     if len(key) > 0 and len(memcache_address) > 0 and memcache:
+        if len(key) > 250:
+            m = md5.new()
+            m.update(key)
+            key = str(m.hexdigest())
         if appengine:
             memcache.set(key, item, ttl)
         else:
@@ -112,7 +115,48 @@ def setCache(key, item, ttl=600):
     else:
         return False
 
+def googleTestLanguage(text):
+    """
+    Determine the language a text is written in (uses Google's Language API
+    """
+    try:
+        encodedtext = urllib.quote_plus(text)
+    except:
+        try:
+            encodedtext = urllib.urlencode(text)
+        except:
+            encodedtext = ''
+    url = 'http://ajax.googleapis.com/ajax/services/language/detect?v=1.0&q=' + encodedtext
+    result = open_url(url)
+    try:
+        sl = result['responseData']['language']
+    except:
+        sl = ''
+    return sl
+
+def googleTranslate(sl, tl, text):
+    """
+    Request a machine translation from Google Translate (we will also be adding
+    support for Apertium, Systran, Language Weaver and Bing Translator in the next build)
+    """ 
+    url="http://ajax.googleapis.com/ajax/services/language/translate"
+    form_fields = dict(
+        langpair = sl + '|' + tl,
+        v = "1.0",
+        q = text,
+        ie = "UTF8",
+    )
+    result = open_url(url, form_fields=form_fields)
+    try:
+        tt = result['responseData']['translatedText']
+        return tt
+    except:
+        return ''
+
 def acceptTranslation(guid):
+    """
+    Accept a translation or score retrieved from an LSP.
+    """
     result = open_url(server_address + '/lsp/accept/' + str(guid))
     if string.count(result, 'ok') > 0:
         return True
@@ -125,6 +169,9 @@ def acceptTranslation(guid):
         return False
 
 def deleteTranslation(guid):
+    """
+    Delete a translation from the LSP job queue
+    """
     result = open_url(server_address + '/lsp/delete/' + str(guid))
     if string.count(result,'ok') > 0:
         return True
@@ -132,75 +179,217 @@ def deleteTranslation(guid):
         return False
 
 def rejectTranslation(guid):
+    """
+    Reject/redo a translation
+    """
     result = open_url(server_address + '/lsp/reject/' + str(guid))
     if string.count(result,'ok') > 0:
         return True
     else:
         return False
 
-def getTranslation(sl, tl, st, guid=None, url=None, lsp=None, username=None, pw=None, sla=None):
+def requestTranslation(sl, tl, st, username, pw, guid='', url='', sla='', callback_url='', apikey='', collection='', message=''):
+    """
+    Request a professional translation. Expects the following parameters:
+
+    sl : source language code
+    tl : target language code
+    st : source text (utf-8 encoding)
+    username : username/id for authentication with language service provider
+    pw : password or key
+    guid : record locator (optional, if omitted the LSP will assign one)
+    url : URL source text came from (optional)
+    sla : service level agreement code (optional)
+    callback_url : callback URL to submit translation to (optional)
+    apikey : secret key to include in callback request (optional)
+    collection : collection text belongs to (optional)
+    message : message for human translator (optional)
+    """
+    form_fields = dict(
+        guid = guid,
+        sl = sl,
+        tl = tl,
+        st = st,
+        url = url,
+        collection = collection,
+        message = message,
+        lspusername = username,
+        lsppw = pw,
+        sla = sla,
+        callback_url = callback_url,
+        apikey = apikey,
+        ac = 'transkit-python',
+    )
+    result = open_url(server_address + '/lsp/translate', form_fields=form_fields)
+    if string.count(result, 'ok') > 0:
+        return True
+    else:
+        return False
+
+def requestScore(guid, sl, tl, st, tt, username, pw, url='', sla='', callback_url='', apikey='', message=''):
+    """
+    Request score for a crowd translation by professional translator. Expects the following parameters:
+
+    guid : unique record locator
+    sl : source language code
+    tl : target language code
+    st : source text (utf-8 encoding)
+    tt : translated text (utf-8 encoding)
+    username : username/account ID with language service provider
+    pw : password/key
+    url : URL source text came from (optional)
+    sla : service level agreement code (optional)
+    callback_url : callback URL to submit score to (optional)
+    apikey : secret key to include in callback query (optional)
+    message : optional message for translator
+    """
+    form_fields = dict(
+        guid = guid,
+        sl = sl,
+        tl = tl,
+        st = st,
+        tt = tt,
+        url = url,
+        username = username,
+        message = message,
+        pw = pw,
+        sla = sla,
+        callback_url = callback_url,
+        apikey = apikey,
+        ac = 'transkit-python',
+    )
+    result = open_url(server_address + '/lsp/score', form_fields = form_fields)
+    if string.count(result, 'ok') > 0:
+        return True
+    else:
+        return False
+
+def getTranslation(sl, tl, st, guid='', url='', lsp='', username='', pw='', sla='', callback_url='', apikey='', collection='', message=''):
+    """
+    Get the best available translation for a text, includes option to request a professional
+    translation. Returns a list of translations as dictionaries.
+    """
     if len(sl) > 0 and len(tl) > 0 and len(st) > 0:
-        m = md5.new()
-        m.update(st)
-        md5hash = str(m.hexdigest())
-        result = getCache('/t/' + sl + '/' + tl + '/' + md5hash)
+        result = getCache('/t/' + sl + '/' + tl + '/' + st)
         if result is not None:
             return result
     form_fields = dict(
         sl = sl,
         tl = tl,
         st = st,
+        guid = guid,
+        url = url,
+        lsp = lsp,
+        lspusername = username,
+        lsppw = pw,
+        sla = sla,
+        callback_url = callback_url,
+        apikey = apikey,
+        collection = collection,
+        message = message,
+        ac = 'transkit-python',
     )
-    if guid is not None: form_fields['guid']=guid
-    if url is not None: form_fields['url']=url
-    if lsp is not None: form_fields['lsp']=lsp
-    if username is not None: form_fields['lspusername']=username
-    if pw is not None: form_fields['lsppw']=lsppw
-    if sla is not None: form_fields['sla']=sla
     result = open_url(server_address + '/t', form_fields=form_fields)
-    setCache('/t/' + sl + '/' + tl + '/' + md5hash, result)
+    setCache('/t/' + sl + '/' + tl + '/' + st, result)
+    return result
+
+def getByCollection(collection, tl):
+    """
+    Get all translated texts for a collection (up to 500 items)
+    """
+    result = getCache('/collection/' + tl + '/' + collection)
+    if result is not None:
+        return result
+    form_fields = dict(
+        collection = collection,
+        tl = tl,
+    )
+    result = open_url(server_address + '/collection/' + tl + '/' + collection)
+    setCache('/collection/' + tl + '/' + collection, result)
     return result
     
 def getByURL(url, tl=''):
+    """
+    Get all translations associated with a specific URL.
+    """
+    result = getCache('/u/' + tl + '/' + url)
+    if result is not None:
+        return result
     form_fields = dict(
         url = url,
         tl = tl,
     )
     result = open_url(server_address + '/u/' + tl + '/' + url)
+    setCache('/u/' + tl + '/' + url, result)
     return result
 
 def getRevisionHistory(st, tl=''):
+    """
+    Request the revision history for translations for a source text
+    """
+    result = getCache('/r/' + tl + '/' + st)
+    if result is not None:
+        return result
     form_fields = dict(
         st = st,
         tl = tl,
     )
     result = open_url(server_address + '/r', form_fields=form_fields, method='get')
+    setCache('/r' + tl + '/' + st, result)
     return result
 
-def submitTranslation(sl, tl, st, tt, guid=None, url=None, username=None, facebookid=None, profile_url=None):
+def submitTranslation(sl, tl, st, tt, guid='', url='', username='', facebookid='', profile_url='', apikey='', collection=''):
+    """
+    Submit a translation, expects the following parameters:
+
+    sl : source language code
+    tl : target language code
+    st : source text (utf-8 encoding)
+    tt : translated text (utf-8 encoding)
+    guid : globally unique ID (if omitted, the system will assign one)
+    url : URL source text came from
+    username : username/email of translator
+    facebookid : Facebook ID number of translator (optional)
+    profile_url : Facebook profile URL (optional)
+    apikey : secret key (for callback requests)
+    collection : collection text belongs to (optional)
+    """
     form_fields = dict(
         sl = sl,
         tl = tl,
         st = st,
         tt = tt,
+        guid = guid,
+        url = url,
+        username = username,
+        facebookid = facebookid,
+        profile_url = profile_url,
+        apikey = apikey,
+        collection = collection,
     )
-    if guid is not None: form_fields['guid']=guid
-    if url is not None: form_fields['url']=url
-    if username is not None: form_fields['username']=username
-    if facebookid is not None: form_fields['facebookid']=facebookid
-    if profile_url is not None: form_fields['profile_url']=profile_url
     result = open_url(server_address + '/submit', form_fields=form_fields)
-    return result
+    if string.count(result, 'ok') > 0:
+        return True
+    else:
+        return False
 
-def getScores(guid='', username=''):
+def getScores(guid='', username='', ip_address=''):
+    """
+    Get scores and stats for a specific translator, user or IP address
+    """
     if len(guid) > 0:
         return open_url(server_address + '/scores/' + guid)
     elif len(username) > 0:
         return open_url(server_address + '/scores/user/' + username)
+    elif len(ip_address) > 0:
+        return open_url(server_address + '/scores/user/' + ip_address)
     else:
         return
 
 def submitScore(guid, score, username='', message=''):
+    """
+    Submit a score for a translation
+    """
     form_fields = dict(
         guid = guid,
         score = score,
@@ -214,6 +403,9 @@ def submitScore(guid, score, username='', message=''):
         return False
 
 def getComments(guid, language=''):
+    """
+    Get comments about a translation
+    """
     form_fields = dict(
         guid = guid,
         language = language,
@@ -221,6 +413,9 @@ def getComments(guid, language=''):
     return open_url(server_address + '/comments', form_fields=form_fields, method='get')
 
 def submitComment(guid, language='', text='', username='', name=''):
+    """
+    Submit a comment about a translation
+    """
     form_fields = dict(
         guid = guid,
         language=language,
@@ -235,6 +430,9 @@ def submitComment(guid, language='', text='', username='', name=''):
         return False
 
 def getETA(jobtype,lsp, username, pw, sl='', tl='', sla='', words=''):
+    """
+    Get the estimated turnaround time, in minutes, for a translation project
+    """
     form_fields = dict(
         jobtype = jobtype,
         lsp = lsp,
@@ -248,6 +446,16 @@ def getETA(jobtype,lsp, username, pw, sl='', tl='', sla='', words=''):
     return open_url(server_address + '/lsp/eta', form_fields=form_fields, method='get')
 
 def getQuote(jobtype, sl, tl, sla='', username='', words=''):
+    """
+    Get an instant quote for a translation project. Expects the following parameters:
+
+    jobtype : translation, score or edit
+    sl : source language code
+    tl : target language code
+    sla : service level agreement code
+    username : username or ID
+    words : word count
+    """
     form_fields = dict(
         lsp = 'dummy',
         jobtype = jobtype,
