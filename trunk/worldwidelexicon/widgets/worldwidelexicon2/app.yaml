@@ -5,6 +5,10 @@ api_version: 1
 
 handlers:
 
+- url: /favicon.ico
+  static_files: image/favicon.ico
+  upload: image/favicon.ico
+
 - url: /code
   static_dir: code
     
