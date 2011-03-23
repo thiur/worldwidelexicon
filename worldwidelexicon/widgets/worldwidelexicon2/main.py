@@ -638,6 +638,8 @@ class Translations(db.Model):
     tl = db.StringProperty(default='')
     tt = db.TextProperty(default='')
     url = db.StringProperty(default='')
+    collection = db.StringProperty(default='')
+    ac = db.StringProperty(default='')
     remote_addr = db.StringProperty(default='')
     username = db.StringProperty(default='')
     userid = db.StringProperty(default='')
@@ -676,6 +678,12 @@ class Translations(db.Model):
         item = tdb.get()
         return item
     @staticmethod
+    def getbycollection(collection, tl, maxlen=500):
+        tdb = db.Query(Translations)
+        tdb.filter('collection = ', collection)
+        tdb.order('-date')
+        return tdb.fetch(maxlen)
+    @staticmethod
     def getbyurl(url, tl='', maxlen=100):
         string.replace(url, 'http://', '')
         string.replace(url, 'https://', '')
@@ -709,7 +717,7 @@ class Translations(db.Model):
         else:
             return False
     @staticmethod
-    def submit(sl, tl, st, tt, url='', username='', remote_addr='', human=True, professional=False, lsp=''):
+    def submit(sl, tl, st, tt, url='', username='', remote_addr='', human=True, professional=False, lsp='', ac='', collection=''):
         if len(sl) > 0 and len(tl) > 0 and len(st) > 0 and len(tt) > 0:
             st = clean(st)
             tt = clean(tt)
@@ -727,6 +735,8 @@ class Translations(db.Model):
             item.st = db.Text(st, encoding = 'utf-8')
             item.tt = db.Text(tt, encoding = 'utf-8')
             item.url = url
+            item.collection = collection
+            item.ac = ac
             item.username = username
             item.remote_addr = remote_addr
             item.human = human
@@ -872,6 +882,65 @@ class HandleAdmin(webapp.RequestHandler):
                 self.redirect('/admin')
         else:
             self.redirect('/admin')
+
+class HandleCollection(webapp.RequestHandler):
+    """
+    <h3>/collection</h3>
+    
+    <p>This request handler enables users to retrieve human edited translations
+    associated with a specific URL and optional target language. This is useful
+    when you need to retrieve a batch of translations submitted for a given URL,
+    as is common in crowd translation scenarios. The service can be called as
+    follows:</p>
+    
+    <ul><li>/collection/{target_lang_code}/{collection_id}</li>
+    <li>/collection?tl={target_lang_code}&collection={collection_id}</li>
+    </ul>
+    """
+    def get(self, tl='', collection=''):
+        if len(tl) < 1: tl = self.request.get('tl')
+        if len(collection) < 1: collection = self.request.get('collection')
+        if len(collection) > 0:
+            results = Translations.getbycollection(collection, tl=tl)
+            records = list()
+            for r in results:
+                record = dict(
+                    guid = r.guid,
+                    date = str(r.date),
+                    sl = r.sl,
+                    tl = r.tl,
+                    st = r.st,
+                    tt = r.tt,
+                    url = r.url,
+                    human = r.human,
+                    professional = r.professional,
+                    remote_addr = r.remote_addr,
+                    username = r.username,
+                )
+                records.append(record)
+            json = demjson.encode(records, encoding = 'utf-8')
+            self.response.headers['Content-Type']='text/javascript'
+            self.response.out.write(json)
+        else:
+            doc_text = self.__doc__
+            tdb = db.Query(Translations)
+            tdb.order('date')
+            item = tdb.get()
+            guid = item.guid
+            form = """
+            <h3>[GET] Request Batch Translations For A Collection</h3>
+            <table><form action=/collection method=get>
+            <tr><td>[tl] Target Language Code</td><td><input type=text name=tl></td></tr>
+            <tr><td>[collection] Collection name or ID</td><td><input type=text name=collection></td></tr>
+            <tr><td colspan=2><input type=submit value=Submit></td></tr></form></table>
+            """
+            path = os.path.join(os.path.dirname(__file__), "doc.html")
+            args = dict(
+                title = '/collection',
+                left_text = form,
+                right_text = doc_text,
+            )
+            self.response.out.write(template.render(path, args))
 
 class HandleComments(webapp.RequestHandler):
     """
@@ -1468,9 +1537,11 @@ class HandleLSPScoreRequest(webapp.RequestHandler):
     <li>tl : target language</li>
     <li>st : source text (utf8)</li>
     <li>tt : translated text (utf8)</li>
-    <li>url : (optional) URL of source page text came from</li>
+    <li>url : (optional) URL of source page text</li>
+    <li>message : (optional) message for human translator</li>
     <li>callback_url : URL to call back to submit the score</li>
     <li>apikey : API/secret key to submit with callback for security</li>
+    <li>ac : affiliate code (used to track 
     </ul>
     <p>When the translation is scored, the LSP will, in turn, POST to the callback_url provided in the
     request, and will provide the following parameters:</p>
@@ -1497,6 +1568,8 @@ class HandleLSPScoreRequest(webapp.RequestHandler):
         <tr><td>[st] Source Text (UTF8)</td><td><input type=text name=st></td></tr>
         <tr><td>[tt] Translated Text (UTF8)</td><td><input type=text name=tt></td></tr>
         <tr><td>[url] URL Text Came From</td><td><input type=text name=url></td></tr>
+        <tr><td>[message] Message for human translator</td><td><input type=text name=message></td></tr>
+        <tr><td>[ac] Affiliate code</td><td><input type=text name=ac></td></tr>
         <tr><td>[lsp] LSP ID/nickname</td><td><input type=text name=lsp></td></tr>
         <tr><td>[lspusername] LSP Username</td><td><input type=text name=lspusername></td></tr>
         <tr><td>[lsppw] LSP Password/Key</td><td><input type=text name=lsppw></td></tr>
@@ -1590,6 +1663,10 @@ class HandleLSPTranslate(webapp.RequestHandler):
         <tr><td>[tl] Target Language</td><td><input type=text name=tl></td></tr>
         <tr><td>[st] Source Text</td><td><input type=text name=st></td></tr>
         <tr><td>[tt] Translated Text (For Proofreading)</td><td><input type=text name=tt></td></tr>
+        <tr><td>[url] URL of source text</td><td><input type=text name=url></td></tr>
+        <tr><td>[message] Message for translator</td><td><input type=text name=message></td></tr>
+        <tr><td>[collection] Key/hash for parent collection (optional)></td><td><input type=text name=collection></td></tr>
+        <tr><td>[ac] Affiliate code</td><td><input type=text name=ac></td></tr>
         <tr><td>[lsp] LSP Nickname/ID</td><td><input type=text name=lsp value=dummy></td></tr>
         <tr><td>[lspusername] Username/ID</td><td><input type=text name=lspusername></td></tr>
         <tr><td>[lsppw] Password/Key</td><td><input type=text name=lsppw></td></tr>
@@ -1789,12 +1866,14 @@ class HandleSubmit(webapp.RequestHandler):
         url = self.request.get('url')
         lsp = self.request.get('lsp')
         username = self.request.get('username')
+        collection = self.request.get('collection')
+        ac = self.request.get('ac')
         remote_addr = self.request.remote_addr
         if len(lsp) > 0:
             professional = True
         else:
             professional = False
-        Translations.submit(sl, tl, st, tt, url=url, username=username, remote_addr=remote_addr, lsp=lsp, professional=professional)
+        Translations.submit(sl, tl, st, tt, url=url, username=username, remote_addr=remote_addr, collection=collection, ac=ac, lsp=lsp, professional=professional)
         self.response.out.write('ok')
     def get(self):
         doc_text = self.__doc__
@@ -1806,6 +1885,8 @@ class HandleSubmit(webapp.RequestHandler):
         <tr><td>[st] Source Text</td><td><input type=text name=st></td></tr>
         <tr><td>[tt] Translated Text</td><td><input type=text name=tt></td></tr>
         <tr><td>[url] Parent URL</td><td><input type=text name=url></td></tr>
+        <tr><td>[collection] Collection (Optional)</td><td><input type=text name=collection></td></tr>
+        <tr><td>[ac] Affiliate/Client Code</td><td><input type=text name=ac></td></tr>
         <tr><td>[username] Username</td><td><input type=text name=username></td></tr>
         <tr><td>[api] API Key (For LSP Submissions)</td><td><input type=text name=api></td></tr>
         <tr><td>[lsp] LSP Name</td><td><input type=text name=lsp></td></tr>
@@ -1908,6 +1989,9 @@ class HandleT(webapp.RequestHandler):
     <li>st : source text</li>
     <li>stencoding : source text encoding (if omitted, assumes utf-8)</li>
     <li>url : parent URL text came from (optional)</li>
+    <li>collection : name/id of collection text belongs to (optional)</li>
+    <li>message : message for human translator (optional)</li>
+    <li>ac : affiliate code or client key</li>
     <li>lsp : optional LSP name (for pro translation)</li>
     <li>lspusername : LSP username</li>
     <li>lsppw : LSP pw/key</li>
@@ -1943,6 +2027,9 @@ class HandleT(webapp.RequestHandler):
                 st = clean(st)
         else:
             st = clean(st)
+        collection = self.request.get('collection')
+        ac = self.request.get('ac')
+        message = self.request.get('message')
         lsp = self.request.get('lsp')
         lspusername = self.request.get('lspusername')
         lsppw = self.request.get('lsppw')
@@ -1958,13 +2045,16 @@ class HandleT(webapp.RequestHandler):
                         "tl" : tl,
                         "st" : st,
                         "url": url,
+                        "ac" : ac,
+                        "collection" : collection,
+                        "message" : message,
                         "lspusername" : lspusername,
                         "lsppw" : lsppw,
                         "output" : "json"
                     }
                     form_data = urllib.urlencode(form_fields)
                     #try:
-                    result = urlfetch.fetch(url=url, payload=form_data, method=urlfetch.POST, headers={'Content-Type': 'application/x-www-form-urlencoded'})
+                    result = urlfetch.fetch(url=apiurl +'/t', payload=form_data, method=urlfetch.POST, headers={'Content-Type': 'application/x-www-form-urlencoded'})
                     if result.status_code == 200:
                         memcache.set('/lsp/' + sl + '/' + tl + '/' + st, result.content, 3600)
                         return result.content
@@ -2012,18 +2102,23 @@ class HandleT(webapp.RequestHandler):
         else:
             doc_text = self.__doc__
             form = """
-            <h3>[GET] Request Best Available Translation For A Text</h3>
+            <h3>[GET/POST] Request Best Available Translation For A Text</h3>
             <table><form action=/t method=get>
             <tr><td>[sl] Source Language</td><td><input type=text name=sl></td></tr>
             <tr><td>[tl] Target Language</td><td><input type=text name=tl></td></tr>
             <tr><td>[st] Source Text</td><td><input type=text name=st></td></tr>
             <tr><td>[stencoding] Source Text Encoding (UTF8 default)</td><td><input type=text name=stencoding></td></tr>
             <tr><td>[url] Parent URL</td><td><input type=text name=url></td></tr>
+            <tr><td>[collection] Collection (optional)</td><td><input type=text name=collection></td></tr>
+            <tr><td>[ac] Affiliate/Client Code</td><td><input type=text name=ac></td></tr>
+            <tr><td>[message] Message For Human Translator (optional)</td><td><input type=text name=message></td></tr>
             <tr><td>[lsp] LSP</td><td><input type=text name=lsp></td></tr>
             <tr><td>[lspusername] LSP Username</td><td><input type=text name=lspusername></td></tr>
             <tr><td>[lsppw] LSP password/key</td><td><input type=text name=lsppw></td></tr>
             <tr><td>[allow_machine]</td><td><input type=text name=allow_machine value=y></td></tr>
             <tr><td colspan=2><input type=submit value=Submit></td></tr></form></table>
+            <p>NOTE: we recommend using the POST method, especially if your service is translating longer blocks
+            of text.</p>
             """
             path = os.path.join(os.path.dirname(__file__), "doc.html")
             args = dict(
@@ -2078,7 +2173,7 @@ class HandleU(webapp.RequestHandler):
             item = tdb.get()
             guid = item.guid
             form = """
-            <h3>[GET] Request Scores</h3>
+            <h3>[GET] Request Translations By URL</h3>
             <table><form action=/u method=get>
             <tr><td>[tl] Target Language Code</td><td><input type=text name=tl></td></tr>
             <tr><td>[url] Parent URL</td><td><input type=text name=url></td></tr>
@@ -2096,6 +2191,7 @@ class MainHandler(webapp.RequestHandler):
     """
     <h3>Worldwide Lexicon API v2</h3>
     <ul>
+    <li><a href=/collection>/collection : Get Batch of Translations For A Collection</a></li>
     <li><a href=/comments>/comments : Get/Submit Comments</a></li>
     <li><a href=/lsp/accept>/lsp/accept : Accept Completed Job From LSP (Dummy API)</a></li>
     <li><a href=/lsp/delete>/lsp/delete : Delete Job From LSP Queue (Dummy API)</a></li>
@@ -2116,7 +2212,17 @@ class MainHandler(webapp.RequestHandler):
     <li><a href=/u>/u : Request Translations for URL</a></li>
     </ul>
     <h3>Code</h3>
+    <p>As we are preparing to migrate WWL to the new API server, we are updating and extending our
+    TransKit SDKs for popular programming and scripting languages. We are currently performing
+    compatibility tests with the existing TransKit libraries and extending them to support new
+    professional translation services. Most or all of these will ship at the same time as the migration to
+    the new system.</p>
     <ul>
+    <li>TransKit/C (mid April release)</li>
+    <li>TransKit/PHP (mid April release)</li>
+    <li>TransKit/Java (mid April release)</li>
+    <li>TransKit/Javascript Widget (late April release)</li>
+    <li>TransKit/Ruby (mid April release)</li>
     <li><a href=/code/transkit-python.zip>TransKit Python</a></li>
     </ul>
     <h3>Supporting Documentation</h3>
@@ -2176,6 +2282,8 @@ def main():
     application = webapp.WSGIApplication([('/', MainHandler),
                                           (r'/admin/(.*)', HandleAdmin),
                                           ('/admin', HandleAdmin),
+                                          (r'/collection/(.*)/(.*)', HandleCollection),
+                                          ('/collection', HandleCollection),
                                           (r'/comments/(.*)', HandleComments),
                                           ('/comments', HandleComments),
                                           ('/install', HandleInstall),

@@ -60,6 +60,19 @@ indexes:
 - kind: Translations
   properties:
   - name: tl
+  - name: collection
+  - name: date
+    direction: desc
+
+- kind: Translations
+  properties:
+  - name: collection
+  - name: date
+    direction: desc
+
+- kind: Translations
+  properties:
+  - name: tl
   - name: url
   - name: date
     direction: desc
