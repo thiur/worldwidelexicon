@@ -1,27 +1,75 @@
 """
-Worldwide Lexicon Wrapper Library
+Worldwide Lexicon / SpeakLike Wrapper Library
 Brian S McConnell <bsmcconnell@gmail.com>
 
-This library enables Python based applications to easily interact with Worldwide Lexicon translation servers.
-Part of the TransKit suite of SDKs for popular programming languages, this library provides the following
-features:
+This library makes it easy to incorporate hybrid translation into any Python application. The library enables
+you to request any combination of machine, crowd (user generated) and professional translations on demand.
+The library is tightly integrated with both the Worldwide Lexicon open translation platform, and SpeakLike, a
+New York based professional translation network. Part of the TransKit suite of SDKs for popular programming
+languages, this library provides the following features:
 
 * open source, available under a BSD license
 * request any blend of professional, volunteer and machine translations on demand
 * filter translations based on translation type and quality
-* works with public and private WWL servers
 * caches translations in memory and/or disk to maximize performance
 * allow user edited translations and scores
 * simple API makes fetching and submitting translations easy
 * support for direct calls to Google Translate and Apertium machine translation servers
 
-MEMCACHED SUPPORT: experimental pre-release. Works, but have not tested with memcached yet. If you have problems with it,
+MEMCACHED SUPPORT: experimental release. Works, but have not tested with memcached yet. If you have problems with it,
 let me know. I will be posting incremental updates and will work with you to resolve remaining issues.
 
 UTF-8/UNICODE: be sure to use utf-8 encoding only. WWL is based on utf-8 with fallback to ASCII character encoding. Do
 NOT use region or language specific character sets. It will break. Convert to and from UTF-8 when communicating with
 WWL services. We try our best to deal with conversions within WWL, but it works a lot better if you are careful to use
 UTF-8 as your default character encoding.
+
+GETTING TRANSLATIONS
+
+Getting translations is very simple, just do the following:
+
+    translations = getTranslation('en','es','Hello World')
+
+You'll get the best available machine or user generated translation. To request a professional translation:
+
+    translations = getTranslation('en','es','Hello World', username='youremail', pw='yourspeaklikepw')
+
+You'll get a professional translation from SpeakLike if one is already cached, or a placeholder translation
+(usually a machine translation). There's no need to implement a complicated sync algorithm, you can just use
+this function to get the most recent translation from the translation memory. However, if you want to have
+translations pushed to your system when they are completed by SpeakLike, you can include an optional
+callback_url parameter to request asynchronous delivery. The getTranslation() function returns a list of
+dictionaries with the translations and metadata. 
+
+SUBMITTING USER GENERATED TRANSLATIONS
+
+Just do the following:
+
+    guid = submitTranslation(source_lang,target_lang,source_text,translated_text,username='your_email')
+
+It will return a unique record locator if successful, or None if the submission failed.
+
+GETTING SCORES FOR A TRANSLATION
+
+    scores = getScores(guid=record_locator)
+
+Returns a list of dictionaries containing individual scores and a composite score for the translation. You
+can also request scores for a particular translator across all translations by including the username=....
+parameter, or by IP address with ip_address=...
+
+SUBMITTING A SCORE FOR A TRANSLATION
+
+    success = submitScore(guid, score, username='scorer_name_or_email', message='optional message')
+
+CHECKING STATUS OF A TRANSLATION REQUEST
+
+
+
+CANCELING A PROFESSIONAL TRANSLATION
+
+REJECTING A PROFESSIONAL TRANSLATION
+
+
 
 """
 
@@ -153,36 +201,31 @@ def googleTranslate(sl, tl, text):
     except:
         return ''
 
-def acceptTranslation(guid):
+def deleteTransaction(guid, username, pw):
     """
-    Accept a translation or score retrieved from an LSP.
+    Delete a translation or score request from the LSP job queue
     """
-    result = open_url(server_address + '/lsp/accept/' + str(guid))
-    if string.count(result, 'ok') > 0:
-        return True
-    else:
-        if type(result) is dict:
-            try:
-                return result.get('error')
-            except:
-                return 
-        return False
-
-def deleteTranslation(guid):
-    """
-    Delete a translation from the LSP job queue
-    """
-    result = open_url(server_address + '/lsp/delete/' + str(guid))
+    form_fields=dict(
+        guid=guid,
+        lspusername=username,
+        lsppw=pw,
+    )
+    result = open_url(server_address + '/lsp/delete', form_fields=form_fields)
     if string.count(result,'ok') > 0:
         return True
     else:
         return False
 
-def rejectTranslation(guid):
+def rejectTransaction(guid, username, pw):
     """
-    Reject/redo a translation
+    Reject/redo a translation or score request
     """
-    result = open_url(server_address + '/lsp/reject/' + str(guid))
+    form_fields = dict(
+        guid=guid,
+        lspusername=username,
+        lsppw=pw,
+    )
+    result = open_url(server_address + '/lsp/reject', form_fields=form_fields)
     if string.count(result,'ok') > 0:
         return True
     else:
@@ -202,7 +245,6 @@ def requestTranslation(sl, tl, st, username, pw, guid='', url='', sla='', callba
     sla : service level agreement code (optional)
     callback_url : callback URL to submit translation to (optional)
     apikey : secret key to include in callback request (optional)
-    collection : collection text belongs to (optional)
     message : message for human translator (optional)
     """
     form_fields = dict(
@@ -211,7 +253,7 @@ def requestTranslation(sl, tl, st, username, pw, guid='', url='', sla='', callba
         tl = tl,
         st = st,
         url = url,
-        collection = collection,
+        collection=collection,
         message = message,
         lspusername = username,
         lsppw = pw,
@@ -225,6 +267,28 @@ def requestTranslation(sl, tl, st, username, pw, guid='', url='', sla='', callba
         return True
     else:
         return False
+
+def getTranslationStatus(guid, username, pw):
+    """
+    Returns the status of a professional translation task, possible return values are:
+
+    IN_PROGRESS
+    WAITING_FOR_TRANSLATORS
+    WAITING_FOR_CREDITS
+    COMPLETED
+    FAILED
+    EXPIRED
+    CANCELLED
+    REJECTED
+    NO_TRANS_REQUIRED
+    """
+    form_fields = dict(
+        guid = guid,
+        lspusername = username,
+        lsppw = pw,
+    )
+    result = open_url(server_address + '/lsp/status', form_fields=form_fields)
+    return result
 
 def requestScore(guid, sl, tl, st, tt, username, pw, url='', sla='', callback_url='', apikey='', message=''):
     """
@@ -263,11 +327,11 @@ def requestScore(guid, sl, tl, st, tt, username, pw, url='', sla='', callback_ur
         return True
     else:
         return False
-
-def getTranslation(sl, tl, st, guid='', url='', lsp='', username='', pw='', sla='', callback_url='', apikey='', collection='', message=''):
+    
+def getTranslation(sl, tl, st, guid='', url='', username='', pw='', sla='', callback_url='', apikey='', collection='', message=''):
     """
     Get the best available translation for a text, includes option to request a professional
-    translation. Returns a list of translations as dictionaries.
+    translation. Returns a list of translations as dictionaries. Returns a list of dictionaries if successful.
     """
     if len(sl) > 0 and len(tl) > 0 and len(st) > 0:
         result = getCache('/t/' + sl + '/' + tl + '/' + st)
@@ -279,7 +343,6 @@ def getTranslation(sl, tl, st, guid='', url='', lsp='', username='', pw='', sla=
         st = st,
         guid = guid,
         url = url,
-        lsp = lsp,
         lspusername = username,
         lsppw = pw,
         sla = sla,
@@ -291,21 +354,6 @@ def getTranslation(sl, tl, st, guid='', url='', lsp='', username='', pw='', sla=
     )
     result = open_url(server_address + '/t', form_fields=form_fields)
     setCache('/t/' + sl + '/' + tl + '/' + st, result)
-    return result
-
-def getByCollection(collection, tl):
-    """
-    Get all translated texts for a collection (up to 500 items)
-    """
-    result = getCache('/collection/' + tl + '/' + collection)
-    if result is not None:
-        return result
-    form_fields = dict(
-        collection = collection,
-        tl = tl,
-    )
-    result = open_url(server_address + '/collection/' + tl + '/' + collection)
-    setCache('/collection/' + tl + '/' + collection, result)
     return result
     
 def getByURL(url, tl=''):
@@ -338,7 +386,7 @@ def getRevisionHistory(st, tl=''):
     setCache('/r' + tl + '/' + st, result)
     return result
 
-def submitTranslation(sl, tl, st, tt, guid='', url='', username='', facebookid='', profile_url='', apikey='', collection=''):
+def submitTranslation(sl, tl, st, tt, guid='', url='', username='', facebookid='', profile_url='', apikey='', collection='', request_score=False, embargo=False):
     """
     Submit a translation, expects the following parameters:
 
@@ -353,7 +401,17 @@ def submitTranslation(sl, tl, st, tt, guid='', url='', username='', facebookid='
     profile_url : Facebook profile URL (optional)
     apikey : secret key (for callback requests)
     collection : collection text belongs to (optional)
+    request_score : request professional translator to score text (default = False)
+    embargo : embargo the translation until scored
     """
+    if request_score:
+        request_score = 'y'
+    else:
+        request_score = 'n'
+    if embargo:
+        embargo = 'y'
+    else:
+        embargo = 'n'
     form_fields = dict(
         sl = sl,
         tl = tl,
@@ -366,12 +424,15 @@ def submitTranslation(sl, tl, st, tt, guid='', url='', username='', facebookid='
         profile_url = profile_url,
         apikey = apikey,
         collection = collection,
+        request_score = request_score,
+        embargo = embargo,
     )
     result = open_url(server_address + '/submit', form_fields=form_fields)
-    if string.count(result, 'ok') > 0:
-        return True
+    if type(result) is dict:
+        guid = result.get('guid','')
+        return guid
     else:
-        return False
+        return
 
 def getScores(guid='', username='', ip_address=''):
     """
@@ -428,22 +489,6 @@ def submitComment(guid, language='', text='', username='', name=''):
         return True
     else:
         return False
-
-def getETA(jobtype,lsp, username, pw, sl='', tl='', sla='', words=''):
-    """
-    Get the estimated turnaround time, in minutes, for a translation project
-    """
-    form_fields = dict(
-        jobtype = jobtype,
-        lsp = lsp,
-        lspusername = username,
-        lsppw = pw,
-        sl = sl,
-        tl = tl,
-        sla = sla,
-        words = words,
-    )
-    return open_url(server_address + '/lsp/eta', form_fields=form_fields, method='get')
 
 def getQuote(jobtype, sl, tl, sla='', username='', words=''):
     """
