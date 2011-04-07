@@ -40,6 +40,9 @@ error_other = 400
 error_auth = 401
 error_not_found = 404
 
+speaklike_ttl = 300
+speaklike_ip = '208.113.71'
+
 import wsgiref.handlers
 from google.appengine.ext import webapp
 from google.appengine.ext.webapp.util import run_wsgi_app
@@ -64,6 +67,7 @@ import pydoc
 import codecs
 import types
 import random
+from xml.sax.saxutils import escape
 
 from BeautifulSoup import BeautifulSoup
 
@@ -158,10 +162,13 @@ class MTProxy():
             form_data = urllib.urlencode(form_fields)
             #try:
             result = urlfetch.fetch(url=url, payload=form_data, method=urlfetch.POST, headers={'Content-Type': 'application/x-www-form-urlencoded'})
-            results = demjson.decode(result.content, encoding='utf-8')
-            tt = clean(results['responseData']['translatedText'])
-            if len(tt) > 0:
-                memcache.set('/mt/' + mtengine + '/' + sl + '/' + tl + '/' + st, tt, 7200)
+            try:
+                results = demjson.decode(result.content, encoding='utf-8')
+                tt = clean(results['responseData']['translatedText'])
+                if len(tt) > 0:
+                    memcache.set('/mt/' + mtengine + '/' + sl + '/' + tl + '/' + st, tt, 7200)
+            except:
+                tt = ''
         return tt
         
 class Languages(db.Model):
@@ -652,6 +659,7 @@ class Translations(db.Model):
     machine = db.BooleanProperty(default=False)
     human = db.BooleanProperty(default=True)
     professional = db.BooleanProperty(default=False)
+    embargo = db.BooleanProperty(default=False)
     lsp = db.StringProperty(default='')
     avgscore = db.FloatProperty(default=5.0)
     scores = db.IntegerProperty(default=0)
@@ -717,13 +725,14 @@ class Translations(db.Model):
         else:
             return False
     @staticmethod
-    def submit(sl, tl, st, tt, url='', username='', remote_addr='', human=True, professional=False, lsp='', ac='', collection=''):
+    def submit(sl, tl, st, tt, guid='', url='', username='', remote_addr='', human=True, professional=False, embargo=False, lsp='', ac='', collection=''):
         if len(sl) > 0 and len(tl) > 0 and len(st) > 0 and len(tt) > 0:
             st = clean(st)
             tt = clean(tt)
-            m = md5.new()
-            m.update(str(datetime.datetime.now()))
-            guid = str(m.hexdigest())
+            if len(guid) < 1:
+                m = md5.new()
+                m.update(str(datetime.datetime.now()))
+                guid = str(m.hexdigest())
             m = md5.new()
             m.update(st)
             srchash = str(m.hexdigest())
@@ -741,6 +750,7 @@ class Translations(db.Model):
             item.remote_addr = remote_addr
             item.human = human
             item.professional = professional
+            item.embargo = embargo
             item.lsp = lsp
             item.put()
             # Users.inc()
@@ -1008,6 +1018,53 @@ class HandleComments(webapp.RequestHandler):
         else:
             self.error(error_other)
             self.response.out.write('Incomplete submission')
+
+class HandleDelete(webapp.RequestHandler):
+    """
+    This request handler implements the /delete request handler to delete or flag translations
+    """
+    def get(self, guid=''):
+        self.requesthandler(guid=guid)
+    def post(self, guid=''):
+        self.requesthandler(guid=guid)
+    def requesthandler(self, guid=''):
+        if len(guid) < 1: guid = self.request.get('guid')
+        apikey = self.request.get('apikey')
+        if len(guid) > 0:
+            item = Translations.getbyguid(guid)
+            if item is not None:
+                if self.request.remote_addr == item.remote_addr:
+                    item.delete()
+                    self.response.out.write('ok')
+                elif apikey == Settings.find('secret_key'):
+                    item.delete()
+                    self.response.out.write('ok')
+                else:
+                    self.error(error_auth)
+                    self.response.out.write('Not authorized')
+            else:
+                self.error(error_not_found)
+                self.response.out.write('Record not found')
+        else:
+            doc_text = self.__doc__
+            tdb = db.Query(Translations)
+            tdb.order('date')
+            item = tdb.get()
+            guid = item.guid
+            form = """
+            <h3>[GET/POST] Delete Translation</h3>
+            <table><form action=/delete method=get>
+            <tr><td>[guid] Translation GUID</td><td><input type=text name=guid value=""" + guid + """></td></tr>
+            <tr><td>[apikey] Secret API Key</td><td><input type=text name=apikey></td></tr>
+            <tr><td colspan=2><input type=submit value=Submit></td></tr></form></table>
+            """
+            path = os.path.join(os.path.dirname(__file__), "doc.html")
+            args = dict(
+                title = '/delete',
+                left_text = form,
+                right_text = doc_text,
+            )
+            self.response.out.write(template.render(path, args))
             
 class HandleInstall(webapp.RequestHandler):
     """
@@ -1077,6 +1134,55 @@ class HandleLSPAccept(webapp.RequestHandler):
             )
             self.response.out.write(template.render(path, args))
 
+class HandleLSPAuth(webapp.RequestHandler):
+    """
+    <h3>/lsp/auth</h3>
+
+    <p>This API call is used to authenticate a user with their SpeakLike credentials</p>
+    """
+    def get(self):
+        self.requesthandler()
+    def post(self):
+        self.requesthandler()
+    def requesthandler(self):
+        username = self.request.get('username')
+        if len(username) < 1: username = self.request.get('lspusername')
+        pw = self.request.get('pw')
+        if len(pw) < 1: pw = self.request.get('lsppw')
+        if len(username) > 0:
+            xml = """<SLClientMsg>
+<cmd type="Login" id="123">
+<responseFormat>json</responseFormat>
+<u>""" + username + """</u>
+<p>""" + pw + """</p>
+</cmd>
+</SLClientMsg>"""
+            xml = urllib.unquote_plus(xml)
+            url = 'http://api.speaklike.com/REST/controller/send'
+            headers = {
+                "Content-Size" : len(xml),
+                "Content-Type" : "text/plain",
+                }
+            response = urlfetch.fetch(url=url, method=urlfetch.POST, payload=xml, headers=headers)
+            #result = demjson.decode(response.content)
+            self.response.out.write(response.content)
+        else:
+            doc_text = self.__doc__
+            form = """
+            <h3>[POST] Authenticate SpeakLike user</h3>
+            <table><form action=/lsp/auth method=post>
+            <tr><td>[lspusername] SpeakLike username</td><td><input type=text name=lspusername></td></tr>
+            <tr><td>[lsppw] SpeakLike password</td><td><input type=password name=lsppw></td></tr>
+            <tr><td colspan=2><input type=submit value=Submit></td></tr></form></table>
+            """
+            path = os.path.join(os.path.dirname(__file__), "doc.html")
+            args = dict(
+                title = '/lsp/auth',
+                left_text = form,
+                right_text = doc_text,
+            )
+            self.response.out.write(template.render(path, args))
+
 class HandleLSPDelete(webapp.RequestHandler):
     """
     <h3>/lsp/delete/{jobid}</h3>
@@ -1086,25 +1192,59 @@ class HandleLSPDelete(webapp.RequestHandler):
     <p>The API call is made in the form www.baseurl.com/lsp/delete/{jobid} and responds with an HTTP error or an OK
     message. This API generates random responses and can be used for testing purposes.</p>
     """
-    def get(self, jobid=''):
-        if len(jobid) < 1:
-            jobid = self.request.get('jobid')
-        if len(jobid) > 0:
-            rnd = random.randint(0,2)
-            if rnd == 0:
-                self.response.out.write('ok')
-            elif rnd == 1:
-                self.error(error_not_found)
-                self.response.out.write('jobid not valid')
-            else:
-                self.error(error_other)
-                self.response.out.write('unable to contact LSP')
+    def get(self, guid=''):
+        if len(guid) < 1:
+            jobid = self.request.get('guid')
+        if len(guid) > 0:
+            xml = """
+            <SLClientMsg>
+            <responseFormat>json</responseFormat>
+            <cmd type="Login" id="1">
+            <u>%lspusername%</u>
+            <p>%lsppw%</p>
+            </cmd>
+            <cmd type="CancelDocument" id="2">
+            <documentId>%guid%</documentId>
+            </cmd>
+            </SLClientMsg>
+            """
+            string.replace(xml,'%lspusername%',lspusername)
+            string.replace(xml,'%lsppw%',lsppw)
+            string.replace(xml,'%guid%',guid)
+            headers = {
+                'Content-Length' : len(xml),
+                'Content-Type' : 'text/plain',
+            }
+            url = 'http://api.speaklike.com/REST/controller/send'
+            response = urlfetch.fetch(url=url, method=urlfetch.POST, payload=xml, headers=headers)
+            try:
+                result = demjson.decode(response.content)
+                cmdResponses = result.get('cmdResponses')
+                login = False
+                success = False
+                for c in cmdResponses:
+                    if c.get('id','') == '1':
+                        if c.get('success','') == 'true':
+                            login = True
+                    if c.get('id','') == '2':
+                        if c.get('success','') == 'true':
+                            success = True
+                if success:
+                    self.response.out.write('ok')
+                else:
+                    self.error(404)
+                    self.response.out.write('unable to cancel job')
+            except:
+                self.error(400)
+                self.response.out.write('Invalid response from SpeakLike')
         else:
             doc_text = self.__doc__
             form = """
             <h3>[GET] Accept Job From LSP</h3>
             <table><form action=/lsp/delete method=get>
-            <tr><td>[jobid] Job ID</td><td><input type=text name=jobid></td></tr>
+            <tr><td>[guid]Job ID</td><td><input type=text name=guid></td></tr>
+            <tr><td>[lspusername]SpeakLike username</td><td><input type=text name=lspusername></td></tr>
+            <tr><td>[lsppw]SpeakLike password</td><td><input type=text name=lsppw></td></tr>
             <tr><td colspan=2><input type=submit value=Submit></td></tr></form></table>
             """
             path = os.path.join(os.path.dirname(__file__), "doc.html")
@@ -1114,139 +1254,87 @@ class HandleLSPDelete(webapp.RequestHandler):
                 right_text = doc_text,
             )
             self.response.out.write(template.render(path, args))
-
-class HandleLSPETA(webapp.RequestHandler):
-    """
-    <h3>/lsp/eta</h3>
-
-    <p>This request handler is used to request the estimated turnaround time for a project based on language pair,
-    service level agreement and word count. We have implemented a dummy version of this API handler to illustrate how
-    queries should be handled. An LSP implementing this API should use statistical data to provide an accurate estimate
-    of job completion time based on prior transactions. The API expects the following parameters:</p>
-
-    <ul>
-    <li>lspusername : username or account ID</li>
-    <li>lsppw : user password or API key</li>
-    <li>sl : source language code</li>
-    <li>tl : target language code</li>
-    <li>jobtype : job type (translation or score)</li>
-    <li>words : word count</li>
-    <li>sla : service level agreement code</li>
-    </ul>
-
-    <p>The API will return a JSON dictionary with the fields:</p>
-
-    <ul>
-    <li>eta : estimated time to completion in minutes</li>
-    <li>message : optional message</li>
-    <li>translators : number of active translators available to process job (optional)</li>
-    </ul>
-    """
-    def get(self):
-        jobtype = self.request.get('jobtype')
-        lspusername = self.request.get('lspusername')
-        lsppw = self.request.get('lsppw')
-        sl = self.request.get('sl')
-        tl = self.request.get('tl')
-        try:
-            words = int(self.request.get('words'))
-        except:
-            jobtype=''
-        sla = self.request.get('sla')
-        if len(jobtype) > 0:
-            eta = words * 0.01 * random.randint(1, 5)
-            translators = random.randint(1, 20)
-            response = dict(
-                eta = eta,
-                translators = translators,
-                message = 'Thank you for your business',
-            )
-            json = demjson.encode(response)
-            self.response.headers['Content-Type']='text/javascript'
-            self.response.out.write(json)
-        else:
-            doc_text = self.__doc__
-            form = """
-            <h3>[GET] Get Turnaround Time Estimate From LSP</h3>
-            <table><form action=/lsp/eta method=get>
-            <tr><td>[jobtype] Job Type</td><td><select name=jobtype><option selected value=translation>Translation</option>
-            <option value=score>Score/Peer Review</option></select></td></tr>
-            <tr><td>[lspusername] Username/ID</td><td><input type=text name=lspusername></td></tr>
-            <tr><td>[lsppw] Password/key</td><td><input type=text name=lsppw></td></tr>
-            <tr><td>[sl] Source Language</td><td><input type=text name=sl></td></tr>
-            <tr><td>[tl] Target Language</td><td><input type=text name=tl></td></tr>
-            <tr><td>[sla] Service Level Agreement Code</td><td><input type=text name=sla></td></tr>
-            <tr><td>[words] Word Count</td><td><input type=text name=words></td></tr>
-            <tr><td colspan=2><input type=submit value=Submit></td></tr></form></table>
-            """
-            path = os.path.join(os.path.dirname(__file__), "doc.html")
-            args = dict(
-                title = '/lsp/eta',
-                left_text = form,
-                right_text = doc_text,
-            )
-            self.response.out.write(template.render(path, args))
         
 class HandleLSPFetch(webapp.RequestHandler):
     """
     <h3>/lsp/fetch</h3>
 
-    <p>This request handler is used to fetch a list of up to 100 completed jobs (scores and translations) which can then be
-    inspected by the client, when makes individual accept/reject decisions as it goes through this recordset. This API enables
-    clients to poll for completed scores and translations as an alternative to the asynchronous callback mechanism that is also
-    provided as an option.</p>
+    <p>This request handler is used to fetch a translation from SpeakLike, you identify the job via its unique
+    record locator. The service will reply with a JSON dictionary or an HTTP error.</p>
 
     <p>The API call is made in the form www.baseurl.com/lsp/fetch and expects the following parameters:</p>
     <ul>
-    <li>lsp : LSP nickname or ID (use 'dummy' for test calls)</li>
     <li>lspusername : LSP username or ID</li>
     <li>lsppw : user password or key</li>
-    <li>queue : optional queue name</li>
+    <li>guid : unique record locator / document ID</li>
+    <li>language : translation language (ISO code)</li>
     </ul>
 
-    <p>The service will reply with a JSON recordset or an HTTP error. 
+    <p>The service will reply with a JSON dictionary or an HTTP error. The JSON dictionary will have the following
+    fields.</p>
+
+    <ul>
+    <li>guid : unique record locator</li>
+    <li>tl : target language</li>
+    <li>tt : translated text</li>
+    </ul>
+
+    <p>In general, we recommend implementing the callback method, as this will deliver translations and post-edits to
+    your system immediately upon completion at SpeakLike. If this is not possible, for example because of firewall
+    issues, you can poll for completed translations using the /lsp/queue method to obtain a list of jobs, and then
+    fetch results for each using /lsp/fetch</p>
     """
     def get(self):
-        lsp = self.request.get('lsp')
+        self.requesthandler()
+    def post(self):
+        self.requesthandler()
+    def requesthandler(self):
+        guid = self.request.get('guid')
         lspusername = self.request.get('lspusername')
         lsppw = self.request.get('lsppw')
-        queue = self.request.get('queue')
-        if len(lsp) > 0:
-            rnd = random.randint(0,2)
-            if rnd < 2:
-                records = list()
-                record = dict(
-                    jobtype='score',
-                    guid='12345678',
-                    score=4,
-                    username='janedoe@abctranslations.com',
-                )
-                records.append(record)
-                record = dict(
-                    jobtype='translation',
-                    guid='56781234',
-                    sl='en',
-                    tl='es',
-                    st='hello',
-                    tt='hola',
-                    username='johndoe@abctranslations.com',
-                )
-                records.append(record)
-                json = demjson.encode(records)
-                self.response.headers['Content-Type']='text/javascript'
-                self.response.out.write(json)
-            else:
-                self.error(error_other)
-                self.response.out.write('unable to contact LSP')
+        language = self.request.get('language')
+        if len(lspusername) > 0:
+            xml = """
+<SLClientMsg>
+<responseFormat>json</responseFormat>
+<cmd type="Login" id="1">
+<u>%lspusername%</u>
+<p>%lsppw%</p>
+</cmd>
+<cmd type="GetDocumentStatus" id="2">
+<documentId>%guid%</documentId>
+<languages>
+<langId>%language%</langId>
+</languages>
+</cmd>
+</SLClientMsg>
+            """
+            xml = string.replace(xml, '%lspusername%', lspusername)
+            xml = string.replace(xml, '%lsppw%', lsppw)
+            xml = string.replace(xml, '%language%', language)
+            xml = string.replace(xml, '%guid%', guid)
+            headers = {
+                'Content-Length' : len(xml),
+                'Content-Type' : 'text/plain',
+            }
+            url = 'http://api.speaklike.com/REST/controller/send'
+            response = urlfetch.fetch(url=url, method=urlfetch.POST, payload=xml, headers=headers)
+            try:
+                result = demjson.decode(response.content)
+                self.response.out.write(str(result))
+            except:
+                self.error(400)
+                self.response.out.write('Unexpected response from SpeakLike')
+                self.response.out.write(response.content)
         else:
             doc_text = self.__doc__
             form = """
-            <h3>[GET] Fetch Completed Jobs From LSP</h3>
-            <table><form action=/lsp/fetch method=get>
-            <tr><td>[lsp] LSP ID</td><td><input type=text name=lsp value=dummy></td></tr>
-            <tr><td>[lspusername] LSP Username</td><td><input type=text name=lspusername value=foo></td></tr>
-            <tr><td>[lsppw] LSP PW/Key</td><td><input type=text name=lsppw value=bar></td></tr>
-            <tr><td>[queue] Queue Name</td><td><input type=text name=queue></td></tr>
+            <h3>[GET/POST] Fetch Completed Job From SpeakLike</h3>
+            <table><form action=/lsp/fetch method=post>
+            <tr><td>[lspusername] SpeakLike Username</td><td><input type=text name=lspusername value=foo></td></tr>
+            <tr><td>[lsppw] SpeakLike PW/Key</td><td><input type=text name=lsppw value=bar></td></tr>
+            <tr><td>[guid] Unique record locator</td><td><input type=text name=guid></td></tr>
+            <tr><td>[language] Translation language code</td><td><input type=text name=language></td></tr>
             <tr><td colspan=2><input type=submit value=Submit></td></tr></form></table>
             """
             path = os.path.join(os.path.dirname(__file__), "doc.html")
@@ -1278,16 +1366,41 @@ class HandleLSPQueue(webapp.RequestHandler):
     The service returns a JSON recordset containing a list of pending jobs in oldest to newest order.
     """
     def get(self):
-        lsp = self.request.get('lsp')
+        self.requesthandler()
+    def post(self):
+        self.requesthandler()
+    def requesthandler(self):
         lspusername = self.request.get('lspusername')
         lsppw = self.request.get('lsppw')
-        queue = self.request.get('queue')
         sl = self.request.get('sl')
         tl = self.request.get('tl')
         if len(lspusername) > 0:
-            pass
+            xml = """
+<SLClientMsg>
+<responseFormat>json</responseFormat>
+<cmd type="GetDocumentsPage" id="2">
+
+</cmd>
+</SLClientMsg>
+            """
         else:
-            pass
+            doc_text = self.__doc__
+            form = """
+            <h3>[GET/POST] View SpeakLike Translation Queue</h3>
+            <table><form action=/lsp/queue method=post>
+            <tr><td>[lspusername] SpeakLike Username</td><td><input type=text name=lspusername></td></tr>
+            <tr><td>[lsppw] SpeakLike Password</td><td><input type=password name=lsppw></td></tr>
+            <tr><td>[sl] Source Language</td><td><input type=text name=sl></td></tr>
+            <tr><td>[tl] Target Language</td><td><input type=text name=tl></td></tr>
+            <tr><td colspan=2><input type=submit value=Submit></td></tr></form></table>
+            """
+            path = os.path.join(os.path.dirname(__file__), "doc.html")
+            args = dict(
+                title = '/lsp/queue',
+                left_text = form,
+                right_text = doc_text,
+            )
+            self.response.out.write(template.render(path, args))
             
 class HandleLSPQuote(webapp.RequestHandler):
     """
@@ -1401,88 +1514,6 @@ class HandleLSPQuote(webapp.RequestHandler):
             )
             self.response.out.write(template.render(path, args))
 
-class HandleLSPRegister(webapp.RequestHandler):
-    """
-    <h3>/lsp/register</h3>
-
-    <p>This request handler is used to auto-register an LSP with the Worldwide Lexicon network. The API will create
-    a mapping for the LSP, as well as make test API calls to the LSP to verify their correct operation. LSPs should
-    periodically call this API to announce their presence to the network, and whenever API URLs change on their side.</p>
-
-    <p>The API expects the following parameters:</p>
-    <ul>
-    <li>www : the hostname of the LSP's primary website</li>
-    <li>apiurl : the base URL where the /t and /lsp/* API handlers reside</li>
-    <li>name : company name</li>
-    </ul>
-
-    <p>The service will reply with OK if the APIs work, or an error code if it is unable to contact your API server.</p>
-    """
-    def get(self):
-        doc_text = self.__doc__
-        form = """
-        <h3>[POST] Register LSP API Handler</h3>
-        <table><form action=/lsp/register method=post>
-        <tr><td>[www] LSP's primary web address</td><td><input type=text name=www></td></tr>
-        <tr><td>[apiurl] Base URL for API handlers</td><td><input type=text name=apiurl></td></tr>
-        <tr><td>[name] Company Name</td><td><input type=text name=name></td></tr>
-        <tr><td colspan=2><input type=submit value=Submit></td></tr></form></table>
-        """
-        path = os.path.join(os.path.dirname(__file__), "doc.html")
-        args = dict(
-            title = '/lsp/register',
-            left_text = form,
-            right_text = doc_text,
-        )
-        self.response.out.write(template.render(path, args))
-    def post(self):
-        www = self.request.get('www')
-        apiurl = self.request.get('apiurl')
-        name = self.request.get('name')
-        www = string.replace(www, 'http://','')
-        www = string.replace(www, 'https://','')
-        dn = string.split(www, '.')
-        domain = www
-        # test API URLs
-        # test /t handler
-        form_fields={
-            "sl" : "en",
-            "tl" : "es",
-            "st" : "hello world",
-            "output" : "json",
-        }
-        form_data = urllib.urlencode(form_fields)
-        if string.count(apiurl,'http://') > 0 or string.count(apiurl, 'https://') > 0:
-            pass
-        else:
-            apiurl = 'http://' + apiurl
-        valid_json = True
-        try:
-            result = urlfetch.fetch(url=apiurl, payload=form_data, method=urlfetch.POST, headers={'Content-Type': 'application/x-www-form-urlencoded'})
-        except:
-            valid_json=False
-        # validate JSON and test other API handlers (to be added later)
-        ldb = db.Query(LSPs)
-        ldb.filter('id = ', domain)
-        item = ldb.get()
-        if item is None:
-            m = md5.new()
-            m.update(str(datetime.datetime.now()))
-            apikey = str(m.hexdigest())
-            item = LSPs()
-            item.id = domain
-            item.apikey = apikey
-        item.name = name
-        item.apiurl = apiurl
-        item.www = www
-        item.working = valid_json
-        item.put()
-        if valid_json:
-            self.response.out.write('ok')
-        else:
-            self.error(error_not_found)
-            self.response.out.write('invalid response from ' + apiurl + '/t')
-
 class HandleLSPReject(webapp.RequestHandler):
     """
     <h3>/lsp/reject/{jobid}</h3>
@@ -1527,27 +1558,30 @@ class HandleLSPScoreRequest(webapp.RequestHandler):
     """
     <h3>/lsp/score</h3>
     <p>This request handler enables a user to request a score from a professional translator
-    for a translation. This request handler is provided as an example (dummy handler) to illustrate
-    the API call to the LSP and expected callback to the WWL server.<p>
-    <p>The LSP should answer calls to www.lspapiserver.com/lsp/requestscore and expect the following
-    parameters in a POST form:</p>
+    for a translation. This service is provided by <a href=http://www.speaklike.com>SpeakLike</a>. If
+    you would like to use this to vet translations by your staff, users or volunteers, contact
+    brian@speaklike.com for more information.</p>
+    <p>The API expects the following parameters:</p>
     <ul>
-    <li>guid : translation record locator</li>
-    <li>sl : source language</li>
-    <li>tl : target language</li>
-    <li>st : source text (utf8)</li>
-    <li>tt : translated text (utf8)</li>
-    <li>url : (optional) URL of source page text</li>
-    <li>message : (optional) message for human translator</li>
-    <li>callback_url : URL to call back to submit the score</li>
-    <li>apikey : API/secret key to submit with callback for security</li>
-    <li>ac : affiliate code (used to track 
+    <li>guid : translation record locator (required)</li>
+    <li>sl : source language (required)</li>
+    <li>tl : target language (required)</li>
+    <li>st : source text (utf8, required)</li>
+    <li>tt : translated text (utf8, required)</li>
+    <li>url : URL of source page text (optional)</li>
+    <li>message : message for human translator (optional)</li>
+    <li>callback_url : URL to call back to submit the score (required)</li>
+    <li>ac : affiliate code (used to track requests from third party tools</li>
+    </ul>
+    <p>The service will reply with a JSON dictionary containing the following fields, or an HTTP error:</p>
+    <ul>
+    <li>guid : unique record locator / job id</li>
+    <li>status : "ok"</li>
     </ul>
     <p>When the translation is scored, the LSP will, in turn, POST to the callback_url provided in the
     request, and will provide the following parameters:</p>
     <ul>
     <li>guid : translation record locator</li>
-    <li>apikey : API key linked to LSP (for security)</li>
     <li>score : 0 to 5 (5 being native quality, 0 being junk/spam)</li>
     <li>score_ip : IP address of scoring translator (optional)</li>
     <li>score_userid : Username/email of scoring translator (optional)</li>
@@ -1568,11 +1602,10 @@ class HandleLSPScoreRequest(webapp.RequestHandler):
         <tr><td>[st] Source Text (UTF8)</td><td><input type=text name=st></td></tr>
         <tr><td>[tt] Translated Text (UTF8)</td><td><input type=text name=tt></td></tr>
         <tr><td>[url] URL Text Came From</td><td><input type=text name=url></td></tr>
-        <tr><td>[message] Message for human translator</td><td><input type=text name=message></td></tr>
-        <tr><td>[ac] Affiliate code</td><td><input type=text name=ac></td></tr>
-        <tr><td>[lsp] LSP ID/nickname</td><td><input type=text name=lsp></td></tr>
-        <tr><td>[lspusername] LSP Username</td><td><input type=text name=lspusername></td></tr>
-        <tr><td>[lsppw] LSP Password/Key</td><td><input type=text name=lsppw></td></tr>
+        <tr><td>[message] Message for Translator</td><td><input type=text name=message></td></tr>
+        <tr><td>[ac] Affiliate Code</td><td><input type=text name=ac></td></tr>
+        <tr><td>[lspusername] SpeakLike Username</td><td><input type=text name=lspusername></td></tr>
+        <tr><td>[lsppw] SpeakLike Password</td><td><input type=text name=lsppw></td></tr>
         <tr><td colspan=2><input type=submit value=Submit></td></tr></form></table>
         """
         path = os.path.join(os.path.dirname(__file__), "doc.html")
@@ -1584,8 +1617,16 @@ class HandleLSPScoreRequest(webapp.RequestHandler):
         self.response.out.write(template.render(path, args))
     def post(self):
         rnd = random.randint(0,2)
+        m = md5.new()
+        m.update(str(datetime.datetime.now()))
+        guid = str(m.hexdigest())
         if rnd < 2:
-            self.response.out.write('ok')
+            response = dict(
+                guid = guid,
+                status = 'ok',
+            )
+            self.response.headers['text/javascript']
+            self.response.out.write(demjson.encode(response))
         else:
             self.error(error_not_found)
             self.response.out.write('error')
@@ -1594,48 +1635,100 @@ class HandleLSPStatus(webapp.RequestHandler):
     """
     <h3>/lsp/status</h3>
 
-    <p>This API call is used to request the status of an LSP's web service, queue times and other
-    operational metrics. Clients can use this, for example, to estimate job completion times, and
-    generally assess how busy the LSP is.</p>
+    <p>This API call is used to request the status of a job, and expects the following parameters:</p>
+    <ul>
+    <li>guid : record locator id</li>
+    <li>lspusername : SpeakLike username or email</li>
+    <li>lsppw : SpeakLike password</li>
+    </ul>
+
+    <p>The service returns an HTTP error, or on success, returns a JSON dictionary with the following fields:</p>
+    <ul>
+    <li>guid : job id</li>
+    <li>status : job status</li>
+    </ul>
+
+    <p>The job status can be on the following:</p>
+    <ul>
+    <li>IN_PROGRESS</li>
+    <li>WAITING_FOR_TRANSLATORS</li>
+    <li>WAITING_FOR_CREDITS</li>
+    <li>COMPLETED</li>
+    <li>FAILED</li>
+    <li>EXPIRED</li>
+    <li>CANCELLED</li>
+    <li>REJECTED</li>
+    <li>NO_TRANS_REQUIRED</li>
+    </ul>
     """
-    def get(self):
+    def get(self, guid=''):
+        self.requesthandler(guid)
+    def post(self, guid=''):
+        self.requesthandler(guid)
+    def requesthandler(self, guid=''):
+        guid = self.request.get('guid')
         lspusername = self.request.get('lspusername')
         lsppw = self.request.get('lsppw')
-        lsp = self.request.get('lsp')
-        sla = self.request.get('sla')
-        if len(lsp) > 0:
-            active = random.randint(0,1)
-            if active > 0:
-                translators = random.randint(0,250)
-                min_eta = random.randint(1, 20)
-                average_eta = random.randint(30, 240)
-                max_eta = random.randint(240, 1200)
-                message = 'Thank you for your business'
-            else:
-                translators = 0
-                min_eta = None
-                average_eta = None
-                max_eta = None
-                message = 'System down for maintenance. Sorry.'
-            status = dict(
-                translators = translators,
-                min_eta = min_eta,
-                average_eta = average_eta,
-                max_eta = max_eta,
-                message = message,
-            )
-            json = demjson.encode(status)
-            self.response.headers['Content-Type']='text/javascript'
-            self.response.out.write(json)
+        if len(guid) > 0:
+            xml="""
+    <SLClientMsg>
+    <responseFormat>json</responseFormat>
+    <cmd type="Login" id="1">
+    <u>%lspusername%</u>
+    <p>%lsppw%</p>
+    </cmd>
+    <cmd type="GetDocument" id="2">
+    <documentId>%guid%</documentId>
+    </cmd>
+    </SLClientMsg>
+            """
+            xml = string.replace(xml, '%lspusername%', lspusername)
+            xml = string.replace(xml, '%lsppw%', lsppw)
+            xml = string.replace(xml, '%guid%', guid)
+            headers = {
+                'Content-Length' : len(xml),
+                'Content-Type' : 'text/plain',
+            }
+            url = 'http://api.speaklike.com/REST/controller/send'
+            response = urlfetch.fetch(url, payload=xml, method=urlfetch.POST, headers = headers)
+            try:
+                status = demjson.decode(response.content)
+                cmdResponses = status.get('cmdResponses')
+                login = False
+                success = False
+                status = ''
+                for c in cmdResponses:
+                    if c.get('id','') == '1':
+                        if c.get('success','') == 'true':
+                            login = True
+                    if c.get('id','') == '2':
+                        if c.get('success','') == 'true':
+                            success = True
+                            status = c.get('status','')
+                response = dict(
+                    guid = guid,
+                    status = status,
+                )
+                if success:
+                    self.response.headers['Content-Type']='text/javascript'
+                    self.response.out.write(demjson.encode(response))
+                elif not login:
+                    self.error(401)
+                    self.response.out.write('Invalid login credentials')
+                else:
+                    self.error(400)
+                    self.response.out.write('Invalid request')
+            except:
+                self.error(400)
+                self.response.out.write('Invalid response from SpeakLike')
         else:
             doc_text = self.__doc__
             form = """
             <h3>[GET] Get Status of LSP Web Service</h3>
             <table><form action=/lsp/status method=get>
-            <tr><td>[lsp] LSP Nickname/ID</td><td><input type=text name=lsp value=dummy></td></tr>
             <tr><td>[lspusername] Username/ID</td><td><input type=text name=lspusername></td></tr>
             <tr><td>[lsppw] Password/Key</td><td><input type=text name=lsppw></td></tr>
-            <tr><td>[sla] SLA Code</td><td><input type=text name=sla></td></tr>
+            <tr><td>[guid] Job or Document ID</td><td><input type=text name=guid></td></tr>
             <tr><td colspan=2><input type=submit value=Submit></td></tr></form></table>
             """
             path = os.path.join(os.path.dirname(__file__), "doc.html")
@@ -1649,27 +1742,39 @@ class HandleLSPStatus(webapp.RequestHandler):
 class HandleLSPTranslate(webapp.RequestHandler):
     """
     <h3>/lsp/translate</h3>
-    <p>This request handler enables you to submit a request for translation or proof reading an existing translation.
-    The API will queue your request, which you can pick up using the /lsp/fetch API call, or you can provide a callback
-    URL which we will call when your job is completed.</p>
+    <p>This request handler enables you to submit a request for translation.
+    The API will queue your request, the results will be delivered to the callback handler you provide.
+    The callback handler should expect the fields:</p>
+    <ul>
+    <li>guid : unique record locator</li>
+    <li>sl : source language</li>
+    <li>tl : target language</li>
+    <li>st : source text</li>
+    <li>tt : translated text</li>
+    <li>url : URL text originated from</li>
+    </ul>
+    <p>The request handler will reply with an HTTP error, or if successful a JSON dictionary with the following
+    fields:</p>
+    <ul>
+    <li>status : "ok"</li>
+    <li>guid : unique record locator created by SpeakLike</li>
+    <li>callback_url : callback url the results will be sent to (for troubleshooting)</li>
+    </ul>
     """
     def get(self):
         doc_text = self.__doc__
         form = """
         <h3>[POST] Request Translation Or Proof Read Job</h3>
         <table><form action=/lsp/translate method=post>
-        <tr><td>[guid] Record Locator (if omitted, system will create one)</td><td><input type=text name=guid></td></tr>
         <tr><td>[sl] Source Language</td><td><input type=text name=sl></td></tr>
         <tr><td>[tl] Target Language</td><td><input type=text name=tl></td></tr>
         <tr><td>[st] Source Text</td><td><input type=text name=st></td></tr>
         <tr><td>[tt] Translated Text (For Proofreading)</td><td><input type=text name=tt></td></tr>
         <tr><td>[url] URL of source text</td><td><input type=text name=url></td></tr>
         <tr><td>[message] Message for translator</td><td><input type=text name=message></td></tr>
-        <tr><td>[collection] Key/hash for parent collection (optional)></td><td><input type=text name=collection></td></tr>
         <tr><td>[ac] Affiliate code</td><td><input type=text name=ac></td></tr>
-        <tr><td>[lsp] LSP Nickname/ID</td><td><input type=text name=lsp value=dummy></td></tr>
-        <tr><td>[lspusername] Username/ID</td><td><input type=text name=lspusername></td></tr>
-        <tr><td>[lsppw] Password/Key</td><td><input type=text name=lsppw></td></tr>
+        <tr><td>[lspusername] SpeakLike Username/ID</td><td><input type=text name=lspusername></td></tr>
+        <tr><td>[lsppw] SpeakLike Password/Key</td><td><input type=text name=lsppw></td></tr>
         <tr><td>[sla] SLA Code</td><td><input type=text name=sla></td></tr>
         <tr><td>[callback_url] Callback URL</td><td><input type=text name=callback_url></td></tr>
         <tr><td>[apikey] API key for callback</td><td><input type=text name=apikey></td></tr>
@@ -1683,7 +1788,6 @@ class HandleLSPTranslate(webapp.RequestHandler):
         )
         self.response.out.write(template.render(path, args))
     def post(self):
-        guid = self.request.get('guid')
         sl = self.request.get('sl')
         tl = self.request.get('tl')
         st = self.request.get('st')
@@ -1692,11 +1796,204 @@ class HandleLSPTranslate(webapp.RequestHandler):
         lspusername = self.request.get('lspusername')
         lsppw = self.request.get('lsppw')
         sla = self.request.get('sla')
-        if random.randint(0,1) > 0:
-            self.response.out.write('ok')
+        callback_url = self.request.get('callback_url')
+        if len(callback_url) > 0:
+            if string.count(callback_url, 'http:') < 1:
+                callback_url = 'http://' + callback_url
+        api_url = 'http://api.speaklike.com/REST/controller/send'
+        if len(sl) > 0 and len(tl) > 0 and len(st) > 0 and len(lspusername) > 0 and len(lsppw) > 0:
+            xml = """
+<SLClientMsg>
+<responseFormat>json</responseFormat>
+<cmd type="Login" id="1">
+<u>%lspusername%</u>
+<p>%lsppw%</p>
+</cmd>
+<cmd type="SubmitDocument" id="2">
+<document>
+<originalLangId>%sl%</originalLangId>
+<targetLanguages>
+<langId>%tl%</langId>
+</targetLanguages>
+<mimeType>text/plain</mimeType>
+<encoding>none</encoding>
+<contents>%st%</contents>
+<contextUrl>%url%</contextUrl>
+</document>
+<callback type="translationComplete" method="FORM">
+<url>http://worldwidelexicon2.appspot.com/submit</url>
+<formParams>
+<param name="sl" val="%SPEAKLIKE_SOURCE_LANG_ID%"/>
+<param name="tl" val="%SPEAKLIKE_TARGET_LANG_IDS%"/>
+<param name="st" val="%SPEAKLIKE_ORIGINAL_CONTENTS%"/>
+<param name="tt" val="%SPEAKLIKE_TRANSLATED_CONTENTS_%tl%%"/>
+<param name="guid" val="%SPEAKLIKE_DOCUMENT_ID%"/>
+</formParams>
+<expectedResponse>ok</expectedResponse>
+</callback>
+</cmd>
+</SLClientMsg>
+            """
+            xml = string.replace(xml,'%lspusername%', lspusername)
+            xml = string.replace(xml,'%lsppw%', lsppw)
+            xml = string.replace(xml,'%sl%',sl)
+            xml = string.replace(xml,'%tl%', tl)
+            xml = string.replace(xml,'%st%', escape(st))
+            xml = string.replace(xml,'%url%', url)
+            #xml = string.replace(xml,'%callback_url%', callback_url)
+            headers = {
+                "Content-Length" : len(xml),
+                "Content-Type" : "text/plain",
+                }
+            url = 'http://api.speaklike.com/REST/controller/send'
+            response = urlfetch.fetch(url=url, method=urlfetch.POST, payload=xml, headers=headers)
+            try:
+                json = demjson.decode(response.content)
+                cmdResponses = json.get('cmdResponses')
+                login = False
+                success = False
+                guid = ''
+                for c in cmdResponses:
+                    if c.get('id','') == '1':
+                        if c.get('success','') == 'true':
+                            login = True
+                    if c.get('id','') == '2':
+                        if c.get('success','') == 'true':
+                            success = True
+                            guid = c.get('documentId','')
+                if login:
+                    if success:
+                        response = dict(
+                            guid = guid,
+                            callback_url = callback_url,
+                            status = 'ok',
+                        )
+                        self.response.headers['Content-Type']='text/javascript'
+                        self.response.out.write(demjson.encode(response))
+                    else:
+                        self.error(400)
+                        self.response.out.write('Unable to process translation request')
+                else:
+                    self.error(401)
+                    self.response.out.write('Invalid credentials')
+            except:
+                json = dict()
+                self.error(400)
+                self.response.out.write('Invalid response received from SpeakLike')
+                self.response.out.write(response.content)
         else:
-            self.error(error_other)
-            self.response.out.write('error')
+            self.error(400)
+            self.response.out.write('Required parameters not present')
+
+class HandleLSPTranslatorStatus(webapp.RequestHandler):
+    """
+    <h3>/lsp/translatorstatus</h3>
+
+    <p>This API is used to find out how many translators are registered or on call for a given
+    language. The API expects the following parameters:</p>
+    <ul>
+    <li>lspusername : SpeakLike username</li>
+    <li>lsppw : SpeakLike password</li>
+    <li>language : Primary (Key) language (ISO code)</li>
+    </ul>
+
+    <p>The API returns an HTTP error code or a JSON recordset with the following fields for each
+    record:</p>
+    <ul>
+    <li>sl : source (from) language</li>
+    <li>tl : target (to) language</li>
+    <li>registered : number of registered translators</li>
+    <li>oncall : number of translators on call now</li>
+    </ul>
+    """
+    def get(self):
+        self.requesthandler()
+    def post(self):
+        self.requesthandler()
+    def requesthandler(self):
+        lspusername=self.request.get('lspusername')
+        lsppw=self.request.get('lsppw')
+        language=self.request.get('language')
+        if len(lspusername) > 0:
+            xml = """
+            <SLClientMsg>
+            <responseFormat>json</responseFormat>
+            <cmd type="Login" id="1">
+            <u>%lspusername%</u>
+            <p>%lsppw%</p>
+            </cmd>
+            <cmd type="GetLanguagesStatus" id="2">
+            <userLang>%language%</userLang>
+            </cmd>
+            </SLClientMsg>
+            """
+            xml = string.replace(xml,'%lspusername%',lspusername)
+            xml = string.replace(xml,'%lsppw%',lsppw)
+            xml = string.replace(xml,'%language%',language)
+            url = 'http://api.speaklike.com/REST/controller/send'
+            headers = {
+                'Content-Type' : 'text/plain',
+                'Content-Length' : len(xml),
+            }
+            response = urlfetch.fetch(url, method=urlfetch.POST, payload=xml, headers=headers)
+            try:
+                result=demjson.decode(response.content)
+                cmdResponses=result.get('cmdResponses')
+                login=False
+                results = list()
+                total_registered = 0
+                total_oncall = 0
+                for c in cmdResponses:
+                    if c.get('id','') == '1':
+                        if c.get('success','') == 'true': login = True
+                    if c.get('id','') == '2':
+                        languages = c.get('languages')
+                        for l in languages:
+                            langDirs = l.get('langDirs')
+                            for ld in langDirs:
+                                lp = ld.get('langStatus')
+                                sl = lp.get('from')
+                                tl = lp.get('to')
+                                registered = lp.get('registered')
+                                oncall = lp.get('onCall')
+                                total_registered = total_registered + int(registered)
+                                total_oncall = total_oncall + int(oncall)
+                                langpair = dict(
+                                    sl = sl,
+                                    tl = tl,
+                                    registered = registered,
+                                    oncall = oncall,
+                                )
+                                results.append(langpair)
+                langpair = dict(
+                    sl = 'all',
+                    tl = 'all',
+                    registered = total_registered,
+                    oncall = total_oncall,
+                )
+                results.append(langpair)
+                self.response.out.write(demjson.encode(results))
+            except:
+                self.error(400)
+                self.response.out.write('Unexpected response from SpeakLike')
+                self.response.out.write(response.content)
+        else:
+            doc_text = self.__doc__
+            form = """
+            <h3>[GET/POST] Request Translator Status and Availability</h3>
+            <table><form action=/lsp/translatorstatus method=post>
+            <tr><td>[lspusername] SpeakLike Username</td><td><input type=text name=lspusername></td></tr>
+            <tr><td>[lsppw] SpeakLike Password</td><td><input type=text name=lsppw></td></tr>
+            <tr><td>[language] User's Primary Language</td><td><input type=text name=language></td></tr>
+            <tr><td colspan=2><input type=submit value=Submit></td></tr></form></table>
+            """
+            path = os.path.join(os.path.dirname(__file__), "doc.html")
+            args = dict(
+                title = '/lsp/translatorstatus',
+                left_text = form,
+                right_text = doc_text,
+            )
+            self.response.out.write(template.render(path, args))
         
 class HandleMirror(webapp.RequestHandler):
     def get(self):
@@ -1775,7 +2072,10 @@ class HandleScoresTranslation(webapp.RequestHandler):
         if valid_score:
             username = self.request.get('username')
             userip = self.request.remote_addr
-            score_type = 'crowd'
+            if string.count(remote_addr, speaklike_ip) > 0:
+                score_type = 'professional'
+            else:
+                score_type = 'crowd'
             if len(guid) > 0:
                 if Scores.save(guid, score, score_userid=username, score_ip=userip, score_type=score_type):
                     self.response.out.write('ok')
@@ -1858,6 +2158,7 @@ class HandleSubmit(webapp.RequestHandler):
     it should be accompanied with an API key assigned to the LSP.</p>
     """
     def post(self):
+        guid = self.request.get('guid')
         sl = self.request.get('sl')
         tl = self.request.get('tl')
         st = clean(self.request.get('st'))
@@ -1867,19 +2168,53 @@ class HandleSubmit(webapp.RequestHandler):
         lsp = self.request.get('lsp')
         username = self.request.get('username')
         collection = self.request.get('collection')
+        request_score = self.request.get('request_score')
+        lspusername = self.request.get('lspusername')
+        lsppw = self.request.get('lsppw')
+        if request_score == 'y':
+            request_score = True
+        else:
+            request_score = False
+        embargo = self.request.get('embargo')
+        if embargo == 'y':
+            embargo = True
+        else:
+            embargo = False
         ac = self.request.get('ac')
         remote_addr = self.request.remote_addr
         if len(lsp) > 0:
             professional = True
         else:
             professional = False
-        Translations.submit(sl, tl, st, tt, url=url, username=username, remote_addr=remote_addr, collection=collection, ac=ac, lsp=lsp, professional=professional)
-        self.response.out.write('ok')
+        if string.count(remote_addr, '208.113.71') > 0:
+            professional = True
+            lsp = 'speaklike'
+            username = 'speaklike'
+        guid = Translations.submit(sl, tl, st, tt, guid=guid, url=url, username=username, remote_addr=remote_addr, embargo=embargo, collection=collection, ac=ac, lsp=lsp, professional=professional)
+        result = dict(
+            guid = guid,
+            response = 'ok',
+        )
+        json = demjson.encode(result)
+        self.response.out.write(json)
+        if request_score:
+            p = dict(
+                guid = guid,
+                sl = sl,
+                st = st,
+                tl = tl,
+                tt = tt,
+                url = url,
+                lspusername = lspusername,
+                lsppw = lsppw,
+            )
+            taskqueue.add(url='/lsp/score', params=p)
     def get(self):
         doc_text = self.__doc__
         form = """
         <h3>[POST] Submit Translation For A Text</h3>
         <table><form action=/submit method=post>
+        <tr><td>[guid] Unique record locator (system will generate it if blank)</td><td><input type=text name=guid></td></tr>
         <tr><td>[sl] Source Language</td><td><input type=text name=sl></td></tr>
         <tr><td>[tl] Target Language</td><td><input type=text name=tl></td></tr>
         <tr><td>[st] Source Text</td><td><input type=text name=st></td></tr>
@@ -1890,6 +2225,12 @@ class HandleSubmit(webapp.RequestHandler):
         <tr><td>[username] Username</td><td><input type=text name=username></td></tr>
         <tr><td>[api] API Key (For LSP Submissions)</td><td><input type=text name=api></td></tr>
         <tr><td>[lsp] LSP Name</td><td><input type=text name=lsp></td></tr>
+        <tr><td>[request_score] Request Score By Professional</td><td><input type=text name=request_score value=n></td></tr>
+        <tr><td>[embargo] Embargo Until Scored</td><td><input type=text name=embargo value=n></td></tr>
+        <tr><td>[lspusername] SpeakLike username (if requesting score)</td><td><input type=text name=lspusername></td></tr>
+        <tr><td>[lsppw] SpeakLike password</td><td><input type=text name=lsppw></td></tr>
+        <tr><td>[callback_url] Callback URL for SpeakLike to submit score to</td><td><input type=text name=callback_url></td></tr>
+        <tr><td>[apikey] API Key to use in callback</td><td><input type=text name=apikey></td></tr>
         <tr><td colspan=2><input type=submit value=Submit></td></tr></form></table>
         """
         path = os.path.join(os.path.dirname(__file__), "doc.html")
@@ -1988,13 +2329,11 @@ class HandleT(webapp.RequestHandler):
     <li>tl : target language</li>
     <li>st : source text</li>
     <li>stencoding : source text encoding (if omitted, assumes utf-8)</li>
-    <li>url : parent URL text came from (optional)</li>
-    <li>collection : name/id of collection text belongs to (optional)</li>
+    <li>url : parent URL text came from (optional)</li>>
     <li>message : message for human translator (optional)</li>
     <li>ac : affiliate code or client key</li>
-    <li>lsp : optional LSP name (for pro translation)</li>
-    <li>lspusername : LSP username</li>
-    <li>lsppw : LSP pw/key</li>
+    <li>lspusername : SpeakLike username (for professional translation)</li>
+    <li>lsppw : SpeakLike password</li>
     <li>allow_machine : allow machine translation</li>
     </ul>
     
@@ -2004,6 +2343,7 @@ class HandleT(webapp.RequestHandler):
     def post(self, sl='', tl='', st=''):
         self.requesthandler(sl, tl, st)
     def requesthandler(self, sl='', tl='', st=''):
+        guid = ''
         if len(sl) < 1: sl = self.request.get('sl')
         if len(tl) < 1: tl = self.request.get('tl')
         if len(st) < 1:
@@ -2027,44 +2367,79 @@ class HandleT(webapp.RequestHandler):
                 st = clean(st)
         else:
             st = clean(st)
-        collection = self.request.get('collection')
+        url = self.request.get('url')
         ac = self.request.get('ac')
         message = self.request.get('message')
-        lsp = self.request.get('lsp')
         lspusername = self.request.get('lspusername')
         lsppw = self.request.get('lsppw')
+        if len(lspusername) > 0:
+            xml = """
+<SLClientMsg>
+<responseFormat>json</responseFormat>
+<cmd type="Login" id="1">
+<u>%lspusername%</u>
+<p>%lsppw%</p>
+</cmd>
+<cmd type="SubmitDocument" id="2">
+<document>
+<originalLangId>%sl%</originalLangId>
+<targetLanguages>
+<langId>%tl%</langId>
+</targetLanguages>
+<mimeType>text/plain</mimeType>
+<encoding>none</encoding>
+<contents>%st%</contents>
+<contextUrl>%url%</contextUrl>
+</document>
+<callback type="translationComplete" method="FORM">
+<url>http://worldwidelexicon2.appspot.com/submit</url>
+<formParams>
+<param name="sl" val="%SPEAKLIKE_SOURCE_LANG_ID%"/>
+<param name="tl" val="%SPEAKLIKE_TARGET_LANG_IDS%"/>
+<param name="st" val="%SPEAKLIKE_ORIGINAL_CONTENTS%"/>
+<param name="tt" val="%SPEAKLIKE_TRANSLATED_CONTENTS_%tl%%"/>
+<param name="guid" val="%SPEAKLIKE_DOCUMENT_ID%"/>
+</formParams>
+<expectedResponse>ok</expectedResponse>
+</callback>
+</cmd>
+</SLClientMsg>
+            """
         if len(sl) > 0 and len(tl) > 0 and len(st) > 0:
-            if len(lsp) > 0:
-                apiurl = LSPs.geturl(lsp)
-                if len(apiurl) > 0:
-                    result = memcache.get('/lsp/' + sl + '/' + tl + '/' + st)
-                    if result is not None:
-                        return result
-                    form_fields = {
-                        "sl" : sl,
-                        "tl" : tl,
-                        "st" : st,
-                        "url": url,
-                        "ac" : ac,
-                        "collection" : collection,
-                        "message" : message,
-                        "lspusername" : lspusername,
-                        "lsppw" : lsppw,
-                        "output" : "json"
-                    }
-                    form_data = urllib.urlencode(form_fields)
-                    #try:
-                    result = urlfetch.fetch(url=apiurl +'/t', payload=form_data, method=urlfetch.POST, headers={'Content-Type': 'application/x-www-form-urlencoded'})
-                    if result.status_code == 200:
-                        memcache.set('/lsp/' + sl + '/' + tl + '/' + st, result.content, 3600)
-                        return result.content
             results = Translations.besteffort(sl, tl, st, require_professional=require_professional)
             records = list()
             if results is None or len(results) < 1:
+                if len(lspusername) > 0:
+                    xml = string.replace(xml, '%sl%', sl)
+                    xml = string.replace(xml, '%tl%', tl)
+                    xml = string.replace(xml, '%st%', escape(st))
+                    xml = string.replace(xml, '%lspusername%', lspusername)
+                    xml = string.replace(xml, '%lsppw%', lsppw)
+                    apiurl = 'http://api.speaklike.com/REST/controller/send'
+                    speaklike=False
+                    if len(apiurl) > 0:
+                        headers = {
+                            'Content-Length' : len(xml),
+                            'Content-Type' : 'text/plain',
+                        }
+                        #try:
+                        result = urlfetch.fetch(url=apiurl, payload=xml, method=urlfetch.POST, headers=headers)
+                        try:
+                            json = demjson.decode(result.content)
+                            cmdResponses = json.get('cmdResponses')
+                            for c in cmdResponses:
+                                if c.get('id','') == '2':
+                                    if c.get('success','') == 'true':
+                                        speaklike=True
+                                    if c.get('documentId','') is not None:
+                                        guid = c.get('documentId','')
+                        except:
+                            speaklike=False
                 if allow_machine:
                     tt = MTProxy.getTranslation(sl=sl, tl=tl, st=st, userip=self.request.remote_addr)
                     if len(tt) > 0:
                         record = dict(
+                            guid = guid,
                             sl = sl,
                             tl = tl,
                             st = db.Text(st, encoding='utf-8'),
@@ -2107,14 +2482,11 @@ class HandleT(webapp.RequestHandler):
             <tr><td>[sl] Source Language</td><td><input type=text name=sl></td></tr>
             <tr><td>[tl] Target Language</td><td><input type=text name=tl></td></tr>
             <tr><td>[st] Source Text</td><td><input type=text name=st></td></tr>
-            <tr><td>[stencoding] Source Text Encoding (UTF8 default)</td><td><input type=text name=stencoding></td></tr>
             <tr><td>[url] Parent URL</td><td><input type=text name=url></td></tr>
-            <tr><td>[collection] Collection (optional)</td><td><input type=text name=collection></td></tr>
             <tr><td>[ac] Affiliate/Client Code</td><td><input type=text name=ac></td></tr>
             <tr><td>[message] Message For Human Translator (optional)</td><td><input type=text name=message></td></tr>
-            <tr><td>[lsp] LSP</td><td><input type=text name=lsp></td></tr>
-            <tr><td>[lspusername] LSP Username</td><td><input type=text name=lspusername></td></tr>
-            <tr><td>[lsppw] LSP password/key</td><td><input type=text name=lsppw></td></tr>
+            <tr><td>[lspusername] SpeakLike Username</td><td><input type=text name=lspusername></td></tr>
+            <tr><td>[lsppw] SpeakLike password</td><td><input type=text name=lsppw></td></tr>
             <tr><td>[allow_machine]</td><td><input type=text name=allow_machine value=y></td></tr>
             <tr><td colspan=2><input type=submit value=Submit></td></tr></form></table>
             <p>NOTE: we recommend using the POST method, especially if your service is translating longer blocks
@@ -2191,25 +2563,22 @@ class MainHandler(webapp.RequestHandler):
     """
     <h3>Worldwide Lexicon API v2</h3>
     <ul>
-    <li><a href=/collection>/collection : Get Batch of Translations For A Collection</a></li>
-    <li><a href=/comments>/comments : Get/Submit Comments</a></li>
-    <li><a href=/lsp/accept>/lsp/accept : Accept Completed Job From LSP (Dummy API)</a></li>
-    <li><a href=/lsp/delete>/lsp/delete : Delete Job From LSP Queue (Dummy API)</a></li>
-    <li><a href=/lsp/eta>/lsp/eta : Estimated Turnaround Time (Dummy API)</a></li>
-    <li><a href=/lsp/fetch>/lsp/fetch : Fetch Completed Jobs From Queue for Inspection (Dummy API)</a></li>
-    <li><a href=/lsp/register>/lsp/register : Register LSP API Handler with Network</a></li>
-    <li><a href=/lsp/reject>/lsp/reject : Reject Job From LSP Queue (Dummy API)</a></li>
+    <li><a href=/comments>/comments : Get/Submit Comments (Live)</a></li>
+    <li><a href=/lsp/delete>/lsp/delete : Cancel Job For SpeakLike (Live)</a></li>
+    <li><a href=/lsp/fetch>/lsp/fetch : Fetch Completed Translation (Dummy API)</a></li>
+    <li><a href=/lsp/reject>/lsp/reject : Reject/Redo Completed Translation From SpeakLike (Dummy API)</a></li>
     <li><a href=/lsp/queue>/lsp/queue : View pending translation jobs (Dummy API)</a></li>
-    <li><a href=/lsp/quote>/lsp/quote : Request Quote From Network LSP (Dummy API)</a></li>
-    <li><a href=/lsp/score>/lsp/score : Request Score From Professional Translator</a></li>
-    <li><a href=/lsp/translate>/lsp/translate : Initiate A Translation Request</a></li>
-    <li><a href=/lsp/status>/lsp/status : Request Status of LSP Web Service</a></li>
-    <li><a href=/r>/r : Revision History</a></li>
-    <li><a href=/scores>/scores : Get/Submit Scores</a></li>
-    <li><a href=/scores/user> /scores/user : Get User Score History</a></li>
-    <li><a href=/submit>/submit : Submit Translation</a></li>
-    <li><a href=/t>/t : Request Translations for text</a></li>
-    <li><a href=/u>/u : Request Translations for URL</a></li>
+    <li><a href=/lsp/quote>/lsp/quote : Request Quote & ETA From SpeakLike (Dummy API)</a></li>
+    <li><a href=/lsp/score>/lsp/score : Request Score From Professional Translator (Dummy API)</a></li>
+    <li><a href=/lsp/translate>/lsp/translate : Initiate A Translation Request (Live)</a></li>
+    <li><a href=/lsp/translatorstatus>/lsp/translatorstatus : Check Translator Status & Availability (Live)</a></li>
+    <li><a href=/lsp/status>/lsp/status : Request Status Of Job (Live)</a></li>
+    <li><a href=/r>/r : Revision History (Live)</a></li>
+    <li><a href=/scores>/scores : Get/Submit Scores (Live)</a></li>
+    <li><a href=/scores/user> /scores/user : Get User Score History (Live)</a></li>
+    <li><a href=/submit>/submit : Submit Translation (Live)</a></li>
+    <li><a href=/t>/t : Request Translations for Text (Live)</a></li>
+    <li><a href=/u>/u : Request Translations for URL (Live)</a></li>
     </ul>
     <h3>Code</h3>
     <p>As we are preparing to migrate WWL to the new API server, we are updating and extending our
@@ -2227,6 +2596,7 @@ class MainHandler(webapp.RequestHandler):
     </ul>
     <h3>Supporting Documentation</h3>
     <ul>
+    <li><a href=/docs/transkit.pdf>TransKit Documentation</a></li>
     <li><a href=/docs/wwlapi.pdf>Worldwide Lexicon API Documentation</a></li>
     <li><a href=/docs/wwl_lsp_api.pdf>Worldwide Lexicon API for LSPs</a></li>
     </ul>
@@ -2264,10 +2634,10 @@ class MainHandler(webapp.RequestHandler):
         for example to add hooks to their existing user registration and authentication system.</li>
         <li>Performance : we have also upgraded the system to take advantage of new features in App
         Engine to further improve performance and economics.</li>
-        <li>Professional Translation : we have updated our web API for language service providers to
-        offer a range of features to users, such as: requesting instant quotes from one or several LSPs
-        on the WWL network, requesting professional translations on demand, and requesting scores for
-        community translations by professional translators.</li>
+        <li>Professional Translation : Worldwide Lexicon is now tightly integrated with SpeakLike, a New
+        York based professional translation company that offers translation as a cloud based service, for prices
+        as low as a few cents per word. Now you can blend machine, crowd and professional translation in a common
+        API. Just include your SpeakLike credentials when calling the /t service to request a professional translation.</li>
         </ul>
         """
         path = os.path.join(os.path.dirname(__file__), "doc.html")
@@ -2282,25 +2652,25 @@ def main():
     application = webapp.WSGIApplication([('/', MainHandler),
                                           (r'/admin/(.*)', HandleAdmin),
                                           ('/admin', HandleAdmin),
-                                          (r'/collection/(.*)/(.*)', HandleCollection),
-                                          ('/collection', HandleCollection),
                                           (r'/comments/(.*)', HandleComments),
                                           ('/comments', HandleComments),
+                                          ('/delete', HandleDelete),
                                           ('/install', HandleInstall),
-                                          ('/lsp/accept/(.*)', HandleLSPAccept),
+                                          (r'/lsp/accept/(.*)', HandleLSPAccept),
                                           ('/lsp/accept', HandleLSPAccept),
+                                          ('/lsp/auth', HandleLSPAuth),
                                           ('/lsp/delete/(.*)', HandleLSPDelete),
                                           ('/lsp/delete', HandleLSPDelete),
-                                          ('/lsp/eta', HandleLSPETA),
                                           ('/lsp/fetch', HandleLSPFetch),
                                           ('/lsp/queue', HandleLSPQueue),
                                           ('/lsp/quote', HandleLSPQuote),
-                                          ('/lsp/register', HandleLSPRegister),
-                                          ('/lsp/reject/(.*)', HandleLSPReject),
+                                          (r'/lsp/reject/(.*)', HandleLSPReject),
                                           ('/lsp/reject', HandleLSPReject),
                                           ('/lsp/score', HandleLSPScoreRequest),
+                                          (r'/lsp/status/(.*)', HandleLSPStatus),
                                           ('/lsp/status', HandleLSPStatus),
                                           ('/lsp/translate', HandleLSPTranslate),
+                                          ('/lsp/translatorstatus', HandleLSPTranslatorStatus),
                                           ('/r', HandleR),
                                           (r'/scores/user/(.*)', HandleScoresUser),
                                           ('/scores/user', HandleScoresUser),
