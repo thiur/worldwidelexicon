@@ -36,6 +36,21 @@ API for translation services. It implements the following API handlers:
 </ul>
 """
 
+errors = dict(
+    bad_request = 400,
+    authorization = 401,
+    payment_required = 402,
+    forbidden = 403,
+    not_found = 404,
+    method_not_allowed = 405,
+    timeout = 408,
+    gone = 410,
+    unsupported_media= 415,
+    not_implemented= 501,
+    unavailable = 503,
+    gateway_timeout = 504,
+)
+
 error_other = 400
 error_auth = 401
 error_not_found = 404
@@ -668,6 +683,8 @@ class Translations(db.Model):
     flagged = db.IntegerProperty(default=0)
     flaggedby = db.ListProperty(str)
     mirrored = db.BooleanProperty(default=False)
+    callback_url = db.StringProperty(default='')
+    apikey = db.StringProperty(default='')
     @staticmethod
     def besteffort(sl, tl, st, orderby='-date', require_professional=False, maxlen=100):
         tdb = db.Query(Translations)
@@ -679,6 +696,19 @@ class Translations(db.Model):
         if require_professional: tdb.filter('professional = ', True)
         tdb.order(orderby)
         return tdb.fetch(maxlen)
+    @staticmethod
+    def callback(guid,callback_url,apikey=''):
+        tdb = db.Query(Translations)
+        tdb.filter('guid = ', guid)
+        item = tdb.get()
+        if item is None:
+            item = Translations()
+            item.guid = guid
+            item.callback_url = callback_url
+            item.apikey = apikey
+            item.put()
+            return True
+        return False
     @staticmethod
     def getbyguid(guid):
         tdb = db.Query(Translations)
@@ -733,10 +763,22 @@ class Translations(db.Model):
                 m = md5.new()
                 m.update(str(datetime.datetime.now()))
                 guid = str(m.hexdigest())
+                item = Translations()
+            else:
+                tdb = db.Query(Translations)
+                tdb.filter('guid = ', guid)
+                item = tdb.get()
+                if item is None:
+                    item = Translations()
             m = md5.new()
             m.update(st)
             srchash = str(m.hexdigest())
-            item = Translations()
+            if len(item.callback_url) > 0:
+                callback_url = item.callback_url
+                apikey = item.apikey
+            else:
+                callback_url = ''
+                apikey = ''
             item.guid = guid
             item.srchash = srchash
             item.sl = sl
@@ -753,6 +795,16 @@ class Translations(db.Model):
             item.embargo = embargo
             item.lsp = lsp
             item.put()
+            if len(callback_url) > 0:
+                p = dict(
+                    guid = guid,
+                    sl = sl,
+                    tl = tl,
+                    st = st,
+                    tt = tt,
+                    url = url,
+                )
+                taskqueue.add('/callback', params=p)
             # Users.inc()
             return guid
         return
@@ -893,6 +945,115 @@ class HandleAdmin(webapp.RequestHandler):
         else:
             self.redirect('/admin')
 
+class HandleAjaxTest(webapp.RequestHandler):
+    """
+    <h3>/ajax : Dummy API For AJAX Requests</h3>
+    <p>This handler expects a POST request with the following parameters:</p>
+    <ul>
+    <li>parm : parameter name</li>
+    <li>value : value</li>
+    </ul>
+    <p>It responds with a JSON object containing the submitted parameter and value.</p>
+    """
+    def post(self):
+        remote_addr = self.request.remote_addr
+        parm = self.request.get('parm')
+        value = self.request.get('value')
+        response = dict(
+            remote_addr = remote_addr,
+            parm = parm,
+            value = value,
+        )
+        self.response.headers['Content-Type']='text/javascript'
+        self.response.out.write(demjson.encode(response))
+    def get(self):
+        doc_text = self.__doc__
+        form = """
+        <h3>[POST] Dummy Handler For Debugging AJAX Requests</h3>
+        <script language=javascript>
+        function ajaxPost(url, params) {
+            http.open("POST", url, true);
+            //Send the proper header information along with the request
+            http.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
+            http.setRequestHeader("Content-length", params.length);
+            http.setRequestHeader("Connection", "close");
+
+            http.onreadystatechange = function() {//Call a function when the state changes.
+                    if(http.readyState == 4 && http.status == 200) {
+                            alert(http.responseText);
+                    }
+            }
+            http.send(params);
+        }
+        </script>
+        <table><form action="" method=post onsubmit="ajaxPost('/ajax')">
+        <tr><td>[parm] Parameter Name</td><td><input type=text name=parm></td></tr>
+        <tr><td>[value] Value</td><td><input type=text name=value></td></tr>
+        <tr><td>Response</td><td id=response></td></tr>
+        <tr><td colspan=2><input type=submit value=Submit></td></tr></form></table>
+        """
+        path = os.path.join(os.path.dirname(__file__), "doc.html")
+        args = dict(
+            title = '/ajax',
+            left_text = form,
+            right_text = doc_text,
+        )
+        self.errors(errors['bad_request'])
+        self.response.out.write(template.render(path, args))
+    
+class HandleCallback(webapp.RequestHandler):
+    def get(self):
+        self.requesthandler()
+    def post(self):
+        self.requesthandler()
+    def requesthandler(self):
+        callback_url = self.request.get('callback_url')
+        guid = self.request.get('guid')
+        sl = self.request.get('sl')
+        tl = self.request.get('tl')
+        st = self.request.get('st')
+        tt = self.request.get('tt')
+        url = self.request.get('url')
+        username = self.request.get('username')
+        if len(callback_url) > 0:
+            form_fields = dict(
+                guid = guid,
+                sl = sl,
+                tl = tl,
+                st = st,
+                tt = tt,
+                url = url,
+                username = username,
+                lsp = 'speaklike',
+                professional = 'true',
+                human = 'true',
+            )
+            form_data = urllib.urlencode(form_fields)
+            headers = {
+                'Content-Type' : 'application/x-www-form-urlencoded',
+            }
+            try:
+                result = urlfetch.fetch(url=callback_url,method=urlfetch.POST,payload=form_fields,headers=headers)
+                if result.status_code == 200:
+                    self.response.out.write('ok')
+                else:
+                    self.response.out.write('http error ' + str(result.status_code))
+            except:
+                self.response.out.write('Invalid callback URL')
+        else:
+            self.response.out.write('invalid callback url')
+
+class HandleCallbackStub(webapp.RequestHandler):
+    def get(self):
+        self.requesthandler()
+    def post(self):
+        self.requesthandler()
+    def requesthandler(self):
+        guid = self.request.get('guid')
+        callback_url = self.request.get('callback_url')
+        apikey = self.request.get('apikey')
+        Translations.callback(guid,callback_url,apikey=apikey)
+
 class HandleCollection(webapp.RequestHandler):
     """
     <h3>/collection</h3>
@@ -950,6 +1111,7 @@ class HandleCollection(webapp.RequestHandler):
                 left_text = form,
                 right_text = doc_text,
             )
+            self.error(errors['bad_request'])
             self.response.out.write(template.render(path, args))
 
 class HandleComments(webapp.RequestHandler):
@@ -1002,6 +1164,7 @@ class HandleComments(webapp.RequestHandler):
                 left_text = form,
                 right_text = doc_text,
             )
+            self.error(errors['bad_request'])
             self.response.out.write(template.render(path, args))
     def post(self, guid='', language=''):
         if len(guid) < 1: guid = self.request.get('guid')
@@ -1013,10 +1176,10 @@ class HandleComments(webapp.RequestHandler):
             if Comments.save(guid, language, text, userid=userid, name=name):
                 self.response.out.write('ok')
             else:
-                self.error(error_not_found)
-                self.response.out.write('comment not saved')
+                self.error(errors['not_found'])
+                self.response.out.write('Comment not saved, original record not found.')
         else:
-            self.error(error_other)
+            self.error(errors['bad_request'])
             self.response.out.write('Incomplete submission')
 
 class HandleDelete(webapp.RequestHandler):
@@ -1040,10 +1203,10 @@ class HandleDelete(webapp.RequestHandler):
                     item.delete()
                     self.response.out.write('ok')
                 else:
-                    self.error(error_auth)
+                    self.error(errors['authorization'])
                     self.response.out.write('Not authorized')
             else:
-                self.error(error_not_found)
+                self.error(errors['not_found'])
                 self.response.out.write('Record not found')
         else:
             doc_text = self.__doc__
@@ -1064,6 +1227,7 @@ class HandleDelete(webapp.RequestHandler):
                 left_text = form,
                 right_text = doc_text,
             )
+            self.error(['bad_request'])
             self.response.out.write(template.render(path, args))
             
 class HandleInstall(webapp.RequestHandler):
@@ -1094,6 +1258,37 @@ class HandleInstall(webapp.RequestHandler):
             Comments.save(guid,'en','Hello World')
             self.response.out.write('ok')
 
+class HandleJSTest(webapp.RequestHandler):
+    """
+    <h3>Test Page For AJAX Client</h3>
+    <p>This is a simple test page for the Javascript/AJAX widget in development.</p>
+    """
+    def get(self):
+        sl = self.request.get('sl')
+        if len(sl) > 0:
+            pass
+        else:
+            doc_text = self.__doc__
+            tdb = db.Query(Translations)
+            tdb.order('date')
+            item = tdb.get()
+            guid = item.guid
+            form = """
+            <script src=/javascript/speaklike.js type=text/javascript></script>
+            <h3>Test AJAX Library</h3>
+            <p id="MyDiv">Hello World</p>
+            <script>
+            speaklike.translate("MyDiv","en","es");
+            </script>
+            """
+            path = os.path.join(os.path.dirname(__file__), "doc.html")
+            args = dict(
+                title = '/js',
+                left_text = form,
+                right_text = doc_text,
+            )
+            self.response.out.write(template.render(path, args))
+
 class HandleLSPAccept(webapp.RequestHandler):
     """
     <h3>/lsp/accept/{jobid}</h3>
@@ -1113,10 +1308,10 @@ class HandleLSPAccept(webapp.RequestHandler):
             if rnd == 0:
                 self.response.out.write('ok')
             elif rnd == 1:
-                self.error(error_not_found)
+                self.error(errors['not_found'])
                 self.response.out.write('jobid not valid')
             else:
-                self.error(error_other)
+                self.error(errors['bad_request'])
                 self.response.out.write('unable to contact LSP')
         else:
             doc_text = self.__doc__
@@ -1132,6 +1327,7 @@ class HandleLSPAccept(webapp.RequestHandler):
                 left_text = form,
                 right_text = doc_text,
             )
+            self.error(errors['bad_request'])
             self.response.out.write(template.render(path, args))
 
 class HandleLSPAuth(webapp.RequestHandler):
@@ -1181,6 +1377,7 @@ class HandleLSPAuth(webapp.RequestHandler):
                 left_text = form,
                 right_text = doc_text,
             )
+            self.error(errors['bad_request'])
             self.response.out.write(template.render(path, args))
 
 class HandleLSPDelete(webapp.RequestHandler):
@@ -1232,10 +1429,10 @@ class HandleLSPDelete(webapp.RequestHandler):
                 if success:
                     self.response.out.write('ok')
                 else:
-                    self.error(404)
+                    self.error(errors['not_found'])
                     self.response.out.write('unable to cancel job')
             except:
-                self.error(400)
+                self.error(errors['gateway_timeout'])
                 self.response.out.write('Invalid response from SpeakLike')
         else:
             doc_text = self.__doc__
@@ -1253,6 +1450,7 @@ class HandleLSPDelete(webapp.RequestHandler):
                 left_text = form,
                 right_text = doc_text,
             )
+            self.error(errors['bad_request'])
             self.response.out.write(template.render(path, args))
         
 class HandleLSPFetch(webapp.RequestHandler):
@@ -1323,7 +1521,7 @@ class HandleLSPFetch(webapp.RequestHandler):
                 result = demjson.decode(response.content)
                 self.response.out.write(str(result))
             except:
-                self.error(400)
+                self.error(errors['gateway_timeout'])
                 self.response.out.write('Unexpected response from SpeakLike')
                 self.response.out.write(response.content)
         else:
@@ -1343,6 +1541,7 @@ class HandleLSPFetch(webapp.RequestHandler):
                 left_text = form,
                 right_text = doc_text,
             )
+            self.error(errors['bad_request'])
             self.response.out.write(template.render(path, args))
 
 class HandleLSPQueue(webapp.RequestHandler):
@@ -1400,6 +1599,7 @@ class HandleLSPQueue(webapp.RequestHandler):
                 left_text = form,
                 right_text = doc_text,
             )
+            self.error(errors['bad_request'])
             self.response.out.write(template.render(path, args))
             
 class HandleLSPQuote(webapp.RequestHandler):
@@ -1482,13 +1682,13 @@ class HandleLSPQuote(webapp.RequestHandler):
                             self.response.headers['Content-Type']='text/javascript'
                             self.response.out.write(quote)
                         else:
-                            self.error(error_other)
+                            self.error(errors['gateway_timeout'])
                             self.response.out.write('Request to LSP Failed')
                     except:
-                        self.error(error_not_found)
+                        self.error(errors['not_found'])
                         self.response.out.write('Unable to contact LSP')
                 else:
-                    self.error(error_not_found)
+                    self.error(errors['not_found'])
                     self.response.out.write('Unknown LSP')
         else:
             doc_text = self.__doc__
@@ -1512,6 +1712,7 @@ class HandleLSPQuote(webapp.RequestHandler):
                 left_text = form,
                 right_text = doc_text,
             )
+            self.error(errors['bad_request'])
             self.response.out.write(template.render(path, args))
 
 class HandleLSPReject(webapp.RequestHandler):
@@ -1533,10 +1734,10 @@ class HandleLSPReject(webapp.RequestHandler):
             if rnd == 0:
                 self.response.out.write('ok')
             elif rnd == 1:
-                self.error(error_not_found)
+                self.error(errors['not_found'])
                 self.response.out.write('jobid not valid')
             else:
-                self.error(error_other)
+                self.error(errors['gateway_timeout'])
                 self.response.out.write('unable to contact LSP')
         else:
             doc_text = self.__doc__
@@ -1552,6 +1753,7 @@ class HandleLSPReject(webapp.RequestHandler):
                 left_text = form,
                 right_text = doc_text,
             )
+            self.error(errors['not_found'])
             self.response.out.write(template.render(path, args))
             
 class HandleLSPScoreRequest(webapp.RequestHandler):
@@ -1614,6 +1816,7 @@ class HandleLSPScoreRequest(webapp.RequestHandler):
             left_text = form,
             right_text = doc_text,
         )
+        self.error(errors['bad_request'])
         self.response.out.write(template.render(path, args))
     def post(self):
         rnd = random.randint(0,2)
@@ -1628,7 +1831,7 @@ class HandleLSPScoreRequest(webapp.RequestHandler):
             self.response.headers['text/javascript']
             self.response.out.write(demjson.encode(response))
         else:
-            self.error(error_not_found)
+            self.error(errors['not_found'])
             self.response.out.write('error')
 
 class HandleLSPStatus(webapp.RequestHandler):
@@ -1713,13 +1916,13 @@ class HandleLSPStatus(webapp.RequestHandler):
                     self.response.headers['Content-Type']='text/javascript'
                     self.response.out.write(demjson.encode(response))
                 elif not login:
-                    self.error(401)
+                    self.error(errors['authorization'])
                     self.response.out.write('Invalid login credentials')
                 else:
-                    self.error(400)
+                    self.error(errors['bad_request'])
                     self.response.out.write('Invalid request')
             except:
-                self.error(400)
+                self.error(errors['gateway_timeout'])
                 self.response.out.write('Invalid response from SpeakLike')
         else:
             doc_text = self.__doc__
@@ -1737,6 +1940,7 @@ class HandleLSPStatus(webapp.RequestHandler):
                 left_text = form,
                 right_text = doc_text,
             )
+            self.error(errors['bad_request'])
             self.response.out.write(template.render(path, args))
 
 class HandleLSPTranslate(webapp.RequestHandler):
@@ -1786,6 +1990,7 @@ class HandleLSPTranslate(webapp.RequestHandler):
             left_text = form,
             right_text = doc_text,
         )
+        self.error(errors['bad_request'])
         self.response.out.write(template.render(path, args))
     def post(self):
         sl = self.request.get('sl')
@@ -1871,18 +2076,18 @@ class HandleLSPTranslate(webapp.RequestHandler):
                         self.response.headers['Content-Type']='text/javascript'
                         self.response.out.write(demjson.encode(response))
                     else:
-                        self.error(400)
+                        self.error(errors['bad_request'])
                         self.response.out.write('Unable to process translation request')
                 else:
-                    self.error(401)
+                    self.error(errors['authorization'])
                     self.response.out.write('Invalid credentials')
             except:
                 json = dict()
-                self.error(400)
+                self.error(errors['gateway_timeout'])
                 self.response.out.write('Invalid response received from SpeakLike')
                 self.response.out.write(response.content)
         else:
-            self.error(400)
+            self.error(errors['bad_request'])
             self.response.out.write('Required parameters not present')
 
 class HandleLSPTranslatorStatus(webapp.RequestHandler):
@@ -1974,7 +2179,7 @@ class HandleLSPTranslatorStatus(webapp.RequestHandler):
                 results.append(langpair)
                 self.response.out.write(demjson.encode(results))
             except:
-                self.error(400)
+                self.error(errors['gateway_timeout'])
                 self.response.out.write('Unexpected response from SpeakLike')
                 self.response.out.write(response.content)
         else:
@@ -1993,6 +2198,7 @@ class HandleLSPTranslatorStatus(webapp.RequestHandler):
                 left_text = form,
                 right_text = doc_text,
             )
+            self.error(errors['bad_request'])
             self.response.out.write(template.render(path, args))
         
 class HandleMirror(webapp.RequestHandler):
@@ -2057,6 +2263,7 @@ class HandleScoresTranslation(webapp.RequestHandler):
                 left_text = form,
                 right_text = doc_text,
             )
+            self.error(errors['bad_request'])
             self.response.out.write(template.render(path, args))
     def post(self, guid=''):
         if len(guid) < 1: guid = self.request.get('guid')
@@ -2080,13 +2287,13 @@ class HandleScoresTranslation(webapp.RequestHandler):
                 if Scores.save(guid, score, score_userid=username, score_ip=userip, score_type=score_type):
                     self.response.out.write('ok')
                 else:
-                    self.error(error_not_found)
+                    self.error(errors['not_found'])
                     self.response.out.write('Translation not located')
             else:
-                self.error(error_not_found)
+                self.error(errors['not_found'])
                 self.response.out.write('Translation not located')
         else:
-            self.error(error_other)
+            self.error(errors['bad_request'])
             self.response.out.write('score must be between 0 and 5')
 
 class HandleScoresUser(webapp.RequestHandler):
@@ -2146,6 +2353,7 @@ class HandleScoresUser(webapp.RequestHandler):
                 left_text = form,
                 right_text = doc_text,
             )
+            self.error(errors['bad_request'])
             self.response.out.write(template.render(path, args))
 
 class HandleSubmit(webapp.RequestHandler):
@@ -2239,6 +2447,7 @@ class HandleSubmit(webapp.RequestHandler):
             left_text = form,
             right_text = doc_text,
         )
+        self.error(errors['bad_request'])
         self.response.out.write(template.render(path, args))
 
 class HandleR(webapp.RequestHandler):
@@ -2306,6 +2515,7 @@ class HandleR(webapp.RequestHandler):
                 left_text = form,
                 right_text = doc_text,
             )
+            self.error(errors['bad_request'])
             self.response.out.write(template.render(path, args))    
 
 class HandleT(webapp.RequestHandler):
@@ -2372,6 +2582,8 @@ class HandleT(webapp.RequestHandler):
         message = self.request.get('message')
         lspusername = self.request.get('lspusername')
         lsppw = self.request.get('lsppw')
+        callback_url = self.request.get('callback_url')
+        apikey = self.request.get('apikey')
         if len(lspusername) > 0:
             xml = """
 <SLClientMsg>
@@ -2433,6 +2645,12 @@ class HandleT(webapp.RequestHandler):
                                         speaklike=True
                                     if c.get('documentId','') is not None:
                                         guid = c.get('documentId','')
+                                        p = dict(
+                                            guid = guid,
+                                            callback_url = callback_url,
+                                            apikey = apikey,
+                                        )
+                                        taskqueue.add('/callbackstub', params=p)
                         except:
                             speaklike=False
                 if allow_machine:
@@ -2487,6 +2705,8 @@ class HandleT(webapp.RequestHandler):
             <tr><td>[message] Message For Human Translator (optional)</td><td><input type=text name=message></td></tr>
             <tr><td>[lspusername] SpeakLike Username</td><td><input type=text name=lspusername></td></tr>
             <tr><td>[lsppw] SpeakLike password</td><td><input type=text name=lsppw></td></tr>
+            <tr><td>[callback_url] Optional callback URL to submit translation to</td><td><input type=text name=callback_url></td></tr>
+            <tr><td>[apikey] API key to include with callback</td><td><input type=text name=apikey></td></tr>
             <tr><td>[allow_machine]</td><td><input type=text name=allow_machine value=y></td></tr>
             <tr><td colspan=2><input type=submit value=Submit></td></tr></form></table>
             <p>NOTE: we recommend using the POST method, especially if your service is translating longer blocks
@@ -2498,6 +2718,7 @@ class HandleT(webapp.RequestHandler):
                 left_text = form,
                 right_text = doc_text,
             )
+            self.error(errors['bad_request'])
             self.response.out.write(template.render(path, args))
     
 class HandleU(webapp.RequestHandler):
@@ -2557,12 +2778,14 @@ class HandleU(webapp.RequestHandler):
                 left_text = form,
                 right_text = doc_text,
             )
+            self.error(errors['bad_request'])
             self.response.out.write(template.render(path, args))
 
 class MainHandler(webapp.RequestHandler):
     """
     <h3>Worldwide Lexicon API v2</h3>
     <ul>
+    <li><a href=/ajax>/ajax : Dummy AJAX Request Handler</a></li>
     <li><a href=/comments>/comments : Get/Submit Comments (Live)</a></li>
     <li><a href=/lsp/delete>/lsp/delete : Cancel Job For SpeakLike (Live)</a></li>
     <li><a href=/lsp/fetch>/lsp/fetch : Fetch Completed Translation (Dummy API)</a></li>
@@ -2650,12 +2873,16 @@ class MainHandler(webapp.RequestHandler):
         
 def main():
     application = webapp.WSGIApplication([('/', MainHandler),
+                                          ('/ajax', HandleAjaxTest),
                                           (r'/admin/(.*)', HandleAdmin),
                                           ('/admin', HandleAdmin),
+                                          ('/callback', HandleCallback),
+                                          ('/callbackstub', HandleCallbackStub),
                                           (r'/comments/(.*)', HandleComments),
                                           ('/comments', HandleComments),
                                           ('/delete', HandleDelete),
                                           ('/install', HandleInstall),
+                                          ('/js', HandleJSTest),
                                           (r'/lsp/accept/(.*)', HandleLSPAccept),
                                           ('/lsp/accept', HandleLSPAccept),
                                           ('/lsp/auth', HandleLSPAuth),
