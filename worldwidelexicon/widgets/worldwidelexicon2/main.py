@@ -2545,6 +2545,7 @@ class HandleT(webapp.RequestHandler):
     <li>lspusername : SpeakLike username (for professional translation)</li>
     <li>lsppw : SpeakLike password</li>
     <li>allow_machine : allow machine translation</li>
+    <li>multi : return multiple records (y/n, default=n)</li>
     </ul>
     
     """
@@ -2584,6 +2585,7 @@ class HandleT(webapp.RequestHandler):
         lsppw = self.request.get('lsppw')
         callback_url = self.request.get('callback_url')
         apikey = self.request.get('apikey')
+        multi = self.request.get('multi')
         if len(lspusername) > 0:
             xml = """
 <SLClientMsg>
@@ -2688,7 +2690,13 @@ class HandleT(webapp.RequestHandler):
                         lsp = r.lsp,
                     )
                     records.append(record)
-            json = demjson.encode(records, encoding = 'utf-8')
+            if multi == 'y':
+                json = demjson.encode(records, encoding = 'utf-8')
+            else:
+                if len(records) > 0:
+                    json = demjson.encode(records[0], encoding = 'utf-8')
+                else:
+                    json = '[]'
             self.response.headers['Content-Type']='text/javascript'
             self.response.out.write(json)
             return
@@ -2708,6 +2716,7 @@ class HandleT(webapp.RequestHandler):
             <tr><td>[callback_url] Optional callback URL to submit translation to</td><td><input type=text name=callback_url></td></tr>
             <tr><td>[apikey] API key to include with callback</td><td><input type=text name=apikey></td></tr>
             <tr><td>[allow_machine]</td><td><input type=text name=allow_machine value=y></td></tr>
+            <tr><td>[multi] Return multiple matches</td><td><input type=text name=multi value=n></td></tr>
             <tr><td colspan=2><input type=submit value=Submit></td></tr></form></table>
             <p>NOTE: we recommend using the POST method, especially if your service is translating longer blocks
             of text.</p>
@@ -2821,7 +2830,6 @@ class MainHandler(webapp.RequestHandler):
     <ul>
     <li><a href=/docs/transkit.pdf>TransKit Documentation</a></li>
     <li><a href=/docs/wwlapi.pdf>Worldwide Lexicon API Documentation</a></li>
-    <li><a href=/docs/wwl_lsp_api.pdf>Worldwide Lexicon API for LSPs</a></li>
     </ul>
     """
     def get(self):
