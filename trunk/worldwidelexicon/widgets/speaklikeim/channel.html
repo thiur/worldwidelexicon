@@ -1,0 +1,35 @@
+<html>
+<head>
+<title>Channel API Demo</title>
+<script src="http://speaklikeim.appspot.com/_ah/channel/jsapi"></script>
+</head>
+
+<body>
+<h2>Channel API Demo</h2>
+
+<p>This page includes some sample Javascript which you can use to test asynchronous Javascript widgets with push
+notification from the translation server. Leave this page open in your browser. In another window, you can submit
+translation requests via <a target=_new href=/realtime/translate>/realtime/translate</a>, using the session ID {{ session }}
+to refer to this active session.</p>
+
+    <script>
+    onOpened = function() {
+        alert("Opened");
+    }
+    onMessage = function(message) {
+        alert("Message arrived = " + message.data);
+    }
+    onError = function() {
+        alert("Doh!");
+    }
+    onClose = function() {
+        alert("Closed");
+    }
+    channel = new goog.appengine.Channel("{{token}}");
+    socket = channel.open();
+    socket.onopen = onOpened;
+    socket.onmessage = onMessage;
+    socket.onerror = onError;
+    socket.onclose = onClose;
+    </script>
+</body>

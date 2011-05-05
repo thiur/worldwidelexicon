@@ -1,0 +1,160 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+
+<html>
+
+<head>
+
+<style type="text/css">
+
+button {font-style:oblique;
+        text-transform:capitalize;
+        font-weight:bold;
+        }
+
+</style>
+
+<script type="text/javascript" charset="iso-8859-1">
+
+var lpc;
+
+if (document.images) {
+  var button_online = new Image();
+  button_online.src = "images/reponline.gif";
+  var button_offline = new Image();
+  button_offline.src = "images/repoffline.gif";
+}
+
+var reloadTimer = null;
+window.onload = function()
+{
+    setReloadTime(10);
+}
+
+function setReloadTime(secs)
+{
+    if (arguments.length == 1) {
+        if (reloadTimer) clearTimeout(reloadTimer);
+        reloadTimer = setTimeout("setReloadTime()", Math.ceil(parseFloat(secs) * 1000));
+    }
+    else {
+        location.reload();
+    }
+}
+
+function checkAvailability() {
+
+lpc.chatAvailability( );
+
+}
+
+function myOnAvailability(availObj){
+
+if( availObj.availability == true ){
+   if (document.images) {
+    document["buttonOne"].src = button_online.src;
+    document.getElementById('chatmessage').innerHTML = 'Our agents are standing by <br>to help you. Click to chat.';
+   }
+
+} else {
+   if (document.images) {
+    document["buttonOne"].src = button_offline.src;
+    document.getElementById('chatmessage').innerHTML = 'Our agents are away at the moment. <br> Please send a message and <br> we get back to you in the near future.';
+  }
+
+}
+
+}
+
+function myOnLoad()
+{
+
+lpc = new lpChat();
+checkAvailability()
+
+}
+
+function myOnError(errObj){
+
+}
+
+var lpChatConfig = {
+
+apiKey : 'fb7a2d089fec4ff98ecd80be26a12e2d',
+
+lpServer : 'dev.liveperson.net',
+
+lpNumber : 'P1520988',
+
+onLoad   : myOnLoad,
+
+onError : myOnError,
+
+onAvailability: myOnAvailability
+
+};
+
+lpChatConfig.lpAddScript = function(src, ignore) {var c = lpChatConfig;if(typeof(c.lpProtocol)=='undefined')
+{c.lpProtocol = (document.location.toString().indexOf("https:")==0) ? "https" : "http";}
+if (typeof(src) == 'undefined' || typeof(src) == 'object') {src = c.lpChatSrc ? c.lpChatSrc : '/hcp/html/lpChatAPI.js';};
+if (src.indexOf('http') != 0) {src = c.lpProtocol + "://" + c.lpServer + src + '?site=' + c.lpNumber;} else
+{if (src.indexOf('site=') < 0) {if (src.indexOf('?') < 0)src = src + '?'; else src = src + '&';src = src + 'site=' + c.lpNumber;}};
+var s = document.createElement('script');s.setAttribute('type', 'text/javascript');s.setAttribute('charset', 'iso-8859-1');
+s.setAttribute('src', src);document.getElementsByTagName('head').item(0).appendChild(s);}
+
+if (window.attachEvent)
+{
+window.attachEvent('onload', lpChatConfig.lpAddScript);
+}
+else
+{
+window.addEventListener('load', lpChatConfig.lpAddScript, false);
+}
+
+</script>
+
+</head>
+
+<body>
+
+<!-- BEGIN LivePerson Button Code Sales -->
+
+<table align='center'>
+
+<tr>
+<td>
+
+<img name='buttonOne' name='hcIcon' alt='Chat Button' border=0 onclick="lpButtonCTTUrl = '../ChatWindow.html?cmd=file&file=visitorWantsToChat&site=P67488665';lpButtonCTTUrl = (typeof(lpAppendVisitorCookies) != 'undefined' ? lpAppendVisitorCookies(lpButtonCTTUrl) : lpButtonCTTUrl); lpButtonCTTUrl = ((typeof(lpMTag)!='undefined' && typeof(lpMTag.addFirstPartyCookies)!='undefined')?lpMTag.addFirstPartyCookies(lpButtonCTTUrl):lpButtonCTTUrl);window.open(lpButtonCTTUrl,'chatP67488665','width=472,height=320,scrollbars=yes,resizable=yes');return false;">
+
+</td>
+
+<td align='left'>
+<font size='2' face='Arial'>
+<strong id='chatmessage'>Our agents are standing by <BR>to help you. Click to chat.</strong>
+</font>
+</td>
+</tr>
+
+<tr>
+
+<td align='center'>
+<div style="margin-top:5px;">
+<span style="font-size:10px; font-family:Arial, Helvetica, sans-serif;">
+<a href="http://solutions.liveperson.com/live-chat" style="text-decoration:none; color:#000" target="_blank">
+<b>Live Chat</b>
+</a><span style="color:#000"> by </span>
+<a href="http://solutions.liveperson.com/" style="text-decoration:none; color:#FF9900" target="_blank">LivePerson</a>
+</span></div></td> <td>&nbsp;
+
+</td>
+
+</tr>
+
+</table>
+
+<!-- END LivePerson Button code -->
+
+<!-- BEGIN LivePerson Monitor Sales. --><script language='javascript'> var lpMTagConfig = {'lpServer' : "dev.liveperson.net",'lpNumber' : "P67488665",'lpProtocol' : "https"}; function lpAddMonitorTag(src){if(typeof(src)=='undefined'||typeof(src)=='object'){src=lpMTagConfig.lpMTagSrc?lpMTagConfig.lpMTagSrc:'/hcp/html/mTag.js';}if(src.indexOf('http')!=0){src=lpMTagConfig.lpProtocol+"://"+lpMTagConfig.lpServer+src+'?site='+lpMTagConfig.lpNumber;}else{if(src.indexOf('site=')<0){if(src.indexOf('?')<0)src=src+'?';else src=src+'&';src=src+'site='+lpMTagConfig.lpNumber;}};var s=document.createElement('script');s.setAttribute('type','text/javascript');s.setAttribute('charset','iso-8859-1');s.setAttribute('src',src);document.getElementsByTagName('head').item(0).appendChild(s);} if (window.attachEvent) window.attachEvent('onload',lpAddMonitorTag); else window.addEventListener("load",lpAddMonitorTag,false);</script><!-- END LivePerson Monitor. -->
+
+</body>
+
+</html>

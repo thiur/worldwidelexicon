@@ -1,0 +1,500 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="description" content="Live Chat" />
+<meta name="keywords" content="Live Chat" />
+<title>Chat Window</title>
+<style type="text/css">
+html {
+height:100%;
+}
+form {
+height:100%;
+margin:0;
+padding:0;
+width:100%;
+}
+.chatContentDiv {
+height:300px;
+width:97%;
+}
+.divider {
+border:0 none;
+margin:0;
+padding:0 0 0 4px;
+}
+#printChat {
+padding-right:3px;
+vertical-align:middle;
+}
+#emailChat {
+padding-left:7px;
+padding-right:3px;
+vertical-align:middle;
+}
+#closeChat, #talkByPCChat, #e2pGal {
+vertical-align:middle;
+}
+#sendCustom {
+margin:0;
+padding:0;
+}
+#sendText {
+background-image:url("images/defaultBkgd.gif");
+background-repeat:repeat;
+border:1px outset #999999;
+font-family:Verdana,Arial,Helvetica,sans-serif;
+font-size:14px;
+font-weight:bold;
+padding:5px 32px;
+text-align:center;
+white-space:nowrap;
+}
+#printText, #emailText, #closeText, #talkByPCText, #e2pTxt {
+border:1px solid #000000;
+color:#484FA3;
+font-family:Verdana,Arial,Helvetica,sans-serif;
+font-size:11px;
+font-weight:bold;
+height:17px;
+margin-top:0;
+padding:4px 20px;
+text-align:center;
+text-decoration:none;
+vertical-align:text-top;
+white-space:nowrap;
+}
+#visNameText {
+border:1px solid #000000;
+color:#484FA3;
+font-family:Verdana,Arial,Helvetica,sans-serif;
+font-size:11px;
+font-weight:bold;
+height:15px;
+padding:2px 7px;
+position:static;
+text-align:center;
+text-decoration:none;
+vertical-align:middle;
+}
+#sendText a:hover {
+color:#484FA3;
+text-decoration:none;
+}
+#printText a:hover, #emailText a:hover, #closeText a:hover, #visNameText a:hover, #talkByPCText a:hover, #e2pTxt a:hover {
+color:#484FA3;
+text-decoration:none;
+}
+#printText a, #emailText a, #closeText a, #visNameText a, #talkByPCText a, #e2pTxt a {
+color:#333333;
+text-decoration:none;
+}
+#sendText a {
+color:#333333;
+text-decoration:none;
+}
+.typingMsg {
+color:#4C4746;
+font-family:Verdana,Arial,Helvetica,sans-serif;
+font-size:11px;
+font-style:normal;
+font-weight:normal;
+margin-bottom:10px;
+margin-top:5px;
+}
+#emailEntryWrap {
+display:none;
+position:absolute;
+right:140px;
+top:45px;
+}
+#emailEntry {
+background-color:#FFFFFF;
+border:2px solid #C1C1C1;
+color:#333333;
+font-family:Verdana,Arial,Helvetica,sans-serif;
+font-size:11px;
+line-height:140%;
+margin:0;
+padding:2px 4px 4px;
+position:relative;
+width:260px;
+}
+.one {
+color:#484FA3;
+font-weight:bold;
+margin-bottom:2px;
+}
+#emailEntry input {
+margin:5px 0 0;
+}
+#emailEntry .okBtn {
+background-color:#EAEAEA;
+border:1px solid #CCCCCC;
+padding:0 4px;
+}
+
+body{
+  height:100%;
+  border:none;
+  margin: 3px 5px 0px 5px;
+  background:#efefef url(images/top-menu-bg.gif) repeat-x; /* BACKGROUND COLOR */
+}
+
+#visitorText
+{
+color:green;
+}
+#operatorText
+{
+color:blue;
+}
+#infoText
+{
+color:black;
+font-weight:bold;
+}
+</style>
+
+<script type="text/javascript">
+
+var lpc;
+
+function myOnLoad()
+{
+    if (document.getElementById('nameInput'))
+    {
+        document.getElementById('nameInput').value = visNameEnterText;
+    }
+
+    lpc = new lpChat();
+
+    lpc.requestChat()
+
+ }
+
+function myOnLine (line)
+{
+
+//var lines = lpc.getLines();
+//for(var i=0; i<lines.length; i++) {
+//alert(lines[i].by + '>' + lines[i].text);
+//}
+
+addChatText(line.by, line.text, line.type);
+
+//lpc.setVisitorTyping(true);
+
+//lpc.setCustomVariable('EricVariable','100%');
+
+}
+
+function sendText() {
+
+var mytextObj = document.getElementById('mytext');
+
+if (lpc.getState().id == 2)
+{
+   if(mytextObj.value!='')
+      {
+     lpc.addLine(mytextObj.value);
+
+     //lpc.setVisitorTyping(false);
+
+     addChatText(lpc.getVisitorName(), mytextObj.value, 0);
+
+     mytextObj.value='';
+   }
+}
+
+return true;
+
+}
+
+function addChatText(by, text, type) {
+
+var ca = document.getElementById('chatArea');
+
+var p = document.createElement( "div" );
+
+switch (parseInt(type))
+{
+        case 0:
+            p.setAttribute('id','visitorText');
+            p.innerHTML = '<span>' + by + ': </span>' + text;
+            break;
+        case 1:
+            p.setAttribute('id','operatorText');
+            p.innerHTML = '<span>' + by + ': </span>' + text;
+            break;
+        case 2:
+            p.setAttribute('id','infoText');
+            p.innerHTML = text;
+            break;
+        case 3:
+            p.setAttribute('id','operatorText');
+            p.innerHTML = '<span>' + by + ': </span>' + text;
+            break;
+        case 4:
+            p.setAttribute('id','operatorText');
+            p.innerHTML = '<span>' + by + ': </span>' + text;;
+            break;
+}
+
+ca.appendChild(p);
+
+ca.scrollTop = 50000;
+
+}
+
+function myOnError(errObj){
+
+ alert('Error occured. ' + errObj.text);
+
+}
+
+function getWindowWidth(){
+	return window.innerWidth ? window.innerWidth : document.documentElement.clientWidth;
+}
+
+function displayEmailEntry(){
+    var wwd = (getWindowWidth()-280)/2;
+    var emaildiv = document.getElementById("emailEntryWrap");
+    emaildiv.style.right = wwd + "px";
+    emaildiv.style.display='block';
+    if(emailObj!=null && emailObj.length>0) {
+      document.getElementById('nameInput').value = emailObj;
+    }
+}
+
+function calcChatFrameHeight(){
+    var rows = document.getElementById('chatWindowTable').rows;
+    totalHeightNoChatFrame = 0;
+    for(var i=0;i<rows.length; i++){
+		if(rows[i].id != 'chatAreaRow'){
+			totalHeightNoChatFrame += rows[i].offsetHeight;
+		}
+	}
+}
+
+function printChat(node){
+
+  var content=node.innerHTML
+  var pwin=window.open('','print_content','width=100,height=100');
+
+  pwin.document.open();
+  pwin.document.write('<html><body onload="window.print()">'+content+'</body></html>');
+  pwin.document.close();
+
+  setTimeout(function(){pwin.close();},1000);
+
+}
+
+function closeChat(){
+    lpc.endChat();
+    window.close();
+    return false;
+}
+
+function emailTranscriptRequest(){
+    document.getElementById('emailEntryWrap').style.display='none';
+    var email = document.getElementById('emailEntryInput').value;
+    if(email!=null && email.length>0) {
+       lpc.requestTranscriptEmail(email);
+       emailObj = email;
+    }
+}
+
+function hideVisitorEnterText() {
+	var input = document.getElementById('nameInput');
+    if (input.value == visNameEnterText) {
+		input.value = '';
+        input.style.color = '#000000';
+        var aTag = document.getElementById('visNameA');
+        if (aTag) {
+            aTag.style.cursor = "pointer";
+        }
+        allowVisNameSubmit = true;
+    }
+}
+
+function submitVisitorName() {
+
+   var name = document.getElementById('nameInput').value;
+   if (name!=null && name.length>0) {
+      lpc.setVisitorName(name);
+      document.getElementById('nameInputRow').style.display = 'none';
+      //needs to re-calculate the table height (for resize of chat frame)
+      calcChatFrameHeight();
+   }
+
+}
+
+var lpChatConfig = {
+    'apiKey' : 'fb7a2d089fec4ff98ecd80be26a12e2d',
+    'lpServer' : 'dev.liveperson.net',
+    'lpNumber' : 'P1520988',
+    'lpProtocol' : (document.location.toString().indexOf('https:')==0) ? 'https' : 'http',
+    'baseUrl' : 'https://dev.liveperson.net/hc/P1520988/',
+    'visitorEventsPollRate' : 2000,
+     onLoad  : myOnLoad,
+     onLine  : myOnLine,
+	 onError : myOnError
+}
+
+lpChatConfig.lpAddScript = function(src, ignore) {var c = lpChatConfig;if(typeof(c.lpProtocol)=='undefined')
+{c.lpProtocol = (document.location.toString().indexOf("https:")==0) ? "https" : "http";}
+if (typeof(src) == 'undefined' || typeof(src) == 'object') {src = c.lpChatSrc ? c.lpChatSrc : '/hcp/html/lpChatAPI.js';};
+if (src.indexOf('http') != 0) {src = c.lpProtocol + "://" + c.lpServer + src + '?site=' + c.lpNumber;} else
+{if (src.indexOf('site=') < 0) {if (src.indexOf('?') < 0)src = src + '?'; else src = src + '&';src = src + 'site=' + c.lpNumber;}};
+var s = document.createElement('script');s.setAttribute('type', 'text/javascript');s.setAttribute('charset', 'iso-8859-1');
+s.setAttribute('src', src);document.getElementsByTagName('head').item(0).appendChild(s);}
+
+if (window.attachEvent)
+{
+window.attachEvent('onload', lpChatConfig.lpAddScript);
+}
+else
+{
+window.addEventListener('load', lpChatConfig.lpAddScript, false);
+}
+
+var visNameEnterText = 'Type your name and press ENTER';
+
+var emailObj='';
+
+/* function return false when script cannot send the text to server */
+function lpVisitorSays ( text ){
+    //chat already ended
+	if ( inChat == false ) return false;
+    if ( stopComm ) return false;
+    if ( text == null || text == "" ) return false;
+
+    //create a line and add it to the chatLines array
+    text = text.replace(/>/g,'&gt;');
+    text = text.replace(/</g,'&lt;');
+    var d = new Date();
+	var line = new LPChatLine(text, visitorTitle, LPChatLine.prototype.VISITOR_LINE, getTime());
+    //add the visitor line to the chat array, to store full (visitor and rep) chat content
+    var linesSize = chatLines.length;
+    chatLines[ linesSize ] = line;
+
+    //return true causes the 'view' section to add the line into the chat content right away
+	return true;
+}
+
+</script>
+
+</head>
+
+<body>
+
+<div id="emailEntryWrap">
+  <div id="emailEntry">
+    <table width="100%" border="0" cellspacing="0" cellpadding="2" id="Table1">
+      <tr>
+        <td class="one">Email Transcript</td>
+          <td align="right"><a href="#" onclick="document.getElementById('emailEntryWrap').style.display='none';"><img src="images/closeSM.gif" width="13" height="13" border="0" alt="" /></a></td>
+        </tr>
+        <tr>
+          <td>
+            <input type="text" size="25" id="emailEntryInput" name="emailT" />
+          </td>
+          <td><input type="button" value="Send" class="okBtn" onclick="emailTranscriptRequest()" /></td>
+        </tr>
+    </table>
+  </div>
+</div>
+<table id='chatWindowTable' border="0" cellpadding="0" cellspacing="0" style="height: 100%;">
+  <tr>
+    <td width="30%" valign="top" style="padding-top: 4px; height: 30px;">
+                       <span>
+        <a href="http://solutions.liveperson.com/?banid=18196&utm_medium=lpchatwindow&utm_campaign=lpchatwindow&utm_source=lpP67488665" id="lplink" title="Liveperson Home" tabindex="-1"
+            onclick="return lpClickPoweredBy();" onkeypress="if (event.keyCode==13) return lpClickPoweredBy();"
+        ><img src="images/poweredby2.gif" alt="Live Chat by LivePerson" title="Live Chat by LivePerson" border="0" /></a>
+      </span>
+         </td>
+    <td colspan="3" align="right" valign="top" style="padding-top:2px;">
+
+          <span id="printChat"><a href="#" onclick="printChat(document.getElementById('chatArea'));return false;" tabindex="5">
+              <img src="images/print.gif" alt="Print chat" title="Print chat" border="0" onmouseover="this.src='images/print-over.gif'" onmouseout="this.src='images/print.gif'" /></a>
+            </span>
+      <span class="divider"><img src="images/toolbarDivider.gif" alt="" /></span>
+
+          <span id="emailChat"><a href="#" onclick="displayEmailEntry(); return false;" tabindex="6">
+              <img src="images/email.gif" alt="Email this chat" title="Email this chat" border="0" onmouseover="this.src='images/email-over.gif'" onmouseout="this.src='images/email.gif'" /></a>
+            </span>
+      <span class="divider"><img src="images/toolbarDivider.gif" alt="" /></span>
+
+
+
+          <span id="closeChat"><a href="#" onclick="closeChat();" tabindex="9">
+            <img src="images/close.gif" alt="Close chat" title="Close chat" border="0" onmouseover="this.src='images/close-over.gif'" onmouseout="this.src='images/close.gif'" /></a>
+          </span>
+    </td>
+  </tr>
+  <tr>
+    <td colspan="2" width="100%"><img src="images/trans.gif" width="1" height="5" alt="" /></td>
+    <td width="10"><img src="images/trans.gif" width="10" height="5" alt="" /></td>
+    <td width="110" height="10"><img src="images/trans.gif" width="1" height="5" alt="" /></td>
+  </tr>
+  <tr id='chatAreaRow'>
+    <td id="chatArea" colspan="2" bgcolor="#FFFFFF" style="border: 1px solid #cad0e1" valign="top" height="100%">
+    </td>
+    <td width="10"><img src="images/trans.gif" width="10" alt="" /></td>
+    <td width="110" valign="top" align="center">
+      <table cellpadding="0" cellspacing="0">
+        <tr>
+          <td align="center">
+                       <iframe id="chatImageIfr" src="../Lesson_3/online-HS.html" width="106" height="218" marginwidth="0" marginheight="0" scrolling="no" frameborder="0" title="background" style="border: 1px solid #c6c6c6;" >
+             This functionality requires frames. To read the LivePerson accessibility policy, please go to the <a href='http://www.liveperson.com/help/accessibility.asp'>Liveperson accessibility policy page</a></iframe>
+                                 </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+  <tr>
+    <td><img src="images/trans.gif" width="1" height="5" alt="" /></td>
+    <td><img src="images/trans.gif" width="1" height="5" alt="" /></td>
+    <td width="10"><img src="images/trans.gif" width="10" height="5" alt="" /></td>
+    <td width="110"><img src="images/trans.gif" width="1" height="5" alt="" /></td>
+  </tr>
+  <tr>
+    <td colspan="2" valign="top" height="70px">
+        <textarea name="mytext" id="mytext" cols="100" rows="3" style="z-index:2; width: 98.9%; height: 70px; border: 1px solid #cad0e1;" title="Chat Text" tabindex="1" dir="ltr" ></textarea>
+    </td>
+    <td width="10" valign="top"><img src="images/trans.gif" width="10" height="1" alt="" /></td>
+    <td width="110" valign="top" style="padding-top: 2px;">
+      <div id="sendChat"><a href="#" onclick="sendText();" tabindex="2">
+        <img src="images/send.gif" alt="Send text" title="Send text" border="0" onmouseover="this.src='images/send-over.gif'" onmouseout="this.src='images/send.gif'" /></a>
+      </div>
+    </td>
+  </tr>
+  <tr>
+    <td colspan="4"><img src="images/trans.gif" width="1" height="5" alt="" /></td>
+  </tr>
+  <tr id='nameInputRow'>
+    <td colspan="2" valign="top">
+        <table cellpadding="0" cellspacing="0" border="0" width="100%">
+          <tr>
+            <td width="98.9%">
+              <input id='nameInput' type='text' style='border: 1px solid #cad0e1; font: 12px Arial; height: 17px; width:98.9%; color: #a7a7a7; vertical-align: top' onfocus='hideVisitorEnterText();' onchange="submitVisitorName();" maxlength="900" dir="ltr" tabindex="3" />
+            </td>
+          </tr>
+       </table>
+    </td>
+    <td colspan="2">&nbsp;</td>
+  </tr>
+  <tr>
+    <td colspan="2" valign="middle">
+      <img src="images/lock.gif" alt="Secure chat" title="Secure chat" vspace="2" style="vertical-align: middle;" />
+    </td>
+    <td colspan="2">&nbsp;</td>
+  </tr>
+  <tr>
+    <td colspan="4"><img src="images/trans.gif" width="1" height="5" alt="" /></td>
+  </tr>
+</table>
+
+</body>
+</html>
