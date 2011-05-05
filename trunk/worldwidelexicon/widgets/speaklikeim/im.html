@@ -1,0 +1,151 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="{{ language }}" lang="{{ language }}" dir="{{ direction }}">
+
+<head>
+<script type=text/javascript>
+function include(url,id) {
+  var req = false;
+  // For Safari, Firefox, and other non-MS browsers
+  if (window.XMLHttpRequest) {
+    try {
+      req = new XMLHttpRequest();
+    } catch (e) {
+      req = false;
+    }
+  } else if (window.ActiveXObject) {
+    // For Internet Explorer on Windows
+    try {
+      req = new ActiveXObject("Msxml2.XMLHTTP");
+    } catch (e) {
+      try {
+        req = new ActiveXObject("Microsoft.XMLHTTP");
+      } catch (e) {
+        req = false;
+      }
+    }
+  }
+  if (req) {
+    // send out the response
+    req.open('GET', url, false); req.send(null);
+    // if the optional 'id' element is present, insert returned text into it, otherwise write to the page wherever it was called
+    document.getElementById(id) ? document.getElementById(id).innerHTML = req.responseText : document.write(req.responseText);
+  } else {
+    document.write('This browser does not support XMLHTTPRequest objects which are required for this page to work');
+  }
+}
+</script>
+<title>IM Translator</title>
+{{metadata}}
+<meta http-equiv="content-type" content="application/xhtml+xml; charset=UTF-8" />
+<meta name="author" content="Erwin Aligam - styleshout.com" />
+<meta name="description" content="Real-time professional translation for GTalk" />
+<meta name="keywords" content="keywords, here" />
+<meta name="robots" content="index, follow, noarchive" />
+<meta name="googlebot" content="noarchive" />
+<meta name="translate" content="n" />
+<link rel="stylesheet" type="text/css" media="screen" href="http://www.dermundo.com/dermundocss/css/screen.css" />
+{{ google_analytics }}
+<!--<script type="text/javascript" src="http://w.sharethis.com/button/buttons.js"></script><script type="text/javascript">stLight.options({publisher:'902e01b2-5b17-45ca-9068-9bbeaf71ae2b'});</script>
+-->
+</head>
+<body>
+
+	<!-- header starts-->
+	<div id="header-wrap"><div id="header" class="container_16">						
+		
+		<h1 id="logo-text"><a href=/ title="">Pro IM Translator</a></h1>
+		
+		<!-- navigation -->
+		<div  id="nav">
+                        <ul>
+                        </ul>
+                </div>
+		
+		<div id="header-image"></div>			
+	
+	<!-- header ends here -->
+	</div></div>
+	
+	<!-- content starts -->
+	<div id="content-outer"><div id="content-wrapper" class="container_16">
+	
+		<!-- main -->
+		<div id="main" class="grid_8">
+			{% if logged_in %}
+			
+			  {% if is_active_session %}
+			  <h3>Active Session</h3>
+			  
+			  {{ active_session }}
+			  
+			  {% else %}
+			
+			  {{ phonebook }}
+			
+			  {% endif %}
+			
+			{% else %}
+			
+			  <h3>Please Login</h3>
+			
+			  <a href={{ google_login_url }}>Please sign in to access your account</a>
+			
+			{% endif %}
+			
+			<div class="clear">&nbsp;</div>
+		
+		<!-- main ends -->
+		</div>
+		
+		<!-- left-columns starts -->
+		<div id="left-columns" class="grid_8">
+		
+			<div class="grid_6 alpha">
+<!--                          <p><a border=0 href=https://api.twitter.com/oauth/authenticate>
+                          <img src=/dermundoimage/twitter.png></a>-->
+			  {% if logged_in %}
+			  <h3>Account Settings</h3>
+			  <form action=/ method=post>
+			  <table border=0>
+			  <input type=hidden name=action value=update>
+			  <tr><td>Your Name</td><td><input type=text name=name value="{{ name }}"></td></tr>
+			  <tr><td>Speaklike Username or Email</td><td><input type=text name=speaklikeemail value="{{ speaklikeemail }}"></td></tr>
+			  <tr><td>Speaklike Password</td><td><input type=password name=speaklikepw></p>
+			  <tr><td>Primary Language</td><td><select name=language>{{ language_select }}</select></p>
+			  <tr><td></td><td><input type=submit value=Update></td></tr>
+			  </form></table>
+			  <p><a href={{ google_logout_url }}>Logout of Google account</a></p>
+			  {% endif %}
+                        </div>
+		<!-- end left-columns -->
+		</div>		
+	
+	<!-- contents end here -->	
+	</div></div>
+
+	<!-- footer starts here -->	
+	<div id="footer-wrapper" class="container_16">
+	
+		<div id="footer-bottom">
+	
+			<p class="bottom-left">			
+			&nbsp; &copy;1998-2011 {{ copyright }} &nbsp; &nbsp;
+			<a href="http://www.bluewebtemplates.com/" title="Website Templates">website templates</a> by <a href="http://www.styleshout.com/">styleshout</a>
+			</p>	
+			
+			<p class="bottom-right" >
+				<a href="index.html">Home</a> |
+				<a href="index.html">Sitemap</a> |
+				<a href="index.html">RSS Feed</a> |						
+				<a href="http://jigsaw.w3.org/css-validator/check/referer">CSS</a> | 
+		   	    <a href="http://validator.w3.org/check/referer">XHTML</a>
+			</p>
+	
+		</div>	
+			
+	</div>
+	<!-- footer ends here -->
+
+</body>
+</html>

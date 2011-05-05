@@ -1,0 +1,7 @@
+indexes:
+
+- kind: Translations
+  properties:
+  - name: session
+  - name: date
+    direction: desc
