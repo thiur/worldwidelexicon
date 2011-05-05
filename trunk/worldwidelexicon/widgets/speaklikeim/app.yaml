@@ -25,5 +25,11 @@ handlers:
 - url: /liveperson/images
   static_dir: liveperson/images
 
+- url: /realtime/(.*)
+  script: realtime.py
+
+- url: /_ah/xmpp/(.*)/(.*)
+  script: realtime.py
+
 - url: .*
-  script: main.py
+  script: realtime.py
