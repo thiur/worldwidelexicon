@@ -1,0 +1,5 @@
+The [Worldwide Lexicon](http://www.worldwidelexicon.org) is a collaborative translation memory that combines inputs from professional, community and machine translations. It is an open source system that runs on [Google App Engine](http://appengine.google.com) and is accessed via a simple web API, or via our easy to use TransKit libraries for popular programming languages.
+
+We currently offer easy to use best effort translation plugins for Word Press, Firefox and Drupal (visit our website for more information and documentation). We also offer TransKit, a family of libraries for popular programming languages including PHP, Python, C/C++ and Java, as well as a translation proxy server that can front end any website or web service.
+
+This website serves primarily as a code repository (you can browse the current source code via our SVN here). For documentation, customer support and other inquiries, go to [www.worldwidelexicon.org](http://www.worldwidelexicon.org) or email bsmcconnell at gmail
